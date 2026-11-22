@@ -86,8 +86,16 @@ describe('festivalCard', () => {
     expect(c!.orgName).toBe('Demo Mandir');
     expect(c!.startISO).toBe('2026-11-25');
     expect(c!.endISO).toBe('2026-11-27');
-    // festival_events carries no venue — no place is invented.
+    // No venue stamped on this doc — no place is invented.
     expect(c!.place).toBeUndefined();
+  });
+
+  it('uses the venue stamped at publish time as the place line (REAL-WORLD PACK)', () => {
+    const c = festivalCard(festival({ venue: 'Community Hall, Temple Road' }), TODAY, pickEn);
+    expect(c!.place).toBe('Community Hall, Temple Road');
+    // A blank or whitespace-only stamp is no venue at all.
+    expect(festivalCard(festival({ venue: '   ' }), TODAY, pickEn)!.place).toBeUndefined();
+    expect(festivalCard(festival({ venue: '' }), TODAY, pickEn)!.place).toBeUndefined();
   });
 
   it('marks passes and debrief from the published doc itself', () => {

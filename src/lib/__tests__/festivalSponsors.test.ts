@@ -16,6 +16,7 @@
  */
 import {
   budgetHeadTotals,
+  buildSponsorReceipt,
   departmentCoverage,
   outstandingOf,
   publicAckNames,
@@ -153,5 +154,57 @@ describe('seedDepartments — the preset taxonomy', () => {
     expect(seeded.every((d) => Array.isArray(d.volunteerNames) && d.volunteerNames.length === 0)).toBe(true);
     expect(seeded.every((d) => d.leadName === undefined)).toBe(true);
     expect(new Set(seeded.map((d) => d.id)).size).toBe(seeded.length);
+  });
+});
+
+describe('buildSponsorReceipt — REAL-WORLD PACK: the treasury-ref receipt', () => {
+  const base = { orgName: 'Demo Mandir', festivalName: 'Durga Puja 2026' };
+
+  it('builds a receipt for money that truly reached the treasury', () => {
+    const r = buildSponsorReceipt({
+      ...base,
+      sponsor: sponsor({ name: 'Generous Family', received: 51000, linkedTxId: 'tx-77' }),
+      treasuryDateISO: '2026-11-15',
+    });
+    expect(r).toEqual({
+      orgName: 'Demo Mandir',
+      festivalName: 'Durga Puja 2026',
+      sponsorName: 'Generous Family',
+      amountReceived: 51000,
+      incomeHead: 'Sponsorships',
+      treasuryRef: 'tx-77',
+      receivedDateISO: '2026-11-15',
+    });
+  });
+
+  it('carries NO invented receipt number — the treasury id is the reference', () => {
+    const r = buildSponsorReceipt({
+      ...base,
+      sponsor: sponsor({ received: 1000, linkedTxId: 'tx-1' }),
+    });
+    expect(r).not.toBeNull();
+    expect(Object.keys(r!)).not.toContain('receiptNo');
+    expect(r!.treasuryRef).toBe('tx-1');
+    // No treasury date at hand → no date line, never a guessed one.
+    expect(r!.receivedDateISO).toBeUndefined();
+  });
+
+  it('refuses a row whose money never reached the treasury', () => {
+    expect(buildSponsorReceipt({ ...base, sponsor: sponsor({ received: 5000 }) })).toBeNull();
+  });
+
+  it('refuses kind and seva sponsors — a receipt is for money', () => {
+    expect(buildSponsorReceipt({
+      ...base, sponsor: sponsor({ kind: 'kind', received: 5000, linkedTxId: 'tx-2' }),
+    })).toBeNull();
+    expect(buildSponsorReceipt({
+      ...base, sponsor: sponsor({ kind: 'seva', received: 5000, linkedTxId: 'tx-3' }),
+    })).toBeNull();
+  });
+
+  it('refuses a zero received figure even with a treasury stamp', () => {
+    expect(buildSponsorReceipt({
+      ...base, sponsor: sponsor({ received: 0, linkedTxId: 'tx-4' }),
+    })).toBeNull();
   });
 });

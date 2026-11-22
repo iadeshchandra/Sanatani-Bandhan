@@ -124,6 +124,13 @@ export interface EventTicket {
   venueReceived?: boolean;
   receivedBy?: string;
   receivedAt?: string;
+  /* REAL-WORLD PACK — desk (counter) sales: the walk-in holds no
+   * account, so buyerUid is the synthetic desk identity
+   * ('desk_' + ticketId); deskSale marks the record and
+   * recordedBy carries the staff member's uid (accountability).
+   * See lib/deskSales. */
+  deskSale?: boolean;
+  recordedBy?: string;
   /* Treasury posting stamp (staff) — the real transaction id */
   treasuryTxId?: string;
   treasuryPostedAt?: string;

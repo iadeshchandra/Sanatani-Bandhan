@@ -30,6 +30,7 @@ import {
   buildInviteMessage, datesLineFor, daysBeforeFor, whatsAppUrl,
   type OutreachStrings,
 } from '../../lib/outreachPacks';
+import { safeExternalUrl } from '../../lib/safeUrl';
 import { FestivalMemoryCard } from './FestivalMemoryCard';
 import { FeedbackCard } from './FeedbackCard';
 import { feedbackPromptEligible } from '../../lib/festivalFeedback';
@@ -289,6 +290,25 @@ export const FestivalEventPage: React.FC<{ previewEvent?: FestivalEventDoc }> = 
         <div className="bg-white rounded-3xl shadow-sm border border-orange-100 p-6">
           <p className="text-[15px] leading-relaxed text-stone-700 text-center italic">“{tr(event.story)}”</p>
         </div>
+
+        {/* REAL-WORLD PACK — the venue: where to come. The map
+            link renders only when lib/safeUrl accepts the stored
+            value (checked again here, at render — the stored-URL
+            XSS gate holds even for a doc written by another path). */}
+        {(event.venue || '').trim() !== '' && (
+          <div className="bg-white rounded-3xl shadow-sm border border-orange-100 p-6 text-center">
+            <h2 className="font-extrabold text-stone-800 mb-1.5">
+              {tr({ en: 'Venue', bn: 'স্থান', hi: 'स्थान' })}
+            </h2>
+            <p className="text-[15px] font-semibold text-stone-700">📍 {event.venue}</p>
+            {safeExternalUrl(event.mapUrl) && (
+              <a href={safeExternalUrl(event.mapUrl) as string} target="_blank" rel="noreferrer"
+                className="inline-flex items-center justify-center mt-3 min-h-[44px] px-4 rounded-xl bg-orange-600 text-white text-sm font-bold hover:bg-orange-700">
+                {tr({ en: 'View on map', bn: 'মানচিত্রে দেখুন', hi: 'मानचित्र पर देखें' })}
+              </a>
+            )}
+          </div>
+        )}
 
         {/* Special timings */}
         {event.timings.length > 0 && (

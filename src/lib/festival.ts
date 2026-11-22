@@ -611,6 +611,16 @@ export interface FestivalEventDoc {
    * published (or withdrawn).
    */
   sponsorThanks?: string[];
+  /**
+   * REAL-WORLD PACK — the venue, stamped at publish time from the
+   * War Room plan: where devotees should come (name/address text),
+   * and an optional map link. The publish ALWAYS stamps both
+   * ('' = none) so a cleared plan value cannot leave a stale
+   * venue standing on the public page. The map link is stored
+   * only after lib/safeUrl accepts it, and re-checked at render.
+   */
+  venue?: string;
+  mapUrl?: string;
   updatedAt: string;
 }
 
@@ -765,6 +775,15 @@ export interface WarRoomPlan {
   notes: string;
   /** EVENTS E2 — seva-pass ticketing (absent = no passes offered). */
   ticketing?: TicketingConfig;
+  /**
+   * REAL-WORLD PACK — where the festival happens: the venue's
+   * name/address as the committee writes it, and an optional map
+   * link. Both ride the publish onto the public festival_events
+   * doc (stamped even when blank, so clearing them here clears
+   * the public page on the next publish).
+   */
+  venue?: string;
+  mapUrl?: string;
   updatedAt: string;
 }
 

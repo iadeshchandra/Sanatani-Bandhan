@@ -135,6 +135,10 @@ export function festivalCard(
     orgId: doc.workspaceId,
     startISO: doc.dateISO,
     endISO,
+    // REAL-WORLD PACK — the venue the committee stamped at
+    // publish time is the card's place line (festivals only;
+    // the other sources' place lines are unchanged).
+    place: (doc.venue || '').trim() || undefined,
     href: `/festival/${encodeURIComponent(doc.workspaceId)}/${encodeURIComponent(doc.id)}`,
     hasPasses: Array.isArray(doc.ticketTiers) && doc.ticketTiers.length > 0,
     hasDebrief: !!doc.debriefSummary,

@@ -33,4 +33,40 @@
     width: 100%;
     box-shadow: none !important;
   }
+
+  /* REAL-WORLD PACK — the gate register prints ALONE, under the
+     same :has() isolation as the debrief sheet (the register
+     exists in the DOM only during its own print state). It is
+     .receipt-paper: paper colours, no Sandhya rules inside. */
+  body:has(.print-gate-register) * {
+    visibility: hidden;
+  }
+  body:has(.print-gate-register) .print-gate-register,
+  body:has(.print-gate-register) .print-gate-register * {
+    visibility: visible;
+  }
+  body:has(.print-gate-register) .print-gate-register {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    box-shadow: none !important;
+  }
+
+  /* REAL-WORLD PACK — the sponsor receipt prints ALONE, same
+     isolation idiom, .receipt-paper law as above. */
+  body:has(.print-sponsor-receipt) * {
+    visibility: hidden;
+  }
+  body:has(.print-sponsor-receipt) .print-sponsor-receipt,
+  body:has(.print-sponsor-receipt) .print-sponsor-receipt * {
+    visibility: visible;
+  }
+  body:has(.print-sponsor-receipt) .print-sponsor-receipt {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    box-shadow: none !important;
+  }
 }

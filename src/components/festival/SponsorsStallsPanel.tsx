@@ -32,13 +32,14 @@ import { useLanguage } from '../../context/LanguageContext';
 import { useAuthWorkspace } from '../../context/AuthWorkspaceContext';
 import { useData } from '../../context/DataContext';
 import { useUtsav, uid } from '../../utsav/utsavStore';
-import { Card, Btn, Field, Empty, inputCls } from '../../utsav/ui';
+import { Card, Btn, Field, Empty, inputCls, fmtDate } from '../../utsav/ui';
 import { db } from '../../lib/firebase';
 import { useInr } from '../../hooks/useWorkspaceInr';
 import type { FestivalEventDoc, WarFestival, WarRoomPlan } from '../../lib/festival';
 import { matchLocalFestival } from '../../lib/festivalDebrief';
 import {
-  budgetHeadTotals, outstandingOf, publicAckNames, sponsorTotals, stallTotals,
+  budgetHeadTotals, buildSponsorReceipt, outstandingOf, publicAckNames, sponsorTotals, stallTotals,
+  type SponsorReceipt,
 } from '../../lib/festivalSponsors';
 import type {
   Festival, FestivalSponsor, FestivalStall, SponsorKind, StallKind,
@@ -70,8 +71,11 @@ export const SponsorsStallsPanel: React.FC<Props> = ({ wf, plan, event }) => {
   const { t } = useLanguage();
   const inr = useInr();
   const { activeWorkspace, currentUser } = useAuthWorkspace();
-  const { addTreasuryTransaction } = useData();
+  const { addTreasuryTransaction, treasury } = useData();
   const { state, update } = useUtsav();
+  /* REAL-WORLD PACK — the sponsor receipt being printed, if any. */
+  const [receipt, setReceipt] = useState<SponsorReceipt | null>(null);
+  const [printingReceipt, setPrintingReceipt] = useState(false);
 
   const linked: Festival | null = useMemo(
     () => matchLocalFestival(wf.dateISO, wf.endDateISO, state.festivals),
@@ -180,6 +184,29 @@ export const SponsorsStallsPanel: React.FC<Props> = ({ wf, plan, event }) => {
     } finally {
       setBusyId('');
     }
+  };
+
+  /* REAL-WORLD PACK — print a sponsor's receipt. Only a cash row
+   * whose money truly reached the treasury (linkedTxId) can have
+   * one; buildSponsorReceipt enforces that and returns the exact
+   * content the sheet may say. The date is the treasury
+   * transaction's own date, looked up by its id. Print follows
+   * the DebriefCard idiom (mark, paint, print, unmark). */
+  const printReceipt = (s: FestivalSponsor) => {
+    const tx = treasury.find((x) => x.id === s.linkedTxId);
+    const r = buildSponsorReceipt({
+      orgName: activeWorkspace.name || '',
+      festivalName: linked.name,
+      sponsor: s,
+      ...(tx?.date ? { treasuryDateISO: tx.date } : {}),
+    });
+    if (!r) return;
+    setReceipt(r);
+    setPrintingReceipt(true);
+    setTimeout(() => {
+      window.print();
+      setPrintingReceipt(false);
+    }, 150);
   };
 
   const openSponsor = (s?: FestivalSponsor) => {
@@ -381,6 +408,11 @@ export const SponsorsStallsPanel: React.FC<Props> = ({ wf, plan, event }) => {
                     )}
                   </div>
                   <div className="flex shrink-0 gap-1.5">
+                    {s.kind === 'cash' && s.linkedTxId && (
+                      <Btn variant="ghost" className="!px-2.5" onClick={() => printReceipt(s)}>
+                        🧾 {t('surfaces.events.sponsorReceiptBtn')}
+                      </Btn>
+                    )}
                     <Btn variant="ghost" className="!px-2.5" onClick={() => openSponsor(s)}>{t('surfaces.events.sponsorEdit')}</Btn>
                     <Btn variant="ghost" className="!px-2.5" onClick={() => saveSponsors(sponsors.filter((x) => x.id !== s.id))}>
                       {t('surfaces.events.sponsorRemove')}
@@ -514,6 +546,44 @@ export const SponsorsStallsPanel: React.FC<Props> = ({ wf, plan, event }) => {
             );
           })}
         </ul>
+      )}
+
+      {/* ── REAL-WORLD PACK — the sponsor receipt sheet (paper
+          only, rendered during its own print state; print.css
+          isolates .print-sponsor-receipt). No receipt number is
+          invented: the treasury transaction id is the reference. */}
+      {printingReceipt && receipt && (
+        <div className="receipt-paper print-sponsor-receipt rounded-2xl p-5">
+          <div className="rp-eyebrow text-[11px] font-bold uppercase tracking-widest">
+            {receipt.orgName}
+          </div>
+          <div className="rp-title text-2xl font-black mt-1">{t('surfaces.events.sponsorReceiptTitle')}</div>
+          <div className="rp-soft text-sm mt-0.5">{receipt.festivalName}</div>
+          <div className="paper-line border-t mt-3 pt-3 space-y-1.5 text-sm">
+            <div className="flex justify-between gap-3">
+              <span className="rp-soft">{t('surfaces.events.sponsorName')}</span>
+              <span className="rp-ink font-black">{receipt.sponsorName}</span>
+            </div>
+            <div className="flex justify-between gap-3">
+              <span className="rp-soft">{t('surfaces.events.sponsorReceiptAmount')}</span>
+              <span className="rp-amount font-black tnum">{inr(receipt.amountReceived)}</span>
+            </div>
+            <div className="flex justify-between gap-3">
+              <span className="rp-soft">{t('surfaces.events.sponsorReceiptHead')}</span>
+              <span className="rp-ink font-bold">{receipt.incomeHead}</span>
+            </div>
+            {receipt.receivedDateISO && (
+              <div className="flex justify-between gap-3">
+                <span className="rp-soft">{t('surfaces.events.sponsorReceiptDate')}</span>
+                <span className="rp-ink font-bold">{fmtDate(receipt.receivedDateISO)}</span>
+              </div>
+            )}
+          </div>
+          <p className="text-sm rp-ink mt-4">{t('surfaces.events.sponsorReceiptThanks')}</p>
+          <p className="text-[11px] rp-soft mt-3">
+            Treasury ref: {receipt.treasuryRef} — {t('surfaces.events.sponsorReceiptRefNote')}
+          </p>
+        </div>
       )}
     </Card>
   );

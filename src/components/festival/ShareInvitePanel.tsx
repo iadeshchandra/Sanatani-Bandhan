@@ -4,7 +4,10 @@
  * Ready WhatsApp messages composed from the festival's REAL data
  * (name, dates, organisation, the canonical public page link) in
  * three moments: announcement, a days-aware gentle reminder, and
- * the last call. Copy one, or open it in WhatsApp — either way the
+ * the last call — plus, since the REAL-WORLD PACK, a fourth: the
+ * Change pack, composed from the organiser's own typed change
+ * lines, for people already booked. Copy one, or open it in
+ * WhatsApp — either way the
  * message is sent from the ORGANISER'S OWN WhatsApp, to people
  * they choose there. The panel says so in plain words, and looks
  * nothing like the WhatsApp Broadcaster desk (which stays labelled
@@ -14,11 +17,11 @@
 import React, { useMemo, useState } from 'react';
 import { useLanguage } from '../../context/LanguageContext';
 import { useAuthWorkspace } from '../../context/AuthWorkspaceContext';
-import { T, Card, Btn } from '../../utsav/ui';
+import { T, Card, Btn, Field, inputCls } from '../../utsav/ui';
 import { festivalEventUrl, type WarFestival, type WarRoomPlan } from '../../lib/festival';
 import {
-  buildOutreachMessage, datesLineFor, daysBeforeFor, whatsAppUrl,
-  type OutreachStrings, type OutreachTone,
+  buildChangeMessage, buildOutreachMessage, datesLineFor, daysBeforeFor, whatsAppUrl,
+  type ChangeStrings, type OutreachStrings, type OutreachTone,
 } from '../../lib/outreachPacks';
 
 interface Props {
@@ -26,17 +29,27 @@ interface Props {
   plan: WarRoomPlan;
 }
 
-const TONES: { id: OutreachTone; key: string }[] = [
+/* REAL-WORLD PACK adds a fourth moment: the Change pack, for
+ * people already booked. It is not an OutreachTone — it carries
+ * the organiser's own change lines (lib/outreachPacks). */
+type PanelTone = OutreachTone | 'change';
+
+const TONES: { id: PanelTone; key: string }[] = [
   { id: 'announcement', key: 'shareToneAnnouncement' },
   { id: 'reminder', key: 'shareToneReminder' },
   { id: 'lastcall', key: 'shareToneLastCall' },
+  { id: 'change', key: 'shareToneChange' },
 ];
 
 export const ShareInvitePanel: React.FC<Props> = ({ wf, plan }) => {
   const { t, language } = useLanguage();
   const { activeWorkspace } = useAuthWorkspace();
-  const [tone, setTone] = useState<OutreachTone>('announcement');
+  const [tone, setTone] = useState<PanelTone>('announcement');
   const [copied, setCopied] = useState(false);
+  /* REAL-WORLD PACK — the Change pack's organiser-typed lines. */
+  const [changeDates, setChangeDates] = useState('');
+  const [changeVenue, setChangeVenue] = useState('');
+  const [changeNote, setChangeNote] = useState('');
 
   const lang = (language || 'en').slice(0, 2);
   const festivalName = lang === 'bn' ? wf.name.bn : lang === 'hi' ? wf.name.hi : wf.name.en;
@@ -52,15 +65,27 @@ export const ShareInvitePanel: React.FC<Props> = ({ wf, plan }) => {
     invite: t('surfaces.events.shareMsgInvite'),
   }), [t]);
 
+  const changeStrings: ChangeStrings = useMemo(() => ({
+    change: t('surfaces.events.shareMsgChange'),
+    changeDatesLine: t('surfaces.events.shareMsgChangeDates'),
+    changeVenueLine: t('surfaces.events.shareMsgChangeVenue'),
+  }), [t]);
+
   const message = useMemo(
-    () => buildOutreachMessage(tone, {
-      festivalName,
-      orgName: activeWorkspace.name || '',
-      datesLine: datesLineFor(wf.dateISO, wf.endDateISO),
-      link,
-      daysBefore: daysBeforeFor(wf.dateISO, Date.now()),
-    }, strings),
-    [tone, festivalName, activeWorkspace.name, wf.dateISO, wf.endDateISO, link, strings]
+    () => {
+      const data = {
+        festivalName,
+        orgName: activeWorkspace.name || '',
+        datesLine: datesLineFor(wf.dateISO, wf.endDateISO),
+        link,
+        daysBefore: daysBeforeFor(wf.dateISO, Date.now()),
+      };
+      return tone === 'change'
+        ? buildChangeMessage(data, { newDates: changeDates, newVenue: changeVenue, note: changeNote }, changeStrings)
+        : buildOutreachMessage(tone, data, strings);
+    },
+    [tone, festivalName, activeWorkspace.name, wf.dateISO, wf.endDateISO, link, strings,
+     changeDates, changeVenue, changeNote, changeStrings]
   );
 
   const copy = async () => {
@@ -114,6 +139,27 @@ export const ShareInvitePanel: React.FC<Props> = ({ wf, plan }) => {
           </button>
         ))}
       </div>
+
+      {/* REAL-WORLD PACK — the Change pack's fields: the organiser
+          types what changed (never invented by the app); each
+          filled line becomes one sentence of the message. */}
+      {tone === 'change' && (
+        <div className="rounded-2xl border border-amber-200 bg-amber-50/60 px-3 py-3 mb-3 space-y-2">
+          <p className="text-xs font-bold text-amber-900">{t('surfaces.events.shareChangeAudience')}</p>
+          <Field label={t('surfaces.events.shareChangeNewDatesLabel')}>
+            <input className={inputCls} value={changeDates} maxLength={120}
+              onChange={(e) => setChangeDates(e.target.value)} />
+          </Field>
+          <Field label={t('surfaces.events.shareChangeNewVenueLabel')}>
+            <input className={inputCls} value={changeVenue} maxLength={160}
+              onChange={(e) => setChangeVenue(e.target.value)} />
+          </Field>
+          <Field label={t('surfaces.events.shareChangeNoteLabel')}>
+            <input className={inputCls} value={changeNote} maxLength={240}
+              onChange={(e) => setChangeNote(e.target.value)} />
+          </Field>
+        </div>
+      )}
 
       <div className="rounded-2xl bg-stone-50 border border-stone-100 px-4 py-3 mb-3">
         <p className="text-sm leading-relaxed text-stone-700 whitespace-pre-line">{message}</p>

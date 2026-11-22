@@ -105,7 +105,12 @@ describe('surfaces + vibe dict completeness (en/hi/bn authored)', () => {
     // the festival page's invite block — and the pass release
     // calendar: releaseOpensOn/releaseNotice/releaseNotYet) in all
     // 10 languages.
-    expect(keysOf(en).length).toBe(834);
+    // REAL-WORLD PACK adds 26 surfaces.events keys (the printable
+    // gate register: gateRegTitle…gateRegExpected; the Change
+    // outreach pack: shareToneChange…shareChangeNoteLabel; sponsor
+    // receipts: sponsorReceiptBtn…sponsorReceiptRefNote) in all
+    // 10 languages.
+    expect(keysOf(en).length).toBe(860);
     for (const bucket of Object.keys(en)) {
       for (const leaf of Object.keys(en[bucket])) {
         for (const dict of [en, hi, bn]) {

@@ -129,6 +129,54 @@ export function buildInviteMessage(data: OutreachData, s: OutreachStrings): stri
   return fillTemplate(s.invite, baseValues(data));
 }
 
+/* ------------------------------------------------------------------ */
+/* REAL-WORLD PACK — the Change pack                                   */
+/* ------------------------------------------------------------------ */
+
+/**
+ * The organiser-supplied facts of a change of plan. Every line is
+ * typed by the organiser in the War Room (a new date, a new venue,
+ * a postponement note in their own words) — the app NEVER invents
+ * a change. A blank line simply leaves its sentence out.
+ */
+export interface ChangeLines {
+  newDates?: string;
+  newVenue?: string;
+  note?: string;
+}
+
+export interface ChangeStrings {
+  /** "🙏 Namaskar — a change of plan for {festival} at {org}. {changeDates} {changeVenue} {note} Latest details: {link}" */
+  change: string;
+  /** "New dates: {value}." — composed only when the organiser supplied one. */
+  changeDatesLine: string;
+  /** "New venue: {value}." — composed only when the organiser supplied one. */
+  changeVenueLine: string;
+}
+
+/**
+ * The Change message: for people ALREADY BOOKED, sent by the
+ * organiser from their own WhatsApp to their own contacts (the
+ * panel says exactly that — nothing is delivered by the app).
+ * Composed from the festival's real data plus the organiser's
+ * change lines; a missing line degrades its sentence away under
+ * the same no-placeholder law as every other pack.
+ */
+export function buildChangeMessage(
+  data: OutreachData,
+  lines: ChangeLines,
+  s: ChangeStrings
+): string {
+  const newDates = (lines.newDates || '').trim();
+  const newVenue = (lines.newVenue || '').trim();
+  return fillTemplate(s.change, {
+    ...baseValues(data),
+    changeDates: newDates ? fillTemplate(s.changeDatesLine, { value: newDates }) : '',
+    changeVenue: newVenue ? fillTemplate(s.changeVenueLine, { value: newVenue }) : '',
+    note: (lines.note || '').trim(),
+  });
+}
+
 /** Whole days from now until the festival's first moment — the
  *  same clock the rules use (lib/eventTickets' festival clock). */
 export function daysBeforeFor(dateISO: string, nowMs: number): number {

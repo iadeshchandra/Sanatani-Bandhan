@@ -21,6 +21,7 @@ import {
 } from '../../lib/eventTickets';
 import { db } from '../../lib/firebase';
 import { doc, setDoc } from 'firebase/firestore';
+import { safeExternalUrl } from '../../lib/safeUrl';
 
 const uid = (p: string) => `${p}_${Date.now().toString(36)}${Math.floor(Math.random() * 1e4).toString(36)}`;
 
@@ -52,6 +53,15 @@ export const PublishPanel: React.FC<Props> = ({ wf, plan, patchPlan }) => {
   const cloud = useFestivalCloud(activeWorkspace.id, wf.key, { subscribeRsvps: true });
 
   const [story, setStory] = useState('');
+  // REAL-WORLD PACK — venue + map link live on the plan; the
+  // publish stamps them onto the public doc (buildDoc below).
+  const [venue, setVenue] = useState(plan.venue || '');
+  const [mapUrl, setMapUrl] = useState(plan.mapUrl || '');
+  useEffect(() => {
+    setVenue(plan.venue || '');
+    setMapUrl(plan.mapUrl || '');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [plan.id]);
   const [timings, setTimings] = useState<FestivalTiming[]>([]);
   const [slots, setSlots] = useState<DarshanSlot[]>([]);
   const [newTiming, setNewTiming] = useState({ label: '', time: '' });
@@ -90,6 +100,14 @@ export const PublishPanel: React.FC<Props> = ({ wf, plan, patchPlan }) => {
       tithiLine: wf.tithiLine,
       timings,
       story: { en: story.trim(), bn: story.trim(), hi: story.trim() },
+      // REAL-WORLD PACK — venue stamps ride EVERY publish (even
+      // ''), so clearing the venue here clears the public page on
+      // the next publish — a merge can never leave a stale venue
+      // standing. The map link is stamped only in the form
+      // lib/safeUrl accepts (the stored-URL XSS gate), and the
+      // page re-checks it at render.
+      venue: venue.trim(),
+      mapUrl: safeExternalUrl(mapUrl) || '',
       rsvpEnabled: true,
       darshanSlots: slots,
       published: pub,
@@ -171,6 +189,32 @@ export const PublishPanel: React.FC<Props> = ({ wf, plan, patchPlan }) => {
         <textarea className={`${inputCls} min-h-[88px]`} rows={3} value={story}
           onChange={(e) => setStory(e.target.value)} maxLength={400} />
       </Field>
+
+      {/* REAL-WORLD PACK — venue + map link: where devotees should
+          come. Saved onto the plan as you leave each field; the
+          publish above stamps them onto the public page and the
+          /events list. */}
+      <div className="mt-3">
+        <Field label={<T en="Venue — where devotees should come" bn="স্থান — ভক্তরা যেখানে আসবেন" hi="स्थान — भक्त जहाँ आएं" />}>
+          <input className={inputCls} value={venue} maxLength={160}
+            placeholder={safeTranslate('festival.pub.venue', 'e.g. Community hall, Temple Road', 'যেমন কমিউনিটি হল, মন্দির রোড', 'जैसे सामुदायिक भवन, मंदिर मार्ग')}
+            onChange={(e) => setVenue(e.target.value)}
+            onBlur={() => patchPlan?.({ venue: venue.trim() })} />
+        </Field>
+        <div className="mt-2">
+          <Field label={<T en="Map link (optional)" bn="মানচিত্রের লিংক (ঐচ্ছিক)" hi="मानचित्र लिंक (वैकल्पिक)" />}>
+            <input className={inputCls} value={mapUrl} maxLength={500} inputMode="url"
+              placeholder="https://maps.google.com/…"
+              onChange={(e) => setMapUrl(e.target.value)}
+              onBlur={() => patchPlan?.({ mapUrl: safeExternalUrl(mapUrl) || '' })} />
+          </Field>
+        </div>
+        <p className="text-[11px] text-stone-400 mt-1">
+          <T en="Shown on the public festival page and the events list, so families know where to come."
+            bn="পাবলিক উৎসব পৃষ্ঠা ও ইভেন্ট তালিকায় দেখানো হয়, যাতে পরিবার জানে কোথায় আসতে হবে।"
+            hi="सार्वजनिक उत्सव पृष्ठ और इवेंट सूची में दिखता है, ताकि परिवार जान सके कहाँ आना है।" />
+        </p>
+      </div>
 
       {/* Special timings */}
       <div className="mt-3">

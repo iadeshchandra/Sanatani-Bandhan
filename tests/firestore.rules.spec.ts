@@ -957,6 +957,108 @@ describe('EVENTS E2 — seva pass ticketing (event_tickets)', () => {
   });
 });
 
+describe('EVENTS E8 — the pass release gate (tkReleaseOpen)', () => {
+  const EV = 'ws-1__fest1';
+  const startMs = Date.now() + 30 * 86400000; // festival 30 days out
+  const ticketDoc = (over: Record<string, unknown> = {}) => ({
+    workspaceId: 'ws-1',
+    festivalId: EV,
+    tierId: 'pass1',
+    tierName: 'Cultural evening pass',
+    buyerUid: 'user-1',
+    buyerName: 'User One',
+    attendees: [{ name: 'User One' }, { name: 'Guest Two' }],
+    qty: 2,
+    amounts: { price: 1000, discount: 0, fee: 50, gst: 9, total: 1000 },
+    currency: 'INR',
+    paymentState: 'paid-wallet',
+    rsvpId: `${EV}__user-1`,
+    createdAt: '2026-01-01T00:00:00.000Z',
+    ...over,
+  });
+
+  // Seeds the E2 fixtures, then stamps the published doc's
+  // release moment as the test asks (undefined = no stamp at all,
+  // the pre-E8 shape).
+  const seed = async (releaseAtMs?: number) => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      const db = context.firestore();
+      await db.collection('festival_plans').doc(EV).set({
+        workspaceId: 'ws-1',
+        ticketing: {
+          tiers: [],
+          tierPrices: { pass1: 500 },
+          tierKinds: { pass1: 'paid' },
+          tierEarly: {},
+          tierMax: { pass1: 6 },
+          codeMap: {},
+          refundLadder: [
+            { minDaysBefore: 7, percent: 100 },
+            { minDaysBefore: 0, percent: 0 },
+          ],
+          discountUses: {},
+          feeBearer: 'organiser',
+          startMs,
+          endMs: startMs + 86400000 - 1,
+        },
+      });
+      await db.collection('festival_events').doc(EV).set({
+        workspaceId: 'ws-1',
+        published: true,
+        ticketFeeBearer: 'organiser',
+        tierCaps: { pass1: 100 },
+        tierSold: {},
+        rsvpHeadcount: 0,
+        slotBooked: {},
+        ...(releaseAtMs !== undefined ? { ticketReleaseAtMs: releaseAtMs } : {}),
+      });
+      await db.collection('wallets').doc('user-1').set({
+        uid: 'user-1', balance: 2000, totalSpent: 0, totalReceived: 0, currency: 'INR',
+      });
+    });
+  };
+
+  const buyerDb = () => testEnv.authenticatedContext('user-1').firestore();
+
+  const purchaseBatch = (db: any) => {
+    const amounts = { price: 1000, discount: 0, fee: 50, gst: 9, total: 1000 };
+    const batch = db.batch();
+    batch.set(db.collection('event_tickets').doc('tk-e8-1'), ticketDoc({ amounts }));
+    batch.set(db.collection('festival_rsvps').doc(`${EV}__user-1`), {
+      eventId: EV, workspaceId: 'ws-1', uid: 'user-1', name: 'User One',
+      headcount: 2, status: 'confirmed', createdAt: '2026-01-01T00:00:00.000Z', ticketId: 'tk-e8-1',
+    });
+    batch.update(db.collection('wallets').doc('user-1'), {
+      balance: 2000 - amounts.total, totalSpent: amounts.total, lastDebitTicketId: 'tk-e8-1', updatedAt: 1,
+    });
+    batch.set(db.collection('walletTransactions').doc('txn-e8-1'), {
+      uid: 'user-1', type: 'spend', amount: amounts.total, currency: 'INR',
+      orderId: 'tk-e8-1', note: 'Seva pass', createdAt: 1,
+    });
+    batch.update(db.collection('festival_events').doc(EV), {
+      tierSold: { pass1: 2 }, tierAnchorTicketId: 'tk-e8-1', updatedAt: 1,
+    });
+    return batch.commit();
+  };
+
+  it('99. A purchase before the stamped release moment is refused', async () => {
+    await seed(Date.now() + 86400000); // passes open tomorrow
+    await assertFails(purchaseBatch(buyerDb()));
+  });
+
+  it('100. A purchase after the release moment succeeds', async () => {
+    await seed(Date.now() - 86400000); // passes opened yesterday
+    await assertSucceeds(purchaseBatch(buyerDb()));
+  });
+
+  it('101. No stamp (pre-E8 doc) and a 0 stamp both leave the gate open', async () => {
+    await seed(undefined);
+    await assertSucceeds(purchaseBatch(buyerDb()));
+    await seed(0);
+    await assertSucceeds(purchaseBatch(buyerDb()));
+  });
+});
+
 describe('EVENTS E5 — attendee feedback (event_feedback)', () => {
   const EV = 'ws-1__fest1';
   const FB = `${EV}__user-1`;
@@ -1141,5 +1243,176 @@ describe('EVENTS E5 — attendee feedback (event_feedback)', () => {
     );
     await assertFails(attendeeDb().collection('event_feedback').doc(FB).delete());
     await assertFails(staffDb().collection('event_feedback').doc(FB).delete());
+  });
+});
+
+describe('REAL-WORLD PACK — desk (counter) sales (event_tickets)', () => {
+  const EV = 'ws-1__fest1';
+  const TID = 'tk-desk-1';
+  const DESK_UID = `desk_${TID}`;
+  const startMs = Date.now() + 30 * 86400000; // festival 30 days out
+
+  const deskTicket = (over: Record<string, unknown> = {}) => ({
+    workspaceId: 'ws-1',
+    festivalId: EV,
+    tierId: 'pass1',
+    tierName: 'Cultural evening pass',
+    buyerUid: DESK_UID,
+    buyerName: 'Walk-in Guest',
+    attendees: [{ name: 'Walk-in Guest' }, { name: 'Guest Two' }],
+    qty: 2,
+    amounts: { price: 1000, discount: 0, fee: 50, gst: 9, total: 1000 },
+    currency: 'INR',
+    paymentState: 'pay-at-venue',
+    rsvpId: `${EV}__${DESK_UID}`,
+    createdAt: '2026-01-01T00:00:00.000Z',
+    deskSale: true,
+    recordedBy: 'admin-1',
+    venueReceived: true,
+    receivedBy: 'Admin One',
+    receivedAt: '2026-01-01T00:00:00.000Z',
+    ...over,
+  });
+
+  const deskRsvp = (over: Record<string, unknown> = {}) => ({
+    eventId: EV,
+    workspaceId: 'ws-1',
+    uid: DESK_UID,
+    name: 'Walk-in Guest',
+    headcount: 2,
+    status: 'confirmed',
+    createdAt: '2026-01-01T00:00:00.000Z',
+    ticketId: TID,
+    ...over,
+  });
+
+  const seed = async (releaseAtMs?: number) => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      const db = context.firestore();
+      await db.collection('festival_plans').doc(EV).set({
+        workspaceId: 'ws-1',
+        ticketing: {
+          tiers: [],
+          tierPrices: { pass1: 500 },
+          tierKinds: { pass1: 'paid' },
+          tierEarly: {},
+          tierMax: { pass1: 6 },
+          codeMap: {},
+          refundLadder: [
+            { minDaysBefore: 7, percent: 100 },
+            { minDaysBefore: 0, percent: 0 },
+          ],
+          discountUses: {},
+          feeBearer: 'organiser',
+          startMs,
+          endMs: startMs + 86400000 - 1,
+        },
+      });
+      await db.collection('festival_events').doc(EV).set({
+        workspaceId: 'ws-1',
+        published: true,
+        ticketFeeBearer: 'organiser',
+        tierCaps: { pass1: 100 },
+        tierSold: {},
+        rsvpHeadcount: 0,
+        slotBooked: {},
+        ...(releaseAtMs !== undefined ? { ticketReleaseAtMs: releaseAtMs } : {}),
+      });
+    });
+  };
+
+  const staffDb = () => testEnv.authenticatedContext('admin-1').firestore();
+  const devoteeDb = () => testEnv.authenticatedContext('user-1').firestore();
+
+  // The whole sale as ONE batch, exactly as lib/deskSales writes it:
+  // the ticket, the party RSVP under the desk identity, the
+  // headcount anchor (rsvpAnchorUid) and the tierSold anchor.
+  const deskBatch = (db: any, ticketOver: Record<string, unknown> = {}) => {
+    const batch = db.batch();
+    batch.set(db.collection('event_tickets').doc(TID), deskTicket(ticketOver));
+    batch.set(db.collection('festival_rsvps').doc(`${EV}__${DESK_UID}`), deskRsvp());
+    batch.update(db.collection('festival_events').doc(EV), {
+      rsvpHeadcount: 2, rsvpAnchorUid: DESK_UID, updatedAt: 1,
+    });
+    batch.update(db.collection('festival_events').doc(EV), {
+      tierSold: { pass1: 2 }, tierAnchorTicketId: TID, updatedAt: 1,
+    });
+    return batch.commit();
+  };
+
+  it('102. A staff desk sale commits as one batch — ticket, desk RSVP, both anchors', async () => {
+    await seed();
+    await assertSucceeds(deskBatch(staffDb()));
+  });
+
+  it('103. A devotee cannot make a desk sale (the desk clauses are staff-only)', async () => {
+    await seed();
+    await assertFails(deskBatch(devoteeDb()));
+  });
+
+  it('104. A desk ticket claiming paid-wallet is refused — a desk identity holds no wallet', async () => {
+    await seed();
+    await assertFails(deskBatch(staffDb(), { paymentState: 'paid-wallet' }));
+  });
+
+  it('105. A desk ticket carrying a discount code is refused — codes stay a devotee-channel feature', async () => {
+    await seed();
+    await assertFails(deskBatch(staffDb(), { discountCode: 'DIWALI10' }));
+  });
+
+  it('106. A desk ticket whose buyer is not the derived desk identity is refused', async () => {
+    await seed();
+    await assertFails(deskBatch(staffDb(), { buyerUid: 'admin-1', rsvpId: `${EV}__admin-1` }));
+  });
+
+  it('107. A desk ticket recorded by someone else is refused (recordedBy must be the caller)', async () => {
+    await seed();
+    await assertFails(deskBatch(staffDb(), { recordedBy: 'acct-1' }));
+  });
+
+  it('108. The headcount anchor cannot move without its witness ticket', async () => {
+    await seed();
+    const db = staffDb();
+    await assertFails(
+      db.collection('festival_events').doc(EV).update({
+        rsvpHeadcount: 2, rsvpAnchorUid: DESK_UID, updatedAt: 1,
+      })
+    );
+  });
+
+  it('109. A desk sale before the stamped release moment is refused', async () => {
+    await seed(Date.now() + 86400000); // passes open tomorrow
+    await assertFails(deskBatch(staffDb()));
+  });
+
+  it('110. A devotee cannot create an RSVP under a desk identity', async () => {
+    await seed();
+    await assertFails(
+      devoteeDb().collection('festival_rsvps').doc(`${EV}__${DESK_UID}`).set(deskRsvp())
+    );
+  });
+
+  it('111. A buyer-self ticket cannot smuggle desk fields past the pinned key set', async () => {
+    await seed();
+    const db = devoteeDb();
+    const batch = db.batch();
+    batch.set(db.collection('event_tickets').doc('tk-smuggle'), {
+      workspaceId: 'ws-1',
+      festivalId: EV,
+      tierId: 'pass1',
+      tierName: 'Cultural evening pass',
+      buyerUid: 'user-1',
+      buyerName: 'User One',
+      attendees: [{ name: 'User One' }, { name: 'Guest Two' }],
+      qty: 2,
+      amounts: { price: 1000, discount: 0, fee: 50, gst: 9, total: 1000 },
+      currency: 'INR',
+      paymentState: 'pay-at-venue',
+      rsvpId: `${EV}__user-1`,
+      createdAt: '2026-01-01T00:00:00.000Z',
+      deskSale: true,
+      recordedBy: 'user-1',
+    });
+    await assertFails(batch.commit());
   });
 });

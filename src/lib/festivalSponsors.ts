@@ -168,6 +168,62 @@ export interface DepartmentCoverage {
   openDepartments: number;
 }
 
+/* ------------------------------------------------------------------ */
+/* REAL-WORLD PACK — the sponsor receipt                               */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Everything a printed sponsor receipt may say — and nothing it
+ * may not. A receipt exists ONLY for money that truly reached the
+ * treasury: a cash sponsor whose row carries the real treasury
+ * transaction id (linkedTxId, stamped by "mark received"). There
+ * is deliberately NO receipt number here: client-side numbering
+ * can collide and can be invented; the treasury transaction id is
+ * unique, real, and findable in the treasury itself, so it serves
+ * as the receipt reference ("Treasury ref"). The date is the
+ * treasury transaction's own date, supplied by the caller from
+ * the treasury record — absent when that record is not at hand,
+ * and the receipt then simply carries no date line rather than
+ * guessing one.
+ */
+export interface SponsorReceipt {
+  orgName: string;
+  festivalName: string;
+  sponsorName: string;
+  /** Amount received (the register row's received figure). */
+  amountReceived: number;
+  /** The income head this money was posted under. */
+  incomeHead: 'Sponsorships';
+  /** The treasury transaction id — the receipt's reference. */
+  treasuryRef: string;
+  /** The treasury transaction's date (YYYY-MM-DD), when known. */
+  receivedDateISO?: string;
+}
+
+export function buildSponsorReceipt(input: {
+  orgName: string;
+  festivalName: string;
+  sponsor: Pick<FestivalSponsor, 'name' | 'kind' | 'received' | 'linkedTxId'>;
+  /** The linked treasury transaction's date, when the caller found it. */
+  treasuryDateISO?: string;
+}): SponsorReceipt | null {
+  const { sponsor } = input;
+  if (sponsor.kind !== 'cash') return null;
+  if (!sponsor.linkedTxId) return null;
+  const amount = Math.max(0, Math.round(sponsor.received || 0));
+  if (amount <= 0) return null;
+  if (!sponsor.name.trim() || !input.festivalName.trim()) return null;
+  return {
+    orgName: input.orgName || '',
+    festivalName: input.festivalName,
+    sponsorName: sponsor.name,
+    amountReceived: amount,
+    incomeHead: 'Sponsorships',
+    treasuryRef: sponsor.linkedTxId,
+    ...(input.treasuryDateISO ? { receivedDateISO: input.treasuryDateISO } : {}),
+  };
+}
+
 /** Target vs assigned (the committee's volunteerNames list) per
  *  department, plus the board's totals. A name listed twice is
  *  still one sevadar — duplicates never inflate the count. */

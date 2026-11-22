@@ -8,6 +8,7 @@
  * degrades its sentence, it never prints "{date}" at a devotee.
  */
 import {
+  buildChangeMessage,
   buildInviteMessage,
   buildOutreachMessage,
   datesLineFor,
@@ -15,6 +16,7 @@ import {
   fillTemplate,
   reminderWhen,
   whatsAppUrl,
+  type ChangeStrings,
   type OutreachData,
   type OutreachStrings,
 } from '../outreachPacks';
@@ -134,5 +136,50 @@ describe('daysBeforeFor — the festival clock', () => {
     expect(daysBeforeFor('2026-11-21', start - 5 * 86400000)).toBe(5);
     expect(daysBeforeFor('2026-11-21', start - 86400000)).toBe(1);
     expect(daysBeforeFor('2026-11-21', start)).toBe(0);
+  });
+});
+
+describe('buildChangeMessage — the REAL-WORLD PACK change pack', () => {
+  const CS: ChangeStrings = {
+    change: '🙏 Namaskar — a change of plan for {festival} at {org}. {changeDates} {changeVenue} {note} Latest details: {link}',
+    changeDatesLine: 'New dates: {value}.',
+    changeVenueLine: 'New venue: {value}.',
+  };
+
+  it('composes every organiser line into its own sentence', () => {
+    const msg = buildChangeMessage(DATA, {
+      newDates: '24 Nov 2026',
+      newVenue: 'Community Hall, Temple Road',
+      note: 'The aarti time is unchanged.',
+    }, CS);
+    expect(msg).toContain('Durga Puja');
+    expect(msg).toContain('Mayapur Mandir');
+    expect(msg).toContain('New dates: 24 Nov 2026.');
+    expect(msg).toContain('New venue: Community Hall, Temple Road.');
+    expect(msg).toContain('The aarti time is unchanged.');
+    expect(msg).toContain(DATA.link);
+    expect(msg).not.toMatch(/\{[a-zA-Z]+\}/);
+  });
+
+  it('a missing line degrades its sentence away — never a placeholder', () => {
+    const msg = buildChangeMessage(DATA, { note: 'Postponed by a day due to rain.' }, CS);
+    expect(msg).toContain('Postponed by a day due to rain.');
+    expect(msg).not.toContain('New dates');
+    expect(msg).not.toContain('New venue');
+    expect(msg).not.toMatch(/\{[a-zA-Z]+\}/);
+    expect(msg).not.toMatch(/\s{2,}/);
+  });
+
+  it('with no lines at all it still reads honestly and points at the page', () => {
+    const msg = buildChangeMessage(DATA, {}, CS);
+    expect(msg).toContain('a change of plan for Durga Puja at Mayapur Mandir');
+    expect(msg).toContain(DATA.link);
+    expect(msg).not.toMatch(/\{[a-zA-Z]+\}/);
+  });
+
+  it('blank-whitespace lines count as missing', () => {
+    const msg = buildChangeMessage(DATA, { newDates: '   ', newVenue: ' ' }, CS);
+    expect(msg).not.toContain('New dates');
+    expect(msg).not.toContain('New venue');
   });
 });

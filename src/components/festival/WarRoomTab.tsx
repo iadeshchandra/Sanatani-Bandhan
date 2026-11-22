@@ -29,6 +29,7 @@ import { ChecklistOps } from './ChecklistOps';
 import { PublishPanel } from './PublishPanel';
 import { ShareInvitePanel } from './ShareInvitePanel';
 import { TicketSalesPanel } from './TicketSalesPanel';
+import { GateRegisterPanel } from './GateRegisterPanel';
 import { SponsorsStallsPanel } from './SponsorsStallsPanel';
 import { DepartmentsBoard } from './DepartmentsBoard';
 import { DebriefCard } from './DebriefCard';
@@ -400,6 +401,10 @@ const WarRoomInner: React.FC = () => {
           WhatsApp (never a bulk simulation). */}
       <ShareInvitePanel wf={wf} plan={p} />
       <TicketSalesPanel wf={wf} plan={p} />
+      {/* REAL-WORLD PACK — the printable gate register: the paper
+          twin of the gate, printed before the day from the same
+          RSVP records (day-of cluster, beside the pass ledger). */}
+      <GateRegisterPanel wf={wf} plan={p} />
       {/* EVENTS E6 — the sponsors & stalls register and the seva
           departments board, on the linked Utsav festival record. */}
       <SponsorsStallsPanel wf={wf} plan={p} event={cloud.event} />
