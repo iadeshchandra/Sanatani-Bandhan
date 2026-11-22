@@ -63,6 +63,30 @@ export interface ReleaseEntry {
 
 export const RELEASES: readonly ReleaseEntry[] = [
   {
+    version: 'v2026.11.22-65404ea',
+    date: '2026-11-22',
+    sections: {
+      new: [
+        {
+          text: {
+            en: 'After a festival, the devotees who actually came through the gate are gently invited to say how it was — the arrangements, the prasad, the darshan flow, the cleanliness — in words of gratitude, never points or scores. The committee reads every word in the Debrief, can reply, and may publish the averages (only when at least five devotees have spoken, so no one can be guessed). Only those who truly attended can write — the gate record itself is the witness.',
+            hi: 'उत्सव के बाद, जो भक्त सचमुच द्वार से आए थे, उन्हें स्नेह से पूछा जाता है कि अनुभव कैसा रहा — व्यवस्था, प्रसाद, दर्शन की धारा, स्वच्छता — कृतज्ञता के शब्दों में, कभी अंक या स्कोर नहीं। समिति हर शब्द Debrief में पढ़ती है, उत्तर दे सकती है, और औसत प्रकाशित कर सकती है (केवल तब, जब कम से कम पाँच भक्तों ने कहा हो, ताकि किसी का अनुमान न लगे)। केवल वे ही लिख सकते हैं जो सचमुच आए थे — द्वार का अभिलेख ही साक्षी है।',
+            bn: 'উৎসবের পর, যাঁরা সত্যিই দ্বার দিয়ে এসেছিলেন, তাঁদের স্নেহে জিজ্ঞেস করা হয় অভিজ্ঞতা কেমন ছিল — ব্যবস্থা, প্রসাদ, দর্শনের ধারা, পরিচ্ছন্নতা — কৃতজ্ঞতার কথায়, কখনো নম্বর বা স্কোর নয়। কমিটি প্রতিটি কথা Debrief-এ পড়েন, উত্তর দিতে পারেন, এবং গড় প্রকাশ করতে পারেন (কেবল তখনই, যখন অন্তত পাঁচজন ভক্ত বলেছেন, যাতে কাউকে অনুমান করা না যায়)। শুধু যাঁরা সত্যিই এসেছিলেন তাঁরাই লিখতে পারেন — দ্বারের নথিই সাক্ষী।',
+          },
+        },
+      ],
+      improved: [
+        {
+          text: {
+            en: 'Behind the scenes, the app’s safety rulebook was carefully tightened and compressed — the same protections, word for word in effect, now with generous room to grow. Nothing you see changed; everything you trust stands exactly as before, with space for what comes next.',
+            hi: 'पर्दे के पीछे, ऐप की सुरक्षा-नियमावली को सावधानी से कसा और संक्षिप्त किया गया — वही सुरक्षाएँ, प्रभाव में शब्दशः वही, अब बढ़ने के लिए पर्याप्त स्थान के साथ। जो आप देखते हैं, कुछ नहीं बदला; जिस पर आप भरोसा करते हैं, वह ठीक वैसा ही खड़ा है, आगे आने वाली चीज़ों के लिए स्थान सहित।',
+            bn: 'পর্দার আড়ালে, অ্যাপের নিরাপত্তা-নিয়মাবলি যত্নে গোছানো ও সংক্ষিপ্ত করা হয়েছে — একই সুরক্ষা, কার্যত হুবহু একই, এখন বাড়ার জন্য প্রশস্ত জায়গাসহ। যা দেখেন, কিছুই বদলায়নি; যাতে আস্থা রাখেন, তা ঠিক আগের মতোই আছে, আগামীর জন্য জায়গাসহ।',
+          },
+        },
+      ],
+    },
+  },
+  {
     version: 'v2026.11.21-b100d55',
     date: '2026-11-21',
     sections: {
