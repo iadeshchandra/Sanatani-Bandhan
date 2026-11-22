@@ -16,15 +16,15 @@ import { DeskHero } from '../components/common/ui';
 import './print.css';
 
 /* ------------------------------------------------------------------ */
-/* Utsav One — Mahotsav Samiti festival management for Mahotsav       */
-/* Samiti and Mandir workspaces. Festival registry, budget planner    */
-/* (planned vs actual), committee & task roster, vendor management,   */
-/* program schedule, crowd & safety checklist, utilisation            */
-/* certificate. Offline-first: festival records stay on this device;  */
-/* only treasury postings (festival income/expenses, vendor payments)  */
-/* go to the cloud ledger. Registered in workspaceRegistry for        */
-/* Mahotsav Samiti + Mandir — the App.tsx org-type guard blocks it    */
-/* everywhere else.                                                   */
+/* Utsav One — festival management for Mahotsav Samiti, Mandir and    */
+/* community (Sangha, Samaj) workspaces. Festival registry, budget    */
+/* planner (planned vs actual), committee & task roster, vendor       */
+/* management, program schedule, crowd & safety checklist,            */
+/* utilisation certificate. Offline-first: festival records stay on   */
+/* this device; only treasury postings (festival income/expenses,     */
+/* vendor payments) go to the cloud ledger. Registered in              */
+/* workspaceRegistry for Mahotsav Samiti + Mandir + Sangha + Samaj     */
+/* (community enablement, owner decision 2026-11-22).                 */
 /*                                                                     */
 /* HONESTY RULE: planned-vs-actual is a management view, not audited  */
 /* accounts. The UC is the samiti's own summary — confirm figures     */

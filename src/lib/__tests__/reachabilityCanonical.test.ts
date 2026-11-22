@@ -18,6 +18,8 @@
  *     native for its type by default, and mountable once enabled for
  *     every pain combination;
  *   - Samskara One is native to Mandir + Ashram (owner decision);
+ *   - community centres (Sangha + Samaj) are native to Samskara One
+ *     AND Utsav One — ceremony enablement (owner decision, 2026-11-22);
  *   - the stranded App.tsx imports / unreachable case stay gone.
  */
 import * as fs from 'fs';
@@ -27,6 +29,7 @@ import {
   smartDefaultModulesFor,
   isModuleAllowed,
   isModuleAllowedForOrgMount,
+  isDeskInWorkspaceSet,
   resolveOrgModuleId,
   wouldMountIfEnabled,
 } from '../workspaceRegistry';
@@ -229,6 +232,56 @@ describe('Samskara One natives (owner decision)', () => {
     expect(workspaceRegistry.Goshala).not.toContain('samskara-one');
     expect(isModuleAllowedForOrgMount(ws('Goshala'), 'samskara-one')).toBe(true);
     expect(isModuleAllowedForOrgMount(ws('Goshala', ['samskara-one']), 'samskara-one')).toBe(true);
+  });
+});
+
+describe('Ceremony enablement — community centres (owner decision, 2026-11-22)', () => {
+  // Community centres host their community's marriages and other
+  // ceremonies, so Sangha and Samaj gain BOTH ceremony suites as
+  // natives: Samskara One (the ceremony itself) and Utsav One (the
+  // day around it — budgets, committees, vendors, the War Room).
+  // Nativeness is what Role Home's core desks, the directory's Core
+  // marking, recommendations and the persona-landing belonging test
+  // read — these pins keep the enablement from silently reverting.
+  for (const type of ['Sangha', 'Samaj']) {
+    it(`${type}: both ceremony suites are native, belong, and mount`, () => {
+      for (const id of ['samskara-one', 'utsav-one']) {
+        expect(workspaceRegistry[type as keyof typeof workspaceRegistry]).toContain(id);
+        expect(isDeskInWorkspaceSet(ws(type), id)).toBe(true);
+        expect(isModuleAllowed(ws(type), id)).toBe(true);
+        expect(isModuleAllowedForOrgMount(ws(type), id)).toBe(true);
+        expect(wouldMountIfEnabled(ws(type), id)).toBe(true);
+      }
+    });
+
+    it(`${type}: the Vivah desk stays native — the 'matrimony' alias door still lands`, () => {
+      expect(workspaceRegistry[type as keyof typeof workspaceRegistry]).toContain('sanatani-vivah');
+      expect(isDeskInWorkspaceSet(ws(type), 'sanatani-vivah')).toBe(true);
+      expect(resolveOrgModuleId('matrimony')).toBe('sanatani-vivah');
+      expect(isModuleAllowedForOrgMount(ws(type), 'matrimony')).toBe(true);
+    });
+
+    it(`${type}: the wizard's starter set carries both ceremony suites`, () => {
+      const essentials = getEssentialDesks(type, [], null);
+      expect(essentials).toContain('samskara-one');
+      expect(essentials).toContain('utsav-one');
+      // Every starter pick is in the type's own working set (native
+      // or always-allowed) — the A1-D06 promise, now for Samaj too.
+      for (const d of essentials) {
+        expect(isDeskInWorkspaceSet(ws(type), d)).toBe(true);
+      }
+    });
+  }
+
+  it('neighbouring exclusions are unchanged', () => {
+    // Gurukul still has no Vivah desk in its own working set.
+    expect(workspaceRegistry.Gurukul).not.toContain('sanatani-vivah');
+    expect(isDeskInWorkspaceSet(ws('Gurukul'), 'sanatani-vivah')).toBe(false);
+    // Goshala's list is untouched by the enablement.
+    expect(workspaceRegistry.Goshala).not.toContain('samskara-one');
+    expect(workspaceRegistry.Goshala).not.toContain('utsav-one');
+    expect(workspaceRegistry.Goshala).toContain('goshala-one');
+    expect(isDeskInWorkspaceSet(ws('Goshala'), 'utsav-one')).toBe(false);
   });
 });
 

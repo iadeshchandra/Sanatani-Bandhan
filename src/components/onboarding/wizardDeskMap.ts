@@ -169,7 +169,15 @@ const ORG_DEFAULTS: Record<string, string[]> = {
   Goshala: ['dashboard', 'goshala', 'devotees', 'treasury', 'inventory', 'donorCare', 'taxReceipts', 'sevadar-roster'],
   Ashram: ['dashboard', 'ashram-one', 'guests', 'devotees', 'treasury', 'annadanam', 'donorCare', 'sevadar-roster'],
   Gurukul: ['dashboard', 'gurukul', 'pathshala', 'devotees', 'treasury', 'granthLibrary', 'donorCare', 'inventory'],
-  Sangha: ['dashboard', 'devotees', 'sanghaDrills', 'treasury', 'campaigns', 'sandeshBroadcast', 'donorCare', 'sevadar-roster'],
+  // Ceremony enablement (owner decision, 2026-11-22): 'samskara-one' +
+  // 'utsav-one' join the community defaults right after the signature
+  // four, so a new community centre's starter set carries ceremony and
+  // festival management; 'donorCare' / 'sevadar-roster' stay one
+  // pain-tap away (donations / staff) and in the adoption record.
+  Sangha: ['dashboard', 'devotees', 'sanghaDrills', 'treasury', 'campaigns', 'samskara-one', 'utsav-one', 'sandeshBroadcast', 'donorCare', 'sevadar-roster'],
+  // Samaj mirrors Sangha (community org parity, as in workspaceRegistry);
+  // it previously had no entry and silently inherited Mandir's defaults.
+  Samaj: ['dashboard', 'devotees', 'sanghaDrills', 'treasury', 'campaigns', 'samskara-one', 'utsav-one', 'sandeshBroadcast', 'donorCare', 'sevadar-roster'],
   Trust: ['dashboard', 'devotees', 'treasury', 'campaigns', 'taxReceipts', 'donorCare', 'recurring-seva', 'masterSettings'],
   MahotsavSamiti: ['dashboard', 'utsavPanjika', 'devotees', 'treasury', 'campaigns', 'sandeshBroadcast', 'donorCare', 'sevadar-roster'],
   Tirth: ['dashboard', 'yatranet-gis', 'ashram-one', 'guests', 'treasury', 'quick-chanda-pos', 'donorCare', 'sandeshBroadcast'],

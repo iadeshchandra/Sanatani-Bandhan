@@ -223,6 +223,12 @@ export const workspaceRegistry: Record<WorkspaceType, string[]> = {
     'donorCare',
     // Matha One: monastic management (Sangha-native — mathas are sanghas).
     'matha-one',
+    // Ceremony enablement (owner decision, 2026-11-22): community
+    // centres host the community's samskaras and celebrations, so the
+    // ceremony and festival suites are native here too.
+    // Samskara One: family lifecycle — vivah and the other samskaras.
+    // Utsav One: festival management — budgets, committees, vendors, crowds.
+    'samskara-one', 'utsav-one',
   ],
   Samaj: [
     'dashboard', 'devotees', 'family', 'treasury', 'campaigns',
@@ -231,6 +237,12 @@ export const workspaceRegistry: Record<WorkspaceType, string[]> = {
     'bhoomi', 'vahan', 'recurring-seva',
     // R-1: added 'donorCare' — mirrors Sangha (community org parity).
     'donorCare',
+    // Ceremony enablement (owner decision, 2026-11-22): mirrors Sangha
+    // (community org parity) — a samaj hosts its community's samskaras
+    // and celebrations exactly as a sangha does.
+    // Samskara One: family lifecycle — vivah and the other samskaras.
+    // Utsav One: festival management — budgets, committees, vendors, crowds.
+    'samskara-one', 'utsav-one',
   ],
   Ashram: [
     'dashboard', 'devotees', 'guests', 'treasury',
@@ -709,7 +721,7 @@ export const ORG_RESTRICTED_GUIDANCE: Record<string, string> = {
   'nyas-one':
     'Nyas One (registrations, filings, 85% rule, trustee governance) belongs to Trust / Dharmada Trust workspaces.',
   'utsav-one':
-    'Utsav One (festival budgets, committees, vendors, crowds) belongs to Mahotsav Samiti / Mandir workspaces.',
+    'Utsav One (festival budgets, committees, vendors, crowds) belongs to Mahotsav Samiti / Mandir / community (Sangha, Samaj) workspaces.',
   'tirth-one':
     'Tirth One (darshan slots, tokens, live queues, seva-darshan) belongs to Tirth / Mandir / Kashi Kshetra workspaces.',
   'yoga-one':
