@@ -63,6 +63,21 @@ export interface ReleaseEntry {
 
 export const RELEASES: readonly ReleaseEntry[] = [
   {
+    version: 'v2026.11.22-00b1030',
+    date: '2026-11-22',
+    sections: {
+      new: [
+        {
+          text: {
+            en: 'Community centres now hold ceremonies at their heart. In Sangha and Samaj workspaces, Samskara One (the family lifecycle — vivah, annaprashan, upanayan and the other samskaras) and Utsav One (festival management — budgets, committees, vendors, crowds) are now core desks: on the home screen, in the directory, in the setup recommendations, and in a new workspace’s starter set. Together with the Sanatani Vivah desk a community centre already had, a wedding can now be cared for properly in one place — from the match, to the ceremony, to the celebration around it.',
+            hi: 'सामुदायिक केंद्र अब अपने हृदय में संस्कारों को धारण करते हैं। संघ और समाज कार्यक्षेत्रों में, संस्कार वन (पारिवारिक जीवनचक्र — विवाह, अन्नप्राशन, उपनयन और अन्य संस्कार) और उत्सव वन (उत्सव प्रबंधन — बजट, समितियाँ, विक्रेता, भीड़) अब मुख्य डेस्क हैं: मुखपृष्ठ पर, निर्देशिका में, सेटअप सुझावों में, और नए कार्यक्षेत्र के प्रारंभिक सेट में। सनातनी विवाह डेस्क के साथ, जो सामुदायिक केंद्र के पास पहले से था, अब एक विवाह की देखभाल एक ही स्थान पर ठीक से हो सकती है — मेल से, संस्कार तक, उसके चारों ओर के उत्सव तक।',
+            bn: 'সামাজিক কেন্দ্রগুলি এখন তাদের হৃদয়ে সংস্কার ধারণ করে। সংঘ ও সমাজ কর্মক্ষেত্রে, সংস্কার ওয়ান (পারিবারিক জীবনচক্র — বিবাহ, অন্নপ্রাশন, উপনয়ন ও অন্যান্য সংস্কার) এবং উৎসব ওয়ান (উৎসব ব্যবস্থাপনা — বাজেট, কমিটি, বিক্রেতা, ভিড়) এখন মূল ডেস্ক: হোম পর্দায়, নির্দেশিকায়, সেটআপ সুপারিশে, এবং নতুন কর্মক্ষেত্রের প্রারম্ভিক সেটে। সনাতনী বিবাহ ডেস্কের সঙ্গে, যা একটি সামাজিক কেন্দ্রের আগে থেকেই ছিল, এখন একটি বিবাহের যত্ন এক জায়গায় ঠিকমতো হতে পারে — মেল থেকে, সংস্কার পর্যন্ত, তার চারপাশের উৎসব পর্যন্ত।',
+          },
+        },
+      ],
+    },
+  },
+  {
     version: 'v2026.11.22-9a9d13e',
     date: '2026-11-22',
     sections: {
