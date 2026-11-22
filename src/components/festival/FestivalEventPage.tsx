@@ -23,6 +23,8 @@ import {
 } from '../../lib/festivalRsvp';
 import { festivalConcluded } from '../../lib/festivalMemory';
 import { EventPassCard } from './EventPassCard';
+import { PassCalendarActions } from './PassCalendarActions';
+import { bookedDaysFor } from '../../lib/passPersistence';
 import { TicketPurchaseSection, MyTicketCard, TicketOfferCard } from './TicketPurchase';
 import type { EventTicket } from '../../lib/eventTickets';
 import { buildIcsCalendar, downloadIcs, icsFileName } from '../../lib/icsExport';
@@ -634,9 +636,25 @@ export const FestivalEventPage: React.FC<{ previewEvent?: FestivalEventDoc }> = 
                 <button onClick={() => setEditing(true)} className="px-4 py-2.5 rounded-xl border border-stone-200 text-sm font-bold text-stone-700 min-h-[44px]">
                   {tr({ en: 'Change', bn: 'বদলান', hi: 'बदलें' })}
                 </button>
-                <button onClick={doIcs} className="px-4 py-2.5 rounded-xl border border-stone-200 text-sm font-bold text-stone-700 min-h-[44px]">
-                  📅 {tr({ en: 'Add to calendar', bn: 'ক্যালেন্ডারে যোগ করুন', hi: 'कैलेंडर में जोड़ें' })}
-                </button>
+                {/* NEXT-LEVEL A2 — the confirmed booking's own
+                    calendar action (Google link + per-day .ics,
+                    booking-scoped: booked days, venue, page link).
+                    The generic whole-festival export stays at the
+                    page foot for visitors who have not booked. */}
+                <PassCalendarActions
+                  className="contents"
+                  facts={{
+                    eventId: event.id,
+                    festivalName: tr(event.name),
+                    orgName: event.orgName,
+                    ...(event.venue ? { venue: event.venue } : {}),
+                    link: shareUrl,
+                    days: bookedDaysFor(myRsvp, festivalDayList(event.dateISO, event.endDateISO)),
+                    ...((myRsvp.status || 'confirmed') === 'confirmed'
+                      ? { noteLine: `${myRsvp.name} · ${myRsvp.headcount}` }
+                      : {}),
+                  }}
+                />
                 <button disabled={submitting} onClick={doCancel} className="px-4 py-2.5 rounded-xl border border-red-200 text-sm font-bold text-red-600 min-h-[44px] disabled:opacity-50">
                   {tr({ en: 'Cancel my RSVP', bn: 'আমার RSVP বাতিল', hi: 'मेरा RSVP रद्द करें' })}
                 </button>

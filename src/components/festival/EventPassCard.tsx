@@ -13,17 +13,28 @@
  * booking covers today, else the next booked day (lib/eventPass
  * pickPassDate). Once the gate has admitted the party for that day,
  * the card shows the admitted stamp instead of a live code.
+ *
+ * NEXT-LEVEL A2 — persistence: under the code, the booking joins
+ * the devotee's own calendar (PassCalendarActions) and the pass
+ * can be saved as a keepsake image carrying the real QR and its
+ * own honesty line (lib/passPersistence). No wallet button —
+ * wallet passes need an issuer account that does not exist yet.
  */
 import React, { useEffect, useMemo, useState } from 'react';
 import QRCode from 'qrcode';
 import { useLanguage } from '../../context/LanguageContext';
 import {
-  festivalDayList, todayISO,
+  festivalDayList, festivalEventUrl, todayISO,
   type FestivalEventDoc, type RsvpEntry,
 } from '../../lib/festival';
 import {
   mintEventPassToken, pickPassDate, admittedOnDay, EVENT_PASS_VALIDITY_SECONDS,
 } from '../../lib/eventPass';
+import {
+  bookedDaysFor, composePassImageFile, passImageFileName, shareOrDownloadImageFile,
+  type BookingCalendarFacts,
+} from '../../lib/passPersistence';
+import { PassCalendarActions } from './PassCalendarActions';
 import { verifyDynamicToken } from '../../utils/qrUtils';
 
 interface Props {
@@ -46,6 +57,9 @@ export const EventPassCard: React.FC<Props> = ({ event, rsvp, tr }) => {
   const [qrDataUrl, setQrDataUrl] = useState('');
   const [secondsLeft, setSecondsLeft] = useState(EVENT_PASS_VALIDITY_SECONDS);
   const [mintNonce, setMintNonce] = useState(0);
+  // NEXT-LEVEL A2 — pass persistence (calendar + saved image).
+  const [imgBusy, setImgBusy] = useState(false);
+  const [imgNote, setImgNote] = useState<'saved' | 'failed' | ''>('');
 
   const admitted = passDate
     ? admittedOnDay(rsvp, passDate, null).used
@@ -91,6 +105,57 @@ export const EventPassCard: React.FC<Props> = ({ event, rsvp, tr }) => {
     weekday: 'short', day: 'numeric', month: 'short', year: 'numeric',
   });
 
+  const partyLine = `${rsvp.name} · ${t('surfaces.events.passParty').replace('{count}', String(rsvp.headcount || 1))}`;
+
+  // NEXT-LEVEL A2 — the booking's calendar facts: every booked day
+  // (not only the day this pass is minted for), the venue when the
+  // record carries one, and the canonical festival page link.
+  const calendarFacts: BookingCalendarFacts = {
+    eventId: event.id,
+    festivalName: tr(event.name),
+    orgName: event.orgName,
+    ...(event.venue ? { venue: event.venue } : {}),
+    link: typeof window !== 'undefined'
+      ? festivalEventUrl(window.location.origin, event.workspaceId, event.id)
+      : '',
+    days: bookedDaysFor(rsvp, days),
+    noteLine: partyLine,
+  };
+
+  // Save the pass as a keepsake image: the REAL QR drawn onto a
+  // warm card (or the admitted stamp, once admitted — there is no
+  // live code then), shared or downloaded. Any failure leaves the
+  // live pass above untouched and says so gently.
+  const doSaveImage = async () => {
+    if (imgBusy) return;
+    setImgBusy(true);
+    setImgNote('');
+    try {
+      const file = await composePassImageFile(
+        {
+          passTitle: t('surfaces.events.passTitle'),
+          festivalName: tr(event.name),
+          orgName: event.orgName,
+          dateLabel,
+          partyLine,
+          noteLine: t('surfaces.events.passImageNote'),
+          brandLine: 'Sanatani Bandhan',
+          admitted,
+          admittedLabel: t('surfaces.events.passAdmittedStamp'),
+        },
+        admitted ? '' : qrDataUrl,
+        passImageFileName(event.name.en, passDate)
+      );
+      const how = await shareOrDownloadImageFile(file, t('surfaces.events.passTitle'), partyLine);
+      if (how === 'downloaded') setImgNote('saved');
+      else if (how === 'failed') setImgNote('failed');
+    } catch {
+      setImgNote('failed');
+    } finally {
+      setImgBusy(false);
+    }
+  };
+
   return (
     <div className="mt-5 rounded-2xl border-2 border-dashed border-orange-200 bg-orange-50/70 p-4 text-center">
       <p className="text-[11px] font-black uppercase tracking-widest text-orange-700">
@@ -101,7 +166,7 @@ export const EventPassCard: React.FC<Props> = ({ event, rsvp, tr }) => {
         {event.orgName} · {dateLabel}
       </p>
       <p className="mt-0.5 text-sm font-bold text-stone-700">
-        {rsvp.name} · {t('surfaces.events.passParty').replace('{count}', String(rsvp.headcount || 1))}
+        {partyLine}
       </p>
 
       {admitted ? (
@@ -127,6 +192,28 @@ export const EventPassCard: React.FC<Props> = ({ event, rsvp, tr }) => {
       <p className="mt-1 text-[11px] leading-relaxed text-stone-500">
         {t('surfaces.events.passShowAtGate')} · {t('surfaces.events.passRefreshNote')}
       </p>
+
+      {/* NEXT-LEVEL A2 — persistence: the booking joins the
+          devotee's own calendar, and the pass can be kept as an
+          image. No wallet button: wallet passes need an issuer
+          account that does not exist yet (Wave B). */}
+      <div className="mt-4 border-t border-orange-200/70 pt-3">
+        <PassCalendarActions facts={calendarFacts} />
+        <button
+          type="button"
+          onClick={doSaveImage}
+          disabled={imgBusy || (!admitted && !qrDataUrl)}
+          className="mt-2 inline-flex items-center justify-center gap-1.5 rounded-xl bg-orange-600 hover:bg-orange-700 text-white px-4 py-2.5 text-sm font-bold min-h-[44px] disabled:opacity-50"
+        >
+          🖼 {t('surfaces.events.passSaveImage')}
+        </button>
+        {imgNote === 'saved' && (
+          <p className="mt-2 text-[11px] font-bold text-emerald-700">{t('surfaces.events.passImageSaved')}</p>
+        )}
+        {imgNote === 'failed' && (
+          <p className="mt-2 text-[11px] font-semibold text-amber-700">{t('surfaces.events.passImageFailed')}</p>
+        )}
+      </div>
     </div>
   );
 };

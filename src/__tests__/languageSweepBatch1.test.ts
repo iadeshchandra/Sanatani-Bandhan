@@ -114,7 +114,10 @@ describe('surfaces + vibe dict completeness (en/hi/bn authored)', () => {
     // temple calendar: followFestival, followingBtn,
     // yourTemplesTitle, observancesTitle, observanceEvents,
     // observanceEventOne, observancesClear) in all 10 languages.
-    expect(keysOf(en).length).toBe(867);
+    // NEXT-LEVEL A2 adds 6 surfaces.events keys (pass persistence:
+    // passCalGoogle, passCalIcs, passSaveImage, passImageNote,
+    // passImageSaved, passImageFailed) in all 10 languages.
+    expect(keysOf(en).length).toBe(873);
     for (const bucket of Object.keys(en)) {
       for (const leaf of Object.keys(en[bucket])) {
         for (const dict of [en, hi, bn]) {

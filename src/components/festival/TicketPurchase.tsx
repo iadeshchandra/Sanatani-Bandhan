@@ -21,6 +21,8 @@ import { useLanguage } from '../../context/LanguageContext';
 import { db } from '../../lib/firebase';
 import { formatMoney } from '../../lib/money';
 import type { FestivalEventDoc, TicketTier } from '../../lib/festival';
+import { festivalDayList, festivalEventUrl } from '../../lib/festival';
+import { PassCalendarActions } from './PassCalendarActions';
 import {
   DEFAULT_MAX_PER_BOOKING,
   acceptTransfer,
@@ -352,6 +354,25 @@ export const TicketPurchaseSection: React.FC<SectionProps> = ({ event, uid, buye
 
               {error && <div className="text-sm font-bold text-red-700 bg-red-50 border border-red-200 rounded-xl px-3 py-2 mb-2">{error}</div>}
               {doneNote && <div className="text-sm font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-xl px-3 py-2 mb-2">{doneNote}</div>}
+              {/* NEXT-LEVEL A2 — a purchased pass joins the buyer's
+                  calendar at the confirmation moment (a ticket's
+                  party record attends every festival day). */}
+              {doneNote && (
+                <PassCalendarActions
+                  className="flex flex-wrap gap-2 mb-2"
+                  facts={{
+                    eventId: event.id,
+                    festivalName: event.name[language === 'bn' ? 'bn' : language === 'hi' ? 'hi' : 'en'] || event.name.en,
+                    orgName: event.orgName,
+                    ...(event.venue ? { venue: event.venue } : {}),
+                    link: typeof window !== 'undefined'
+                      ? festivalEventUrl(window.location.origin, event.workspaceId, event.id)
+                      : '',
+                    days: festivalDayList(event.dateISO, event.endDateISO),
+                    noteLine: names.filter((n) => n.trim() !== '').join(', ') || buyerName,
+                  }}
+                />
+              )}
               <button className={`${btnCls} w-full`} disabled={busy} onClick={buy}>
                 {busy ? tr('ticketBooking') : quote && quote.total === 0 ? tr('ticketConfirmFree') : tr('ticketConfirm')}
               </button>
