@@ -63,6 +63,17 @@ export interface ReleaseEntry {
 
 export const RELEASES: readonly ReleaseEntry[] = [
   {
+    version: 'v2026.11.22-fa58a85',
+    date: '2026-11-22',
+    sections: {
+      new: [
+        { text: { en: 'You can now follow a temple and follow a festival — its next events come to you on the events page and in your Solo home, instead of you having to go looking for them.', hi: 'अब आप किसी मंदिर को और किसी उत्सव को फॉलो कर सकते हैं — उसके अगले कार्यक्रम कार्यक्रम पृष्ठ पर और आपके सोलो होम में स्वयं आपके पास आएँगे, आपको खोजने नहीं जाना पड़ेगा।', bn: 'এখন আপনি একটি মন্দির ও একটি উৎসব অনুসরণ করতে পারেন — তার পরবর্তী অনুষ্ঠানগুলি অনুষ্ঠান পৃষ্ঠায় ও আপনার সোলো হোমে নিজে থেকেই আপনার কাছে আসবে, খুঁজতে যেতে হবে না।' } },
+        { text: { en: 'The events page now opens with the sacred days ahead — Ekadashi, Purnima and the great festivals of the coming 30 days — showing how many events fall on each day. Tap a day to see them.', hi: 'कार्यक्रम पृष्ठ अब आगे के पवित्र दिनों के साथ खुलता है — एकादशी, पूर्णिमा और आने वाले 30 दिनों के बड़े उत्सव — और दिखाता है कि प्रत्येक दिन कितने कार्यक्रम हैं। देखने के लिए दिन पर टैप करें।', bn: 'অনুষ্ঠান পৃষ্ঠা এখন সামনের পবিত্র দিনগুলি দিয়ে খোলে — একাদশী, পূর্ণিমা ও আগামী ৩০ দিনের বড় উৎসব — এবং দেখায় প্রতিদিন কতগুলি অনুষ্ঠান আছে। দেখতে দিনটিতে ট্যাপ করুন।' } },
+      ],
+    },
+  },
+
+  {
     version: 'v2026.11.22-593b9b4',
     date: '2026-11-22',
     sections: {
