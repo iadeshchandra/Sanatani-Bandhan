@@ -66,6 +66,7 @@ import {
   buildWalkins,
   matchLocalFestival,
 } from '../../lib/festivalDebrief';
+import { FeedbackPanel } from './FeedbackPanel';
 
 interface Props {
   wf: WarFestival;
@@ -560,6 +561,9 @@ export const DebriefCard: React.FC<Props> = ({ wf, plan, event, rsvps }) => {
           </div>
         )}
       </section>
+
+      {/* ── 4b · Attendee feedback (E5) ────────────────────────── */}
+      <FeedbackPanel plan={plan} event={event} checkedInParties={funnel.arrivedParties} />
 
       {/* ── 5b · Lessons for next year ─────────────────────────── */}
       <section>

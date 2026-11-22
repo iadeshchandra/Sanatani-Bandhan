@@ -27,6 +27,8 @@ import { TicketPurchaseSection, MyTicketCard, TicketOfferCard } from './TicketPu
 import type { EventTicket } from '../../lib/eventTickets';
 import { buildIcsCalendar, downloadIcs, icsFileName } from '../../lib/icsExport';
 import { FestivalMemoryCard } from './FestivalMemoryCard';
+import { FeedbackCard } from './FeedbackCard';
+import { feedbackPromptEligible } from '../../lib/festivalFeedback';
 import { formatMoney } from '../../lib/money';
 
 const inputCls =
@@ -35,7 +37,7 @@ const inputCls =
 export const FestivalEventPage: React.FC<{ previewEvent?: FestivalEventDoc }> = ({ previewEvent }) => {
   const { orgId, eventId } = useParams<{ orgId: string; eventId: string }>();
   const navigate = useNavigate();
-  const { safeTranslate } = useLanguage();
+  const { safeTranslate, t } = useLanguage();
   const { firebaseUser, currentUser } = useAuthWorkspace();
 
   const [event, setEvent] = useState<FestivalEventDoc | null>(previewEvent || null);
@@ -389,6 +391,84 @@ export const FestivalEventPage: React.FC<{ previewEvent?: FestivalEventDoc }> = 
               )}
             </div>
           </div>
+        )}
+
+        {/* EVENTS E5 — the committee MAY publish the feedback
+            averages from the debrief: per-aspect averages, the
+            response count and the would-return share ONLY, and
+            only at 5+ responses (the privacy threshold the lib
+            enforces). The published shape cannot carry a name or
+            a sentence — it is pinned by a unit test. */}
+        {event.feedbackSummary && (
+          <div className="bg-white rounded-3xl shadow-sm border border-orange-100 p-6">
+            <h2 className="font-extrabold text-stone-800 mb-1 text-center">
+              💬 {t('surfaces.events.feedbackPublicTitle')}
+            </h2>
+            <p className="text-center text-xs text-stone-400 mb-4">
+              {t('surfaces.events.feedbackPublicNote').replace(
+                '{count}',
+                String(event.feedbackSummary.count)
+              )}
+            </p>
+            <div className="space-y-2">
+              {(
+                [
+                  ['arrangements', 'feedbackArrangements'],
+                  ['prasad', 'feedbackPrasad'],
+                  ['darshanFlow', 'feedbackDarshanFlow'],
+                  ['cleanliness', 'feedbackCleanliness'],
+                ] as const
+              ).map(([k, labelKey]) => (
+                <div key={k} className="flex items-center gap-2 text-xs">
+                  <span className="w-32 shrink-0 font-semibold text-stone-600">
+                    {t(`surfaces.events.${labelKey}`)}
+                  </span>
+                  <div className="h-2 flex-1 rounded-full bg-stone-100 overflow-hidden">
+                    <div
+                      className="h-full rounded-full bg-gradient-to-r from-amber-500 to-orange-600"
+                      style={{
+                        width: `${Math.min(100, Math.max(0, (event.feedbackSummary![k] / 5) * 100))}%`,
+                      }}
+                    />
+                  </div>
+                  <span className="w-8 text-right font-bold text-stone-700 tnum">
+                    {event.feedbackSummary![k].toFixed(1)}
+                  </span>
+                </div>
+              ))}
+              <div className="flex items-center justify-between gap-3 border-t border-stone-100 pt-3 mt-1">
+                <div className="text-center flex-1">
+                  <div className="text-2xl font-black text-stone-800 tnum">
+                    {event.feedbackSummary.overall.toFixed(1)}
+                  </div>
+                  <div className="text-[10px] uppercase tracking-wide text-stone-500 font-bold">
+                    {t('surfaces.events.feedbackOverall')}
+                  </div>
+                </div>
+                <div className="text-center flex-1">
+                  <div className="text-2xl font-black text-stone-800 tnum">
+                    {event.feedbackSummary.wouldReturnPct}%
+                  </div>
+                  <div className="text-[10px] uppercase tracking-wide text-stone-500 font-bold">
+                    {t('surfaces.events.feedbackWouldReturn')}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* EVENTS E5 — my own feedback: the quiet prompt for a
+            checked-in devotee once the festival has concluded
+            (lib/festivalFeedback's eligibility shape), and after
+            submitting, my record with the committee's reply. */}
+        {uid && myRsvp && feedbackPromptEligible(myRsvp, event, Date.now()) && (
+          <FeedbackCard
+            event={event}
+            uid={uid}
+            authorName={currentUser?.name || myRsvp.name || ''}
+            rsvp={myRsvp}
+          />
         )}
 
         {/* RSVP */}

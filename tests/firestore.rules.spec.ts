@@ -956,3 +956,190 @@ describe('EVENTS E2 — seva pass ticketing (event_tickets)', () => {
     await assertFails(staffDb().collection('event_tickets').doc('tk-e2-1').delete());
   });
 });
+
+describe('EVENTS E5 — attendee feedback (event_feedback)', () => {
+  const EV = 'ws-1__fest1';
+  const FB = `${EV}__user-1`;
+  const feedbackDoc = (over: Record<string, unknown> = {}) => ({
+    workspaceId: 'ws-1',
+    festivalId: EV,
+    authorUid: 'user-1',
+    authorName: 'User One',
+    aspects: { arrangements: 5, prasad: 4, darshanFlow: 5, cleanliness: 4 },
+    overall: 5,
+    text: 'Beautifully arranged, prasad was warm.',
+    wouldReturn: true,
+    attendedDay: '2026-01-01',
+    createdAt: '2026-01-03T00:00:00.000Z',
+    updatedAt: '2026-01-03T00:00:00.000Z',
+    state: 'visible',
+    ...over,
+  });
+
+  // user-1 was gate-checked-in for the festival; user-2 holds an
+  // RSVP that was never checked in.
+  beforeEach(async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      const db = context.firestore();
+      await db.collection('festival_rsvps').doc(`${EV}__user-1`).set({
+        eventId: EV, workspaceId: 'ws-1', uid: 'user-1', name: 'User One',
+        headcount: 2, status: 'confirmed', checkedIn: true,
+        checkedInAt: '2026-01-01T08:30:00.000Z', createdAt: '2025-12-30T00:00:00.000Z',
+      });
+      await db.collection('festival_rsvps').doc(`${EV}__user-2`).set({
+        eventId: EV, workspaceId: 'ws-1', uid: 'user-2', name: 'User Two',
+        headcount: 1, status: 'confirmed', createdAt: '2025-12-30T00:00:00.000Z',
+      });
+    });
+  });
+
+  const attendeeDb = () => testEnv.authenticatedContext('user-1').firestore();
+  const uncheckedDb = () => testEnv.authenticatedContext('user-2').firestore();
+  const staffDb = () => testEnv.authenticatedContext('admin-1').firestore();
+  const strangerDb = () => testEnv.authenticatedContext('stranger-1').firestore();
+  const seedFeedback = async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await context.firestore().collection('event_feedback').doc(FB).set(feedbackDoc());
+    });
+  };
+
+  it('89. A checked-in attendee creates their feedback', async () => {
+    await assertSucceeds(attendeeDb().collection('event_feedback').doc(FB).set(feedbackDoc()));
+  });
+
+  it('90. No check-in, no feedback: an unchecked RSVP and a non-attendee are denied', async () => {
+    await assertFails(
+      uncheckedDb().collection('event_feedback').doc(`${EV}__user-2`)
+        .set(feedbackDoc({ authorUid: 'user-2', authorName: 'User Two' }))
+    );
+    await assertFails(
+      strangerDb().collection('event_feedback').doc(`${EV}__stranger-1`)
+        .set(feedbackDoc({ authorUid: 'stranger-1', authorName: 'Stranger One' }))
+    );
+  });
+
+  it('91. Feedback cannot be written for someone else or under a foreign id', async () => {
+    await assertFails(
+      attendeeDb().collection('event_feedback').doc(`${EV}__user-2`)
+        .set(feedbackDoc({ authorUid: 'user-2', authorName: 'User Two' }))
+    );
+    await assertFails(
+      attendeeDb().collection('event_feedback').doc('some-other-id').set(feedbackDoc())
+    );
+  });
+
+  it('92. A create cannot arrive hidden or carrying a committee response', async () => {
+    await assertFails(
+      attendeeDb().collection('event_feedback').doc(FB).set(feedbackDoc({ state: 'hidden' }))
+    );
+    await assertFails(
+      attendeeDb().collection('event_feedback').doc(FB)
+        .set(feedbackDoc({ orgResponse: { text: 'Thank you', at: '2026-01-03T00:00:00.000Z', byName: 'Admin' } }))
+    );
+  });
+
+  it('93. Out-of-range ratings and over-long text are denied', async () => {
+    await assertFails(
+      attendeeDb().collection('event_feedback').doc(FB).set(feedbackDoc({ overall: 6 }))
+    );
+    await assertFails(
+      attendeeDb().collection('event_feedback').doc(FB)
+        .set(feedbackDoc({ aspects: { arrangements: 5, prasad: 0, darshanFlow: 5, cleanliness: 4 } }))
+    );
+    await assertFails(
+      attendeeDb().collection('event_feedback').doc(FB)
+        .set(feedbackDoc({ aspects: { arrangements: 5, prasad: 4, darshanFlow: 5 } }))
+    );
+    await assertFails(
+      attendeeDb().collection('event_feedback').doc(FB)
+        .set(feedbackDoc({ text: 'x'.repeat(601) }))
+    );
+  });
+
+  it('94. Read: the author and workspace staff yes, a stranger no', async () => {
+    await seedFeedback();
+    await assertSucceeds(attendeeDb().collection('event_feedback').doc(FB).get());
+    await assertSucceeds(staffDb().collection('event_feedback').doc(FB).get());
+    await assertFails(strangerDb().collection('event_feedback').doc(FB).get());
+    await assertFails(uncheckedDb().collection('event_feedback').doc(FB).get());
+  });
+
+  it('95. The author edits their own words while visible — but cannot touch the state', async () => {
+    await seedFeedback();
+    await assertSucceeds(
+      attendeeDb().collection('event_feedback').doc(FB).update({
+        aspects: { arrangements: 4, prasad: 4, darshanFlow: 5, cleanliness: 4 },
+        overall: 4,
+        text: 'One more thought after going home.',
+        updatedAt: '2026-01-04T00:00:00.000Z',
+      })
+    );
+    await assertFails(
+      attendeeDb().collection('event_feedback').doc(FB).update({
+        state: 'hidden', updatedAt: '2026-01-04T00:00:00.000Z',
+      })
+    );
+    await assertFails(
+      attendeeDb().collection('event_feedback').doc(FB).update({
+        authorName: 'Someone Else', updatedAt: '2026-01-04T00:00:00.000Z',
+      })
+    );
+  });
+
+  it('96. Once the committee hides it, the author can no longer edit', async () => {
+    await seedFeedback();
+    await assertSucceeds(
+      staffDb().collection('event_feedback').doc(FB).update({
+        state: 'hidden', updatedAt: '2026-01-04T00:00:00.000Z',
+      })
+    );
+    await assertFails(
+      attendeeDb().collection('event_feedback').doc(FB).update({
+        text: 'Editing after moderation', updatedAt: '2026-01-05T00:00:00.000Z',
+      })
+    );
+    // The author still SEES their own words.
+    await assertSucceeds(attendeeDb().collection('event_feedback').doc(FB).get());
+  });
+
+  it('97. Staff hide, unhide and respond — but cannot rewrite the devotee\'s words', async () => {
+    await seedFeedback();
+    await assertSucceeds(
+      staffDb().collection('event_feedback').doc(FB).update({
+        orgResponse: { text: 'Dhanyavaad — we will add more water points.', at: '2026-01-04T00:00:00.000Z', byName: 'Admin' },
+        updatedAt: '2026-01-04T00:00:00.000Z',
+      })
+    );
+    await assertSucceeds(
+      staffDb().collection('event_feedback').doc(FB).update({
+        state: 'hidden', updatedAt: '2026-01-04T01:00:00.000Z',
+      })
+    );
+    await assertSucceeds(
+      staffDb().collection('event_feedback').doc(FB).update({
+        state: 'visible', updatedAt: '2026-01-04T02:00:00.000Z',
+      })
+    );
+    await assertFails(
+      staffDb().collection('event_feedback').doc(FB).update({
+        text: 'Rewritten by staff', updatedAt: '2026-01-04T03:00:00.000Z',
+      })
+    );
+    await assertFails(
+      staffDb().collection('event_feedback').doc(FB).update({
+        overall: 1, updatedAt: '2026-01-04T03:00:00.000Z',
+      })
+    );
+  });
+
+  it('98. A stranger cannot moderate, and nobody can delete feedback', async () => {
+    await seedFeedback();
+    await assertFails(
+      strangerDb().collection('event_feedback').doc(FB).update({
+        state: 'hidden', updatedAt: '2026-01-04T00:00:00.000Z',
+      })
+    );
+    await assertFails(attendeeDb().collection('event_feedback').doc(FB).delete());
+    await assertFails(staffDb().collection('event_feedback').doc(FB).delete());
+  });
+});

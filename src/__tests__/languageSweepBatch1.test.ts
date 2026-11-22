@@ -84,7 +84,12 @@ describe('surfaces + vibe dict completeness (en/hi/bn authored)', () => {
     // pack: debriefTitle…debriefPublishConfirm — funnel, day-wise
     // turnout, pass money kept apart from donations, operations,
     // lessons, print/CSV/public-summary labels) in all 10 languages.
-    expect(keysOf(en).length).toBe(680);
+    // EVENTS E5 adds 47 surfaces.events keys (attendee feedback:
+    // feedbackPromptTitle…feedbackPublicNote — the checked-in
+    // devotee's word-scale prompt, the debrief's feedback panel,
+    // moderation + response labels, the threshold-gated public
+    // averages) in all 10 languages.
+    expect(keysOf(en).length).toBe(727);
     for (const bucket of Object.keys(en)) {
       for (const leaf of Object.keys(en[bucket])) {
         for (const dict of [en, hi, bn]) {

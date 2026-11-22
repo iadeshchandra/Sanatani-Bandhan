@@ -570,6 +570,17 @@ export interface FestivalEventDoc {
    * Absent = never published (or withdrawn).
    */
   debriefSummary?: FestivalDebriefSummary;
+  /**
+   * EVENTS E5 — the attendee feedback aggregates, stamped onto the
+   * doc ONLY when a trustee deliberately publishes them from the
+   * War Room debrief (the same merge publish path as
+   * debriefSummary) and ONLY when at least 5 devotees responded —
+   * below that threshold a single voice could be recognised, so
+   * the builder refuses to produce the summary at all. Averages
+   * and a count only: no name, no text, no per-person figure
+   * exists in this shape. Absent = never published (or withdrawn).
+   */
+  feedbackSummary?: FestivalFeedbackSummary;
   updatedAt: string;
 }
 
@@ -601,6 +612,30 @@ export interface FestivalDebriefSummary {
   totalUtilised: number | null;
   /** Currency the money figures were recorded in. */
   currency: string;
+}
+
+/**
+ * EVENTS E5 — the public-safe feedback summary (see
+ * FestivalEventDoc.feedbackSummary). Built ONLY from VISIBLE
+ * feedback by lib/festivalFeedback.buildFeedbackSummary, and only
+ * when the response count reaches the privacy threshold (5) —
+ * averages over fewer voices could identify a person. Every field
+ * is an aggregate; the shape cannot carry a name or a sentence.
+ */
+export interface FestivalFeedbackSummary {
+  /** ISO timestamp of (re)publication. */
+  publishedAt: string;
+  /** Visible responses the averages rest on (≥ 5 by construction). */
+  count: number;
+  /** Aspect averages, 1–5, one decimal. */
+  arrangements: number;
+  prasad: number;
+  darshanFlow: number;
+  cleanliness: number;
+  /** Overall average, 1–5, one decimal. */
+  overall: number;
+  /** Share of respondents who said they would return, 0–100. */
+  wouldReturnPct: number;
 }
 
 export interface RsvpEntry {
