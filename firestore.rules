@@ -983,6 +983,35 @@ service cloud.firestore {
       allow read, write: if isSelf(userId);
     }
 
+    // NEXT-LEVEL A1 — user follows (the subscribable temple
+    // calendar). *** NEW COLLECTION: user_follows *** — ONE doc
+    // per user, id = their uid, holding the temples (workspace
+    // ids) and festival series (plan ids) they follow. It is the
+    // devotee's OWN list: nobody else may read it — who follows
+    // what is never public information (follower COUNTS live on
+    // the org side, followers/{orgId}/users, never here). The
+    // shape is pinned: exactly the two id lists + a numeric
+    // updatedAt (the orgPages Date.now() convention). Lists are
+    // string lists by the client's construction; per this file's
+    // list convention (festival_rsvps days, ticket attendees)
+    // the rule pins list-ness and the 200 cap.
+    match /user_follows/{uid} {
+      function followsShapeOk() {
+        return reqKeys().hasOnly(['orgIds', 'festivalIds', 'updatedAt'])
+          && request.resource.data.get('orgIds', []) is list
+          && request.resource.data.get('orgIds', []).size() <= 200
+          && request.resource.data.get('festivalIds', []) is list
+          && request.resource.data.get('festivalIds', []).size() <= 200
+          && request.resource.data.get('updatedAt', 0) is number;
+      }
+      allow read: if isSelf(uid);
+      allow create: if isSelf(uid)
+        && reqKeys().hasAll(['orgIds', 'festivalIds', 'updatedAt'])
+        && followsShapeOk();
+      allow update: if isSelf(uid) && followsShapeOk();
+      allow delete: if isSelf(uid);
+    }
+
     // 4. Tenant partitions
     match /tenants/{tenantId} {
       allow read: if true; // public discovery
