@@ -33,6 +33,7 @@ import { GateRegisterPanel } from './GateRegisterPanel';
 import { SponsorsStallsPanel } from './SponsorsStallsPanel';
 import { DepartmentsBoard } from './DepartmentsBoard';
 import { DebriefCard } from './DebriefCard';
+import { ForecastCard } from './ForecastCard';
 
 /* Readiness ring — one calm number. */
 const ReadinessRing: React.FC<{ score: number }> = ({ score }) => {
@@ -390,6 +391,11 @@ const WarRoomInner: React.FC = () => {
           ))}
         </div>
       </Card>
+
+      {/* NEXT-LEVEL A3 — "From your past festivals": the committee's
+          own concluded registers, carried into this festival's
+          planning (expected turnout range, prasad, gate hint). */}
+      <ForecastCard wf={wf} plan={p} rsvps={cloud.rsvps} patch={patch} />
 
       {/* ── Roster / Budget / Checklist / Publish ─────────────────── */}
       <RosterCard wf={wf} plan={p} patch={patch} gaps={gaps} />

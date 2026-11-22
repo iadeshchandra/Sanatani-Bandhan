@@ -117,7 +117,15 @@ describe('surfaces + vibe dict completeness (en/hi/bn authored)', () => {
     // NEXT-LEVEL A2 adds 6 surfaces.events keys (pass persistence:
     // passCalGoogle, passCalIcs, passSaveImage, passImageNote,
     // passImageSaved, passImageFailed) in all 10 languages.
-    expect(keysOf(en).length).toBe(873);
+    // NEXT-LEVEL A3 adds 19 surfaces.events keys (forecast v2 —
+    // "From your past festivals": forecastTitle…forecastLoading —
+    // the War Room forecast card: expected turnout range, basis
+    // line, prasad suggestion with its reasoning line, gate
+    // staffing hint, the explicit plan-from-forecast tap and its
+    // disclosure note, and the honest teaching states for no
+    // history / no gate marks / thin history / no bookings yet)
+    // in all 10 languages.
+    expect(keysOf(en).length).toBe(892);
     for (const bucket of Object.keys(en)) {
       for (const leaf of Object.keys(en[bucket])) {
         for (const dict of [en, hi, bn]) {
