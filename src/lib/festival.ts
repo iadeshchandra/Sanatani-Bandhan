@@ -581,6 +581,18 @@ export interface FestivalEventDoc {
    * exists in this shape. Absent = never published (or withdrawn).
    */
   feedbackSummary?: FestivalFeedbackSummary;
+  /**
+   * EVENTS E6 — public gratitude: the NAMES ONLY of sponsors who
+   * explicitly consented to be thanked publicly (publicAck on the
+   * Utsav register — lib/festivalSponsors.publicAckNames is the
+   * only producer). Stamped onto this doc ONLY when a trustee
+   * deliberately publishes it from the War Room register (the same
+   * merge publish path as debriefSummary); withdrawn with a field
+   * delete. A list of name strings — no amount, no contact, no
+   * stall holder can exist in this shape. Absent = never
+   * published (or withdrawn).
+   */
+  sponsorThanks?: string[];
   updatedAt: string;
 }
 

@@ -28,6 +28,8 @@ import { BudgetWarCard } from './BudgetWarCard';
 import { ChecklistOps } from './ChecklistOps';
 import { PublishPanel } from './PublishPanel';
 import { TicketSalesPanel } from './TicketSalesPanel';
+import { SponsorsStallsPanel } from './SponsorsStallsPanel';
+import { DepartmentsBoard } from './DepartmentsBoard';
 import { DebriefCard } from './DebriefCard';
 
 /* Readiness ring — one calm number. */
@@ -393,6 +395,10 @@ const WarRoomInner: React.FC = () => {
       {template && <ChecklistOps wf={wf} plan={p} patch={patch} template={template} />}
       <PublishPanel wf={wf} plan={p} patchPlan={patch} />
       <TicketSalesPanel wf={wf} plan={p} />
+      {/* EVENTS E6 — the sponsors & stalls register and the seva
+          departments board, on the linked Utsav festival record. */}
+      <SponsorsStallsPanel wf={wf} plan={p} event={cloud.event} />
+      <DepartmentsBoard wf={wf} />
       {/* EVENTS E4 — the debrief pack. Shown once the festival is
           live or its register has records; a countdown festival
           with nothing recorded yet would be a wall of empty

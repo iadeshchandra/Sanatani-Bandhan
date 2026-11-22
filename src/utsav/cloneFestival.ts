@@ -24,6 +24,13 @@
  *     commercial state; copying them would fabricate commitments;
  *   · check-in counts — they are the historical record of what
  *     actually happened, not a plan.
+ *   · EVENTS E6: sponsors and stalls — the same per-year
+ *     commercial state as vendors (a pledge or a stall fee is
+ *     this year's arrangement, never next year's inheritance).
+ * EVENTS E6 departments DO carry — but structure only: names and
+ * volunteer targets. Leads are cleared and volunteerNames dropped:
+ * people offer themselves anew each year, and last year's list
+ * must never read as this year's commitment.
  */
 import type {
   BudgetLine, CommitteeMember, Festival, ProgramSlot, SafetyItem, Task,
@@ -76,13 +83,30 @@ export function cloneFestivalForNextYear(
   newId: (oldId: string) => string,
 ): ClonedFestivalSet {
   const startDate = shiftISODatePlusOneYear(festival.startDate);
+  // EVENTS E6 — sponsors & stalls are per-year commercial state:
+  // destructured OUT of the spread, so the keys never reach the
+  // clone at all. Departments are handled separately below.
+  const { sponsors: _sponsors, stalls: _stalls, departments, ...festivalRest } = festival;
+  void _sponsors; void _stalls;
   const cloned: Festival = {
-    ...festival,
+    ...festivalRest,
     id: newId(festival.id),
     name: renamedForNextYear(festival.name, startDate),
     startDate,
     endDate: shiftISODatePlusOneYear(festival.endDate),
     status: 'planned',
+    // EVENTS E6 — departments carry as structure only: name +
+    // target, fresh planning. Leads cleared, volunteerNames
+    // dropped (people re-volunteer each year), notes dropped.
+    ...(departments
+      ? {
+          departments: departments.map((d) => ({
+            id: d.id,
+            name: d.name,
+            targetVolunteers: d.targetVolunteers,
+          })),
+        }
+      : {}),
   };
   const fid = cloned.id;
   const own = <T extends { festivalId: string }>(rows: readonly T[]): T[] =>

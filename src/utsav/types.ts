@@ -30,7 +30,95 @@ export interface Festival {
    * record opens with them pre-filled.
    */
   lessons?: string;
+  /**
+   * EVENTS E6 — the sponsors & stalls register and the seva
+   * departments, all OPTIONAL fields on this record (inside the
+   * existing utsav_stores doc — no new collection, no rules
+   * change; the doc's staff whole-write carries them). Clone law:
+   * sponsors and stalls are per-year commercial state and are
+   * STRIPPED by clone-last-year (like vendors); departments are
+   * structure and CARRY (names + targets only — leads and
+   * volunteer names are re-formed each year).
+   */
+  sponsors?: FestivalSponsor[];
+  stalls?: FestivalStall[];
+  departments?: SevaDepartment[];
 }
+
+/* ------------------------------------------------------------------ */
+/* EVENTS E6 — sponsors, stalls, seva departments                      */
+/* ------------------------------------------------------------------ */
+
+export type SponsorKind = 'cash' | 'kind' | 'seva';
+
+/**
+ * One sponsor of the festival. Money fields (pledged / received)
+ * mean something only for kind 'cash' — a sponsor who gives goods
+ * ('kind') or their own labour ('seva') is honoured in the register
+ * without a rupee figure ever being invented for them.
+ */
+export interface FestivalSponsor {
+  id: string;
+  name: string;
+  contact?: string;
+  kind: SponsorKind;
+  /** Promised amount (cash kind only; 0 otherwise). */
+  pledged: number;
+  /** Amount actually received so far (cash kind only). */
+  received: number;
+  /** The real treasury transaction id, stamped when "mark
+   *  received" posts the outstanding amount (the L7 honesty
+   *  pattern — a row claims treasury posting only with its id). */
+  linkedTxId?: string;
+  /** Explicit consent: may the festival page thank them by name?
+   *  Default false — nobody is thanked publicly unasked. */
+  publicAck: boolean;
+  note?: string;
+}
+
+export type StallKind = 'prasad' | 'food' | 'books' | 'flowers' | 'other';
+
+/** One allotted stall: who holds it, what it sells, its fee. */
+export interface FestivalStall {
+  id: string;
+  holder: string;
+  kind: StallKind;
+  fee: number;
+  received: number;
+  /** Real treasury tx id once the outstanding fee is posted. */
+  linkedTxId?: string;
+  zone?: string;
+  note?: string;
+}
+
+/**
+ * One seva department (the ISKCON festival taxonomy): a named
+ * team with a lead and a volunteer target. volunteerNames is the
+ * committee's own list of who has offered — planning data on this
+ * record, never a public artefact.
+ */
+export interface SevaDepartment {
+  id: string;
+  name: string;
+  leadName?: string;
+  targetVolunteers: number;
+  volunteerNames?: string[];
+  note?: string;
+}
+
+/** The preset taxonomy a department board is seeded from. */
+export const DEPARTMENT_PRESETS: ReadonlyArray<{ name: string; targetVolunteers: number }> = [
+  { name: 'Kitchen & Prasadam', targetVolunteers: 12 },
+  { name: 'Darshan & Crowd', targetVolunteers: 20 },
+  { name: 'Decoration', targetVolunteers: 8 },
+  { name: 'Sound & Stage', targetVolunteers: 4 },
+  { name: 'Transport', targetVolunteers: 6 },
+  { name: 'Medical & Safety', targetVolunteers: 6 },
+  { name: 'Media', targetVolunteers: 4 },
+  { name: 'Accommodation', targetVolunteers: 6 },
+  { name: 'Cleanliness', targetVolunteers: 10 },
+  { name: 'Cultural Programme', targetVolunteers: 8 },
+];
 
 export type BudgetKind = 'income' | 'expense';
 

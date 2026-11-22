@@ -67,6 +67,7 @@ import {
   matchLocalFestival,
 } from '../../lib/festivalDebrief';
 import { FeedbackPanel } from './FeedbackPanel';
+import { departmentCoverage } from '../../lib/festivalSponsors';
 
 interface Props {
   wf: WarFestival;
@@ -561,6 +562,43 @@ export const DebriefCard: React.FC<Props> = ({ wf, plan, event, rsvps }) => {
           </div>
         )}
       </section>
+
+      {/* ── 4a · Seva department coverage (E6) — from the linked
+          record the debrief already holds; the pinned builders in
+          festivalDebrief are untouched, the coverage math is
+          lib/festivalSponsors'. Shown only when the committee
+          keeps a department board. ──────────────────────────── */}
+      {linked?.departments && linked.departments.length > 0 && (() => {
+        const cov = departmentCoverage(linked.departments);
+        return (
+          <section>
+            <h4 className="font-black text-stone-700">{t('surfaces.events.deptTitle')}</h4>
+            <div className="mt-1">
+              {cov.rows.map((r) => (
+                <div key={r.id} className="flex items-baseline justify-between gap-3 py-1.5 border-b border-stone-100 last:border-0">
+                  <span className="text-sm text-stone-600">
+                    {r.name}
+                    {!r.covered && (
+                      <span className="ml-2 text-[11px] font-black text-amber-800">
+                        {t('surfaces.events.deptGap').replace('{gap}', fmtN(r.gap))}
+                      </span>
+                    )}
+                  </span>
+                  <span className="tnum font-bold text-stone-700">
+                    {fmtN(r.assigned)} / {fmtN(r.target)}
+                  </span>
+                </div>
+              ))}
+              <SourceNote>
+                {t('surfaces.events.deptSummary')
+                  .replace('{assigned}', fmtN(cov.totalAssigned))
+                  .replace('{target}', fmtN(cov.totalTarget))
+                  .replace('{gap}', fmtN(cov.totalGap))}
+              </SourceNote>
+            </div>
+          </section>
+        );
+      })()}
 
       {/* ── 4b · Attendee feedback (E5) ────────────────────────── */}
       <FeedbackPanel plan={plan} event={event} checkedInParties={funnel.arrivedParties} />

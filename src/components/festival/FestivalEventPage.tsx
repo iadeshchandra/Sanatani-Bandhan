@@ -458,6 +458,24 @@ export const FestivalEventPage: React.FC<{ previewEvent?: FestivalEventDoc }> = 
           </div>
         )}
 
+        {/* EVENTS E6 — public gratitude: ONLY the names of
+            sponsors who explicitly consented to be thanked
+            publicly (publicAck on the committee's register),
+            stamped onto this doc by the committee through the
+            publish path. Names only — no amount, no contact, no
+            stall holder can exist in this shape, and the block
+            renders only when the committee has published it. */}
+        {event.sponsorThanks && event.sponsorThanks.length > 0 && (
+          <div className="bg-white rounded-3xl shadow-sm border border-orange-100 p-6 text-center">
+            <h2 className="font-extrabold text-stone-800 mb-2">
+              🙏 {t('surfaces.events.gratitudeTitle')}
+            </h2>
+            <p className="text-sm font-semibold text-stone-700 leading-relaxed">
+              {event.sponsorThanks.join(' · ')}
+            </p>
+          </div>
+        )}
+
         {/* EVENTS E5 — my own feedback: the quiet prompt for a
             checked-in devotee once the festival has concluded
             (lib/festivalFeedback's eligibility shape), and after

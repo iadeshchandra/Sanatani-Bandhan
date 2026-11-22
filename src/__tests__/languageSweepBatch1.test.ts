@@ -89,7 +89,12 @@ describe('surfaces + vibe dict completeness (en/hi/bn authored)', () => {
     // devotee's word-scale prompt, the debrief's feedback panel,
     // moderation + response labels, the threshold-gated public
     // averages) in all 10 languages.
-    expect(keysOf(en).length).toBe(727);
+    // EVENTS E6 adds 67 surfaces.events keys (sponsors & stalls
+    // register + seva departments: regTitle…deptSummary — the War
+    // Room register chrome, the consent-shaped public gratitude
+    // line, the department board and its debrief coverage summary)
+    // in all 10 languages.
+    expect(keysOf(en).length).toBe(794);
     for (const bucket of Object.keys(en)) {
       for (const leaf of Object.keys(en[bucket])) {
         for (const dict of [en, hi, bn]) {

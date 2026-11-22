@@ -135,6 +135,52 @@ describe('cloneFestivalForNextYear', () => {
     expect(children.safety[0].done).toBe(true);
   });
 
+  it('EVENTS E6 — strips sponsors and stalls entirely (per-year commercial state)', () => {
+    const withRegister: Festival = {
+      ...festival,
+      sponsors: [
+        { id: 'sp1', name: 'Example Sponsor', kind: 'cash', pledged: 50000, received: 20000, publicAck: true },
+      ],
+      stalls: [
+        { id: 'st1', holder: 'Example Bookseller', kind: 'books', fee: 3000, received: 3000 },
+      ],
+    };
+    const cloned = cloneFestivalForNextYear(withRegister, children, newId);
+    expect(cloned.festival.sponsors).toBeUndefined();
+    expect(cloned.festival.stalls).toBeUndefined();
+    expect('sponsors' in cloned.festival).toBe(false);
+    expect('stalls' in cloned.festival).toBe(false);
+    // The source record keeps its register — cloning never edits it.
+    expect(withRegister.sponsors).toHaveLength(1);
+    expect(withRegister.stalls).toHaveLength(1);
+  });
+
+  it('EVENTS E6 — carries departments as structure only: names + targets, no people', () => {
+    const withDepts: Festival = {
+      ...festival,
+      departments: [
+        {
+          id: 'dp1', name: 'Kitchen & Prasadam', leadName: 'Last Year Lead',
+          targetVolunteers: 12, volunteerNames: ['Asha', 'Bimal'], note: 'East gate kitchen',
+        },
+        { id: 'dp2', name: 'Media', targetVolunteers: 4 },
+      ],
+    };
+    const cloned = cloneFestivalForNextYear(withDepts, children, newId);
+    expect(cloned.festival.departments).toEqual([
+      { id: 'dp1', name: 'Kitchen & Prasadam', targetVolunteers: 12 },
+      { id: 'dp2', name: 'Media', targetVolunteers: 4 },
+    ]);
+    const carried = cloned.festival.departments![0];
+    expect(carried.leadName).toBeUndefined();
+    expect(carried.volunteerNames).toBeUndefined();
+    // The source record's people are untouched.
+    expect(withDepts.departments![0].volunteerNames).toEqual(['Asha', 'Bimal']);
+    expect(withDepts.departments![0].leadName).toBe('Last Year Lead');
+    // A record with no departments clones without inventing any.
+    expect(set.festival.departments).toBeUndefined();
+  });
+
   it('handles a leap-day festival start', () => {
     const leap: Festival = { ...festival, id: 'fvL', startDate: '2028-02-29', endDate: '2028-03-01' };
     const out = cloneFestivalForNextYear(leap, { budget: [], members: [], tasks: [], program: [], safety: [] }, newId);
