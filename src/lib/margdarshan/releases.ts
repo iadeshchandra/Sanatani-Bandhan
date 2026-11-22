@@ -63,6 +63,17 @@ export interface ReleaseEntry {
 
 export const RELEASES: readonly ReleaseEntry[] = [
   {
+    version: 'v2026.11.22-30baa15',
+    date: '2026-11-22',
+    sections: {
+      new: [
+        { text: { en: 'Your event pass no longer lives only in a link: add the festival days to your calendar from the pass itself, or save the pass as a picture on your phone — with its real code, ready to show at the gate.', hi: 'आपका कार्यक्रम पास अब केवल एक लिंक में नहीं रहता: पास से ही उत्सव के दिन अपने कैलेंडर में जोड़ें, या पास को अपने फ़ोन में तस्वीर की तरह सहेजें — असली कोड के साथ, गेट पर दिखाने के लिए तैयार।', bn: 'আপনার অনুষ্ঠান পাস এখন শুধু একটি লিঙ্কে থাকে না: পাস থেকেই উৎসবের দিনগুলি আপনার ক্যালেন্ডারে যোগ করুন, অথবা পাসটি ছবি হিসেবে ফোনে সেভ করুন — আসল কোডসহ, গেটে দেখানোর জন্য প্রস্তুত।' } },
+        { text: { en: 'Booking and pass-purchase confirmations now carry the same calendar buttons, so the days are saved the moment you book.', hi: 'बुकिंग और पास-खरीद की पुष्टि में अब वही कैलेंडर बटन हैं, ताकि बुक करते ही दिन सहेजे जाएँ।', bn: 'বুকিং ও পাস-কেনার নিশ্চিতকরণে এখন একই ক্যালেন্ডার বোতাম আছে, যাতে বুক করার মুহূর্তেই দিনগুলি সেভ হয়ে যায়।' } },
+      ],
+    },
+  },
+
+  {
     version: 'v2026.11.22-fa58a85',
     date: '2026-11-22',
     sections: {
