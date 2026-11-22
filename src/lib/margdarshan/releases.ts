@@ -63,6 +63,28 @@ export interface ReleaseEntry {
 
 export const RELEASES: readonly ReleaseEntry[] = [
   {
+    version: 'v2026.11.22-907e1fb',
+    date: '2026-11-22',
+    sections: {
+      new: [
+        {
+          text: {
+            en: 'Committees can now invite the whole town in one honest tap: the War Room prepares a warm WhatsApp message from the festival’s real details — name, dates, place, and its own page link — and it is sent from your own WhatsApp, to the people you choose. Nothing is blasted by the app; an invitation stays personal, the way it should be. Devotees get the same gentle tool on the festival page to invite family and friends.',
+            hi: 'अब समितियाँ एक ईमानदार टैप में पूरे नगर को निमंत्रण दे सकती हैं: War Room उत्सव के वास्तविक विवरण — नाम, तिथियाँ, स्थान और उसके अपने पृष्ठ का लिंक — से एक स्नेहिल WhatsApp संदेश तैयार करता है, और वह आपके अपने WhatsApp से, आपके चुने लोगों को भेजा जाता है। ऐप कुछ भी एक साथ नहीं भेजता; निमंत्रण व्यक्तिगत रहता है, जैसा होना चाहिए। भक्तों को उत्सव पृष्ठ पर परिवार और मित्रों को बुलाने का वही सौम्य साधन मिलता है।',
+            bn: 'এবার কমিটি এক সৎ ট্যাপে পুরো শহরকে নিমন্ত্রণ জানাতে পারেন: War Room উৎসবের আসল বিবরণ — নাম, তারিখ, স্থান আর তার নিজের পৃষ্ঠার লিঙ্ক — দিয়ে একটি আন্তরিক WhatsApp বার্তা তৈরি করে, আর তা পাঠানো হয় আপনার নিজের WhatsApp থেকে, আপনার বেছে নেওয়া মানুষদের কাছে। অ্যাপ কিছুই একসঙ্গে ছড়ায় না; নিমন্ত্রণ ব্যক্তিগতই থাকে, যেমনটা হওয়া উচিত। ভক্তরাও উৎসবের পৃষ্ঠায় পরিবার ও বন্ধুদের ডাকার সেই একই কোমল উপায় পান।',
+          },
+        },
+        {
+          text: {
+            en: 'And festivals can now announce early, Tirupati-style: set the day and hour when seva passes open, and the page will say “Passes open on…” until that moment — the booking itself stays closed, guarded by the server too, so no one can slip in early. Free darshan booking is never held back; only passes wait for their announced hour. With this, the great festival system is complete — tithi-true calendars, gate passes, honest ticketing, debriefs, feedback, sponsors, departments, discovery, and now invitations.',
+            hi: 'और अब उत्सव तिरुपति-शैली में पहले से घोषित हो सकते हैं: वह दिन और घड़ी तय करें जब सेवा पास खुलेंगे, और पृष्ठ उस क्षण तक कहेगा “पास इस दिन खुलेंगे…” — बुकिंग स्वयं बंद रहती है, सर्वर द्वारा भी सुरक्षित, ताकि कोई पहले न घुस सके। निःशुल्क दर्शन बुकिंग कभी नहीं रोकी जाती; केवल पास अपनी घोषित घड़ी की प्रतीक्षा करते हैं। इसके साथ महान उत्सव-प्रणाली पूर्ण होती है — तिथि-सत्य पंचांग, द्वार पास, ईमानदार टिकट, समीक्षा, प्रतिपुष्टि, प्रायोजक, विभाग, खोज, और अब निमंत्रण।',
+            bn: 'আর এখন উৎসব তিরুপতি-ধাঁচে আগাম ঘোষণা করা যায়: সেবা পাস খোলার দিন ও ঘণ্টা ঠিক করে দিন, পৃষ্ঠাটি সেই মুহূর্ত পর্যন্ত বলবে “পাস খুলবে এই দিনে…” — বুকিং নিজে বন্ধ থাকে, সার্ভার দিয়েও সুরক্ষিত, যাতে কেউ আগে ঢুকতে না পারে। বিনামূল্যে দর্শন বুকিং কখনো আটকানো হয় না; শুধু পাস তার ঘোষিত ঘণ্টার অপেক্ষা করে। এরই সঙ্গে মহা উৎসব-ব্যবস্থা সম্পূর্ণ হলো — তিথি-সত্য পঞ্জিকা, দ্বার পাস, সৎ টিকিট, পর্যালোচনা, মতামত, পৃষ্ঠপোষক, বিভাগ, আবিষ্কার, আর এখন নিমন্ত্রণ।',
+          },
+        },
+      ],
+    },
+  },
+  {
     version: 'v2026.11.22-0d7ee6f',
     date: '2026-11-22',
     sections: {
