@@ -529,6 +529,17 @@ service cloud.firestore {
         && tkUseCount(newTk, code) == tkUseCount(oldTk, code) + 1
         && (!('maxUses' in cm) || tkUseCount(newTk, code) <= cm.get('maxUses', 0));
     }
+    // EVENTS E8 — the pass-release gate (the TTD pattern): when
+    // the published event doc stamps a release moment
+    // (ticketReleaseAtMs, epoch ms — the stamped-clock idiom), no
+    // pass purchase may commit before it. The stamp is read from
+    // the event doc tkCreateOk already fetches, so the gate costs
+    // no extra read. Absent (pre-E8 docs) or 0 = no gate: the E2
+    // path, unchanged. Mirrors lib/eventTickets' passesOpen.
+    function tkReleaseOpen(ev) {
+      return ev.get('ticketReleaseAtMs', 0) <= 0
+        || request.time.toMillis() >= ev.get('ticketReleaseAtMs', 0);
+    }
     // Ticket create: buyer-self only, pinned field shape, the
     // workspace agreeing on all three docs, shape + amounts checked
     // against the plan's stamped maps (tkCreateShapeOk/tkAmountsOk).
@@ -546,7 +557,8 @@ service cloud.firestore {
               'attendees', 'qty', 'amounts', 'currency', 'discountCode', 'paymentState',
               'rsvpId', 'createdAt'])
         && tkCreateShapeOk(d, plan)
-        && tkAmountsOk(d, ev, plan);
+        && tkAmountsOk(d, ev, plan)
+        && tkReleaseOpen(ev);
     }
     // The refund ledger line's anchor (walletTransactions create).
     function tkRefundLedgerOk() {
