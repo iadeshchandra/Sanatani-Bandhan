@@ -63,6 +63,21 @@ export interface ReleaseEntry {
 
 export const RELEASES: readonly ReleaseEntry[] = [
   {
+    version: 'v2026.11.22-0d7ee6f',
+    date: '2026-11-22',
+    sections: {
+      new: [
+        {
+          text: {
+            en: 'There is now one public doorway to every celebration: the new Events page gathers upcoming festivals and gatherings from all organisations in one place — today, this week, and coming up — open to everyone, no account needed to look. Each card carries you to that organisation’s own page, where you can join, book a pass, or simply plan your darshan. You will find the doorway on the home page too.',
+            hi: 'अब हर उत्सव का एक सार्वजनिक द्वार है: नया Events पृष्ठ सभी संस्थाओं के आगामी उत्सवों और आयोजनों को एक ही स्थान पर इकट्ठा करता है — आज, इस सप्ताह, और आगे आने वाले — सबके लिए खुला, देखने के लिए खाता नहीं चाहिए। हर कार्ड आपको उस संस्था के अपने पृष्ठ पर ले जाता है, जहाँ आप जुड़ सकते हैं, पास बुक कर सकते हैं, या बस अपने दर्शन की योजना बना सकते हैं। यह द्वार मुखपृष्ठ पर भी मिलेगा।',
+            bn: 'এখন প্রতিটি উদ্‌যাপনের একটি সর্বজনীন দ্বার আছে: নতুন Events পৃষ্ঠা সব প্রতিষ্ঠানের আসন্ন উৎসব ও আয়োজন এক জায়গায় জড়ো করে — আজ, এই সপ্তাহে, আর আগামীতে — সবার জন্য খোলা, দেখতে অ্যাকাউন্ট লাগে না। প্রতিটি কার্ড আপনাকে সেই প্রতিষ্ঠানের নিজের পৃষ্ঠায় নিয়ে যায়, যেখানে যোগ দিতে, পাস বুক করতে, কিংবা শুধু দর্শনের পরিকল্পনা করতে পারবেন। এই দ্বারটি হোম পৃষ্ঠাতেও পাবেন।',
+          },
+        },
+      ],
+    },
+  },
+  {
     version: 'v2026.11.22-e44ac9f',
     date: '2026-11-22',
     sections: {
