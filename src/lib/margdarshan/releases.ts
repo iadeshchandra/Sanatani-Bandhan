@@ -63,6 +63,28 @@ export interface ReleaseEntry {
 
 export const RELEASES: readonly ReleaseEntry[] = [
   {
+    version: 'v2026.11.22-9a9d13e',
+    date: '2026-11-22',
+    sections: {
+      fixed: [
+        {
+          text: {
+            en: 'The app can no longer be trapped on its opening screen by a bad network. If the connection hangs — a captive portal, a dying Wi-Fi — the app now waits a fair while, then opens on the space already saved on your device and finishes signing in quietly in the background when the network returns. Slow networks are untouched; only a true hang is rescued.',
+            hi: 'अब खराब नेटवर्क ऐप को उसकी प्रारंभिक स्क्रीन पर नहीं फँसा सकता। यदि कनेक्शन अटक जाए — कैप्टिव पोर्टल, मरता हुआ Wi-Fi — तो ऐप उचित समय प्रतीक्षा करता है, फिर आपके उपकरण पर पहले से सहेजे स्थान के साथ खुलता है, और नेटवर्क लौटने पर पृष्ठभूमि में चुपचाप साइन-इन पूरा करता है। धीमा नेटवर्क अछूता रहता है; केवल सच्ची अटकन ही बचाई जाती है।',
+            bn: 'এখন খারাপ নেটওয়ার্ক অ্যাপকে তার শুরুর পর্দায় আটকে রাখতে পারবে না। সংযোগ ঝুলে গেলে — ক্যাপটিভ পোর্টাল, মুমূর্ষু Wi-Fi — অ্যাপ যথাযথ সময় অপেক্ষা করে, তারপর আপনার যন্ত্রে আগে থেকে সেভ করা জায়গা নিয়ে খোলে, আর নেটওয়ার্ক ফিরলে পেছনে নীরবে সাইন-ইন শেষ করে। ধীর নেটওয়ার্ক অক্ষত থাকে; শুধু সত্যিকারের ঝুলনই উদ্ধার পায়।',
+          },
+        },
+        {
+          text: {
+            en: 'Three smaller repairs from our full-app testing: the language sheet now stays readable at dusk in Sandhya Mode (its heading had nearly vanished), the Treasury “More” menu now closes properly on phones — a tap outside or the back gesture dismisses it — and the short address /whats-new now leads to the What’s New page, as people expect.',
+            hi: 'हमारे पूर्ण-ऐप परीक्षण से तीन छोटे सुधार: भाषा-पत्रक अब संध्या मोड में शाम को भी पठनीय रहता है (उसका शीर्षक लगभग गायब हो गया था), कोष “More” मेनू अब फ़ोन पर ठीक से बंद होता है — बाहर टैप या बैक इशारा उसे हटाता है — और छोटा पता /whats-new अब What’s New पृष्ठ पर ले जाता है, जैसा लोग अपेक्षा करते हैं।',
+            bn: 'আমাদের পূর্ণ-অ্যাপ পরীক্ষা থেকে তিনটি ছোট মেরামত: ভাষা-পত্রক এখন সন্ধ্যা মোডে সাঁঝেও পড়া যায় (তার শিরোনাম প্রায় হারিয়ে গিয়েছিল), কোষাগারের “More” মেনু এখন ফোনে ঠিকমতো বন্ধ হয় — বাইরে ট্যাপ বা ব্যাক ইশারা তা সরিয়ে দেয় — আর ছোট ঠিকানা /whats-new এখন What’s New পৃষ্ঠায় নিয়ে যায়, যেমনটা মানুষ আশা করেন।',
+          },
+        },
+      ],
+    },
+  },
+  {
     version: 'v2026.11.22-907e1fb',
     date: '2026-11-22',
     sections: {
