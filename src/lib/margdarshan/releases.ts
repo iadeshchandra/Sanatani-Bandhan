@@ -63,6 +63,28 @@ export interface ReleaseEntry {
 
 export const RELEASES: readonly ReleaseEntry[] = [
   {
+    version: 'v2026.11.22-e44ac9f',
+    date: '2026-11-22',
+    sections: {
+      new: [
+        {
+          text: {
+            en: 'Every festival now keeps a proper Sponsors & Stalls register in the War Room: who pledged what, what has been received, and one tap that posts the receipt straight into the treasury under the Sponsorships or Stall fees head — no double books. Sponsors are thanked on the public festival page only when they have said yes to being named, and only ever by name, never by amount.',
+            hi: 'अब हर उत्सव के War Room में उचित Sponsors & Stalls पंजी रहती है: किसने क्या वचन दिया, कितना प्राप्त हुआ, और एक टैप जो प्राप्ति को सीधे कोष में Sponsorships या Stall fees मद में दर्ज कर देता है — दोहरे बही-खाते नहीं। प्रायोजकों को सार्वजनिक उत्सव पृष्ठ पर केवल तब धन्यवाद दिया जाता है जब उन्होंने नाम आने की सहमति दी हो, और हमेशा केवल नाम से, कभी राशि से नहीं।',
+            bn: 'এখন প্রতিটি উৎসবের War Room-এ যথাযথ Sponsors & Stalls খাতা থাকে: কে কী প্রতিশ্রুতি দিলেন, কতটা পাওয়া গেছে, আর এক ট্যাপে সেই প্রাপ্তি সরাসরি কোষাগারে Sponsorships বা Stall fees খাতে নথিভুক্ত হয় — দ্বিগুণ খাতা নয়। পৃষ্ঠপোষকদের সর্বজনীন উৎসব পৃষ্ঠায় ধন্যবাদ জানানো হয় কেবল তখনই, যখন তাঁরা নাম প্রকাশে সম্মতি দিয়েছেন, এবং সবসময় শুধু নামে, কখনো অঙ্কে নয়।',
+          },
+        },
+        {
+          text: {
+            en: 'Festivals also gain Seva Departments — Kitchen & Prasadam, Darshan & Crowd, Decoration, Medical & Safety and more — each with a lead, a volunteer target, and its own list of sevaks, so a gap shows itself weeks before the day, not on the morning. The department plan carries into next year’s festival; sponsors and stalls, being each year’s own arrangements, begin fresh.',
+            hi: 'उत्सवों को Seva Departments भी मिलते हैं — Kitchen & Prasadam, Darshan & Crowd, Decoration, Medical & Safety और अन्य — प्रत्येक का एक प्रमुख, स्वयंसेवक लक्ष्य और अपनी सेवक-सूची, ताकि कमी उस सुबह नहीं, सप्ताहों पहले दिख जाए। विभाग-योजना अगले वर्ष के उत्सव में जाती है; प्रायोजक और स्टॉल, हर वर्ष की अपनी व्यवस्था होने से, नए सिरे से शुरू होते हैं।',
+            bn: 'উৎসবগুলো পায় Seva Departments — Kitchen & Prasadam, Darshan & Crowd, Decoration, Medical & Safety আরও অনেক — প্রতিটির একজন প্রধান, স্বেচ্ছাসেবকের লক্ষ্য ও নিজস্ব সেবক-তালিকা, যাতে ঘাটতি সেই সকালে নয়, সপ্তাহখানেক আগেই ধরা পড়ে। বিভাগ-পরিকল্পনা পরের বছরের উৎসবে যায়; পৃষ্ঠপোষক ও স্টল, প্রতি বছরের নিজস্ব ব্যবস্থা বলে, নতুন করে শুরু হয়।',
+          },
+        },
+      ],
+    },
+  },
+  {
     version: 'v2026.11.22-65404ea',
     date: '2026-11-22',
     sections: {
