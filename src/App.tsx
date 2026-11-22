@@ -1,5 +1,5 @@
 import React, { useState, Suspense, lazy } from 'react';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, useLocation } from 'react-router-dom';
 import { Loader2 } from 'lucide-react';
 import { ToastProvider } from './context/ToastContext';
 import { LanguageProvider } from './context/LanguageContext';
@@ -38,6 +38,16 @@ import { PurohitWorkspaceShell } from './components/purohit/PurohitWorkspaceShel
 import { SangamProvider } from './sangam/sangamStore';
 import { JyotishWorkspaceShell } from './jyotish/JyotishWorkspaceShell';
 import { Navigate } from 'react-router-dom';
+// FIX BATCH F4 — the short What's New address. /whats-new is the
+// address people guess and bookmark; the canonical page lives in
+// the Margdarshan mirror. Redirect (replace, so the alias never
+// sits in history), preserving any query string. A defined route,
+// so it matches in the router before the signed-out gate — the
+// rtFix-pinned publicPaths set deliberately stays untouched.
+const WhatsNewAliasRedirect: React.FC = () => {
+  const { search } = useLocation();
+  return <Navigate to={`/margdarshan/whats-new${search}`} replace />;
+};
 // Deprecated: PurohitReviewQueue used unsafe direct client writes.
 // Verification now lives in the unified GodMode console (/mysecretlogin).
 const PurohitReviewsRedirect: React.FC = () => (
@@ -1455,6 +1465,8 @@ const AppRoutes: React.FC = () => {
               </Suspense>
             }
           />
+          {/* FIX BATCH F4 — the short alias for the page above. */}
+          <Route path="/whats-new" element={<WhatsNewAliasRedirect />} />
           {/* J3 — Your Voice joins the public mirror: the board is
               readable by anyone (read/engage law); its Support and
               Suggest acts are sign-in doors inside the board. */}

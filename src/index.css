@@ -902,3 +902,23 @@ body.sb-form-sos {
 [data-sandhya="on"] .week-shape .ws-bar-today { fill: #f5a83d; }
 [data-sandhya="on"] .week-shape .ws-bar-empty { fill: #57401f; }
 [data-sandhya="on"] .week-shape .ws-baseline { fill: #57401f; }
+
+/* ------------------------------------------------------------
+   FIX BATCH F2 — the paper sheets at dusk. The language sheet
+   family (LanguagePickerSheet and its copy-pasted siblings —
+   RegionPickerSheet, NativeWelcomeSheet,
+   TranslationSuggestionSheet) builds its panel and sticky
+   header from the literal warm-paper hex #faf7f2, which the
+   token remap above never reaches: at dusk the panel kept its
+   day ivory while its stone text remapped to lamplight cream —
+   cream on ivory, 1.05:1, the heading effectively invisible
+   (Full-App Test #2, F2). The sheets carry the .paper-sheet
+   hook on their portal root (they are body-portalled, so the
+   hook rides the root itself — the E5 pattern); the paper
+   rests to the same dusk card tone as .bg-white and the
+   sticky header to its /95 twin. Day rendering is untouched.
+   The sheets' rows (bg-white / amber-50 grounds, stone text)
+   were already registered above and are NOT touched here.
+   ------------------------------------------------------------ */
+[data-sandhya="on"] .paper-sheet .bg-\[\#faf7f2\] { background-color: #2c1d12; }
+[data-sandhya="on"] .paper-sheet .bg-\[\#faf7f2\]\/95 { background-color: rgba(44, 29, 18, 0.95); }

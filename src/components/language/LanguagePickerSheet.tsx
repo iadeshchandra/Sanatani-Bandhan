@@ -61,7 +61,7 @@ export const LanguagePickerSheet: React.FC<Props> = ({
   // Rendering at the body level keeps `fixed` meaning the viewport.
   return createPortal(
     <div
-      className="fixed inset-0 z-[210]"
+      className="paper-sheet fixed inset-0 z-[210]"
       role="dialog"
       aria-modal="true"
       aria-label={copy.title}

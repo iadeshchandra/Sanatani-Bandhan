@@ -63,7 +63,7 @@ export const RegionPickerSheet: React.FC<Props> = ({
   // the viewport wherever this sheet is opened from.
   return createPortal(
     <div
-      className="fixed inset-0 z-[210]"
+      className="paper-sheet fixed inset-0 z-[210]"
       role="dialog"
       aria-modal="true"
       aria-label={copy.title}

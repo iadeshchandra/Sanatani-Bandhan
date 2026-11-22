@@ -117,7 +117,7 @@ export const TranslationSuggestionSheet: React.FC<Props> = ({ lang, lines, onClo
   };
 
   return (
-    <div className="fixed inset-0 z-[220]" role="dialog" aria-modal="true" aria-label={copy.sheetTitle}>
+    <div className="paper-sheet fixed inset-0 z-[220]" role="dialog" aria-modal="true" aria-label={copy.sheetTitle}>
       <div className="absolute inset-0 bg-black/45" onClick={onClose} aria-hidden />
       <div className="absolute inset-x-0 bottom-0 sm:mx-auto sm:max-w-lg max-h-[92dvh] overflow-y-auto bg-[#faf7f2] rounded-t-3xl shadow-2xl border-t border-amber-200/60">
         <div className="sticky top-0 bg-[#faf7f2]/95 backdrop-blur rounded-t-3xl border-b border-amber-100 px-5 pt-4 pb-3 flex items-start justify-between z-10">

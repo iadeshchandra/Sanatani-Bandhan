@@ -248,6 +248,42 @@ export const TreasuryLedgerDesk: React.FC<TreasuryLedgerDeskProps> = ({ onOpenQu
   }, [openBahiKhataFromDoor]);
   // F-TREAS-1: overflow menu for the secondary actions (toolbar shows ≤4).
   const [showMoreActions, setShowMoreActions] = useState(false);
+  // FIX BATCH F3 — More-menu dismissal that no ancestor can trap.
+  // The menu's only dismissal used to be its fixed transparent
+  // backdrop: a `position: fixed` element is trapped by any
+  // backdrop-filter / transform / filter ancestor (the fixed-overlay
+  // ancestor trap this codebase has hit before), so at narrow widths
+  // the backdrop could shrink to a strip and outside taps never
+  // reached it — and Escape had no handler at all (Full-App Test #2,
+  // F3). While the menu is open, dismissal now ALSO lives on
+  // document-level listeners scoped by these refs: Escape closes
+  // (and returns focus to the trigger); a pointer-down anywhere
+  // outside the menu AND the trigger closes. Pointer-downs inside
+  // either are ignored, so item clicks and the trigger's own toggle
+  // behave exactly as before; the backdrop stays as a third path.
+  const moreActionsBtnRef = useRef<HTMLButtonElement | null>(null);
+  const moreActionsMenuRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    if (!showMoreActions) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return;
+      setShowMoreActions(false);
+      moreActionsBtnRef.current?.focus();
+    };
+    const onPointerDown = (e: PointerEvent) => {
+      const target = e.target as Node | null;
+      if (!target) return;
+      if (moreActionsMenuRef.current?.contains(target)) return;
+      if (moreActionsBtnRef.current?.contains(target)) return;
+      setShowMoreActions(false);
+    };
+    document.addEventListener('keydown', onKeyDown);
+    document.addEventListener('pointerdown', onPointerDown, true);
+    return () => {
+      document.removeEventListener('keydown', onKeyDown);
+      document.removeEventListener('pointerdown', onPointerDown, true);
+    };
+  }, [showMoreActions]);
   const { t, safeTranslate } = useLanguage();
   const { donations, addTreasuryTransaction, recordsForBranch, activeBranchId, collectionWindows, treasuryExactTotals } = useData();
   const { showToast } = useToast();
@@ -995,6 +1031,7 @@ export const TreasuryLedgerDesk: React.FC<TreasuryLedgerDeskProps> = ({ onOpenQu
                 Statement live in this menu now (first three items). */}
             <div className="relative">
               <button
+                ref={moreActionsBtnRef}
                 type="button"
                 onClick={() => setShowMoreActions((v) => !v)}
                 aria-expanded={showMoreActions}
@@ -1028,6 +1065,7 @@ export const TreasuryLedgerDesk: React.FC<TreasuryLedgerDeskProps> = ({ onOpenQu
                 className="fixed inset-0 z-40 cursor-default bg-transparent"
               />
               <div
+                ref={moreActionsMenuRef}
                 role="menu"
                 aria-label={safeTranslate('treasury_more_actions', 'More actions', 'আরও', 'अधिक')}
                 className="absolute right-0 z-50 mt-2 w-60 rounded-2xl border border-stone-200 bg-white p-1.5 shadow-2xl"

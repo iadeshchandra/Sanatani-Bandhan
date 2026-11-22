@@ -18,6 +18,7 @@ import {
   stashDemoSessionRole,
 } from '../lib/demoSession';
 import { isModuleAllowedForOrgMount, isDeskInWorkspaceSet, resolveOrgModuleId } from '../lib/workspaceRegistry';
+import { BootGate } from '../lib/bootRescue';
 import {
   generatePinHash,
   verifyPinHash,
@@ -193,6 +194,14 @@ export interface AuthWorkspaceContextType {
   workspaceId: string | null;
   role: UserRole | null;
   isLoading: boolean;
+  /**
+   * FIX BATCH F1: true when this boot was RESCUED — the auth/backend
+   * round-trip hung past the boot bound, so the gate opened on the
+   * locally persisted session state and sign-in kept resolving in
+   * the background (its result supersedes when it lands). A session
+   * fact for honest indicators; never set on a normal boot.
+   */
+  bootRescued: boolean;
   switchWorkspace: (newWorkspaceId: string) => Promise<boolean>;
   /**
    * P0-2: Exit the demo sandbox. Removes demo workspaces from state, clears
@@ -322,6 +331,9 @@ export const AuthWorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({
     return (initialData.sanatani_user_role as UserRole) || null;
   });
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  // FIX BATCH F1: set by the boot gate when a hanging network forces
+  // the rescued boot (see the auth effect + lib/bootRescue).
+  const [bootRescued, setBootRescued] = useState<boolean>(false);
 
   // Cached User Profile Document from Firestore
   const [userDocData, setUserDocData] = useState<any>(null);
@@ -639,6 +651,25 @@ export const AuthWorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({
   useEffect(() => {
     setIsLoading(true);
 
+    // FIX BATCH F1 — the boot rescue. isLoading used to clear ONLY
+    // inside the callback below (after an awaited profile fetch), so
+    // a network that HANGS — black-holed proxy, captive portal,
+    // dying Wi-Fi — stalled the splash forever (Full-App Test #2,
+    // F1). The gate (lib/bootRescue) is armed now: if no resolution
+    // lands within the bound, it opens the gate on the locally
+    // persisted session state this provider already initialises
+    // from, and the callback's own setState paths supersede when
+    // they land — exactly once per auth event, nothing invented.
+    const bootGate = new BootGate(() => {
+      setBootRescued(true);
+      setIsLoading(false);
+    });
+    bootGate.arm();
+    const finishBoot = () => {
+      bootGate.resolve();
+      setIsLoading(false);
+    };
+
     const unsubscribe = onAuthStateChanged(auth, async (firebaseAuthUser) => {
       setUser(firebaseAuthUser);
 
@@ -664,7 +695,7 @@ export const AuthWorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({
           );
           setRole(fallbackRole);
           setCurrentRole(fallbackRole);
-          setIsLoading(false);
+          finishBoot();
           return;
         }
 
@@ -689,7 +720,7 @@ export const AuthWorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({
               saveSuspensionNotice(info);
               setAccountSuspended(info);
               try { await signOut(auth); } catch { /* already out */ }
-              setIsLoading(false);
+              finishBoot();
               return;
             }
             // Not suspended — clear any stale notice (e.g. after unsuspend).
@@ -774,7 +805,7 @@ export const AuthWorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({
           console.warn('Notice: Firestore user document lookup fallback:', err?.message || err);
           setIsAuthenticated(true);
         } finally {
-          setIsLoading(false);
+          finishBoot();
         }
 
         // Phase 21: Exchange the Firebase ID token for a cloud control-plane JWT.
@@ -803,13 +834,23 @@ export const AuthWorkspaceProvider: React.FC<{ children: React.ReactNode }> = ({
         setIsAuthenticated(false);
         setWorkspaceId('DEMO_ws-mandir');
         setActiveWorkspaceId('DEMO_ws-mandir');
-        setIsLoading(false);
+        finishBoot();
         // Phase 21: drop any cloud JWT + unregister the token provider.
         void clearCloudSession();
       }
+    }, (authError) => {
+      // FIX BATCH F1 — the fast-fail path: an auth-observer error
+      // takes the SAME rescue as a hang (open on local state, keep
+      // resolving in the background). Before this callback existed,
+      // such an error could strand the splash exactly like a hang.
+      console.warn('Notice: auth state observer error — opening on the local session:', authError?.message || authError);
+      bootGate.rescueNow();
     });
 
-    return () => unsubscribe();
+    return () => {
+      bootGate.dispose();
+      unsubscribe();
+    };
   }, []);
 
   /**
@@ -1575,6 +1616,7 @@ const pinDeniedToast = (
         workspaceId,
         role,
         isLoading,
+        bootRescued,
         switchWorkspace,
         exitDemo,
         firebaseUser: user,
