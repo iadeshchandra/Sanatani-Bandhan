@@ -21,17 +21,26 @@ import * as path from 'path';
 import {
   PUBLIC_EVENT_SOURCES,
   buildDiscoveryCards,
+  cardsCoveringDate,
   festivalCard,
   filterCards,
+  followedCards,
   groupCards,
+  isFollowedCard,
   kindOptions,
+  observanceStrip,
   orgOptions,
   orgPageCards,
   sangamCard,
+  type DiscoveryCard,
   type DiscoveryOrgPage,
+  type FollowSets,
 } from '../eventDiscovery';
 import type { FestivalEventDoc } from '../festival';
 import type { SangamEvent } from '../../sangam/types';
+import type { PanjikaFestival } from '../panjikaFestivals';
+
+const NO_FOLLOWS: FollowSets = { orgIds: [], festivalIds: [] };
 
 const TODAY = '2026-11-22'; // a Sunday
 const pickEn = (n: { en: string }) => n.en;
@@ -259,6 +268,143 @@ describe('assembly, grouping, filtering', () => {
     ]);
     expect(filterCards(cards, { kind: 'org' }).map((c) => c.title)).toEqual(['Gopashtami']);
     expect(filterCards(cards, {})).toHaveLength(cards.length);
+  });
+});
+
+describe('NEXT-LEVEL A1 — follows matching', () => {
+  const cards: DiscoveryCard[] = buildDiscoveryCards(
+    {
+      festivals: [
+        festival({}),
+        festival({
+          id: 'WS2__kali-2026',
+          workspaceId: 'WS2',
+          festivalKey: 'kali-2026',
+          orgName: 'River Ashram',
+          name: { en: 'Kali Puja', bn: '', hi: '' },
+          dateISO: '2026-11-26',
+          endDateISO: '2026-11-26',
+        }),
+      ],
+      sangamEvents: [sangam({ orgId: 'WS2', orgName: 'River Ashram' })],
+      orgPages: [],
+    },
+    TODAY,
+    pickEn
+  );
+
+  it('a festival card matches its followed series by plan id', () => {
+    const follows: FollowSets = { orgIds: [], festivalIds: ['WS1__durga-2026'] };
+    const durga = cards.find((c) => c.title === 'Durga Puja')!;
+    const kali = cards.find((c) => c.title === 'Kali Puja')!;
+    expect(isFollowedCard(durga, follows)).toBe(true);
+    expect(isFollowedCard(kali, follows)).toBe(false);
+  });
+
+  it('any card matches a followed organisation; org-less cards never match', () => {
+    const follows: FollowSets = { orgIds: ['WS2'], festivalIds: [] };
+    // Soonest first: the Sangam is today, the Kali Puja on the 26th.
+    expect(followedCards(cards, follows).map((c) => c.title)).toEqual([
+      'Sunday Satsang',
+      'Kali Puja',
+    ]);
+    const community = sangamCard(sangam({}), TODAY)!;
+    expect(community.orgId).toBeUndefined();
+    expect(isFollowedCard(community, follows)).toBe(false);
+  });
+
+  it('empty follows → an empty rail (never an empty shelf)', () => {
+    expect(followedCards(cards, NO_FOLLOWS)).toEqual([]);
+  });
+});
+
+describe('NEXT-LEVEL A1 — panchang strip', () => {
+  const cards: DiscoveryCard[] = buildDiscoveryCards(
+    { festivals: [festival({})], sangamEvents: [], orgPages: [] },
+    TODAY,
+    pickEn
+  ); // Durga Puja runs 2026-11-25 → 2026-11-27.
+
+  it('cardsCoveringDate counts a multi-day festival on every day it runs', () => {
+    expect(cardsCoveringDate(cards, '2026-11-24')).toHaveLength(0);
+    expect(cardsCoveringDate(cards, '2026-11-25')).toHaveLength(1);
+    expect(cardsCoveringDate(cards, '2026-11-26')).toHaveLength(1);
+    expect(cardsCoveringDate(cards, '2026-11-27')).toHaveLength(1);
+    expect(cardsCoveringDate(cards, '2026-11-28')).toHaveLength(0);
+  });
+
+  it('engine observances appear with their canonical tithi names (engine-verified dates)', () => {
+    const strip = observanceStrip([], TODAY, 30, []);
+    const byDate = new Map(strip.map((d) => [d.date, d]));
+    expect(byDate.get('2026-11-24')?.tithiName).toBe('Purnima');
+    expect(byDate.get('2026-12-04')?.tithiName).toBe('Krishna Ekadashi');
+    expect(byDate.get('2026-12-08')?.tithiName).toBe('Amavasya');
+    expect(byDate.get('2026-11-28')?.tithiName).toBe('Krishna Chaturthi');
+    // A plain day (no preset tithi, no DB entry) is not an observance.
+    expect(byDate.has('2026-11-23')).toBe(false);
+    // Engine-only days carry no DB names — nothing is invented.
+    expect(byDate.get('2026-11-24')?.names).toEqual([]);
+  });
+
+  it('DB festivals join by date, civic holidays are excluded, counts are honest', () => {
+    const db: PanjikaFestival[] = [
+      {
+        date: '2026-11-26',
+        nameEn: 'Test Puja',
+        nameBn: 'টেস্ট পূজা',
+        significanceEn: '',
+        significanceBn: '',
+        category: 'puja',
+        variant: 'both',
+        regions: [],
+        confidence: 'verified',
+      },
+      {
+        date: '2026-11-26',
+        nameEn: 'Second Same-Day',
+        nameBn: 'দ্বিতীয়',
+        significanceEn: '',
+        significanceBn: '',
+        category: 'festival',
+        variant: 'both',
+        regions: [],
+        confidence: 'single',
+      },
+      {
+        date: '2026-11-27',
+        nameEn: 'Civic Day',
+        nameBn: 'নাগরিক দিবস',
+        significanceEn: '',
+        significanceBn: '',
+        category: 'holiday',
+        variant: 'both',
+        regions: [],
+        confidence: 'verified',
+      },
+      {
+        date: '2027-03-01',
+        nameEn: 'Outside Window',
+        nameBn: 'বাইরে',
+        significanceEn: '',
+        significanceBn: '',
+        category: 'puja',
+        variant: 'both',
+        regions: [],
+        confidence: 'verified',
+      },
+    ];
+    const strip = observanceStrip(cards, TODAY, 30, db);
+    const puja = strip.find((d) => d.date === '2026-11-26')!;
+    expect(puja.names.map((n) => n.en)).toEqual(['Test Puja', 'Second Same-Day']);
+    // Durga Puja (25–27 Nov) covers the 26th — the count is real.
+    expect(puja.eventCount).toBe(1);
+    // The civic holiday never becomes an observance.
+    expect(strip.some((d) => d.names.some((n) => n.en === 'Civic Day'))).toBe(false);
+    // Outside the 30-day window: absent.
+    expect(strip.some((d) => d.date === '2027-03-01')).toBe(false);
+    // Sorted by date.
+    const dates = strip.map((d) => d.date);
+    expect(dates).toEqual([...dates].sort());
   });
 });
 

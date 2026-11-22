@@ -1416,3 +1416,52 @@ describe('REAL-WORLD PACK — desk (counter) sales (event_tickets)', () => {
     await assertFails(batch.commit());
   });
 });
+
+describe('NEXT-LEVEL A1 — user follows (user_follows)', () => {
+  const mine = () => testEnv.authenticatedContext('user-1').firestore().collection('user_follows').doc('user-1');
+  const asOther = () => testEnv.authenticatedContext('user-2').firestore().collection('user_follows').doc('user-1');
+  const shape = (over: Record<string, unknown> = {}) => ({
+    orgIds: ['ws-1'],
+    festivalIds: ['ws-1__fest1'],
+    updatedAt: 1730000000000,
+    ...over,
+  });
+
+  it('112. The owner creates, reads, updates and deletes their own follows doc', async () => {
+    await assertSucceeds(mine().set(shape()));
+    await assertSucceeds(mine().get());
+    await assertSucceeds(mine().update({ orgIds: ['ws-1', 'ws-2'], updatedAt: 1730000001000 }));
+    await assertSucceeds(mine().delete());
+  });
+
+  it('113. Another user cannot read someone else\'s follows', async () => {
+    await assertSucceeds(mine().set(shape()));
+    await assertFails(asOther().get());
+  });
+
+  it('114. Another user cannot create or update a doc under someone else\'s uid', async () => {
+    await assertFails(asOther().set(shape()));
+    await assertFails(asOther().update({ orgIds: [], updatedAt: 1730000002000 }));
+    await assertFails(asOther().delete());
+  });
+
+  it('115. A create smuggling an extra key is refused', async () => {
+    await assertFails(mine().set(shape({ admin: true })));
+    await assertFails(mine().set(shape({ role: 'Trustee' })));
+  });
+
+  it('116. Oversized lists, non-list fields and a non-numeric updatedAt are refused', async () => {
+    const tooMany = Array.from({ length: 201 }, (_, i) => `ws-${i}`);
+    await assertFails(mine().set(shape({ orgIds: tooMany })));
+    await assertFails(mine().set(shape({ festivalIds: 'ws-1__fest1' })));
+    await assertFails(mine().set(shape({ updatedAt: 'just now' })));
+    // A create missing one of the three pinned keys is refused too.
+    await assertFails(mine().set({ orgIds: [], updatedAt: 1730000000000 }));
+  });
+
+  it('117. Anonymous callers can neither read nor write follows', async () => {
+    const unauthDb = testEnv.unauthenticatedContext().firestore();
+    await assertFails(unauthDb.collection('user_follows').doc('user-1').get());
+    await assertFails(unauthDb.collection('user_follows').doc('user-1').set(shape()));
+  });
+});

@@ -21,6 +21,7 @@ import { collection, getDocs, limit, query, where } from 'firebase/firestore';
 import { ArrowLeft, BadgeCheck, CalendarDays, Loader2, MapPin, Sparkles, Ticket } from 'lucide-react';
 import { db } from '../lib/firebase';
 import { useLanguage } from '../context/LanguageContext';
+import { useAuthWorkspace } from '../context/AuthWorkspaceContext';
 import { PublicLanguageButton } from '../components/public/PublicLanguageButton';
 import { pickLang } from '../lib/microcopy';
 import type { FestivalEventDoc } from '../lib/festival';
@@ -28,15 +29,20 @@ import type { SangamEvent } from '../sangam/types';
 import {
   DISCOVERY_FETCH_LIMIT,
   buildDiscoveryCards,
+  cardsCoveringDate,
   filterCards,
+  followedCards,
   groupCards,
   kindOptions,
+  observanceStrip,
   orgOptions,
   type DiscoveryCard,
   type DiscoveryKind,
   type DiscoveryOrgPage,
+  type ObservanceDay,
 } from '../lib/eventDiscovery';
 import { localTodayISO } from '../lib/eventRecurrence';
+import { EMPTY_FOLLOWS, readFollows, type FollowState } from '../lib/follows';
 
 const KIND_KEY: Record<DiscoveryKind, string> = {
   festival: 'surfaces.events.discoverKindFestival',
@@ -56,10 +62,24 @@ function fmtDate(iso: string, locale: string): string {
 export const PublicEventsPage: React.FC = () => {
   const navigate = useNavigate();
   const { t, language } = useLanguage();
+  const { firebaseUser } = useAuthWorkspace();
   const [cards, setCards] = useState<DiscoveryCard[]>([]);
   const [loading, setLoading] = useState(true);
   const [org, setOrg] = useState('');
   const [kind, setKind] = useState<DiscoveryKind | ''>('');
+  // NEXT-LEVEL A1 — the signed-in devotee's follows (their own doc,
+  // read through lib/follows — the page itself still reads ONLY the
+  // three public collections) and the panchang strip's date filter.
+  const [follows, setFollows] = useState<FollowState>(EMPTY_FOLLOWS);
+  const [dateFilter, setDateFilter] = useState('');
+
+  const uid = (firebaseUser as { uid?: string } | null)?.uid || '';
+  useEffect(() => {
+    if (!uid) { setFollows(EMPTY_FOLLOWS); return; }
+    let cancelled = false;
+    readFollows(uid).then((s) => { if (!cancelled) setFollows(s); });
+    return () => { cancelled = true; };
+  }, [uid]);
 
   useEffect(() => {
     let cancelled = false;
@@ -126,12 +146,35 @@ export const PublicEventsPage: React.FC = () => {
 
   const orgs = useMemo(() => orgOptions(cards), [cards]);
   const kinds = useMemo(() => kindOptions(cards), [cards]);
-  const visible = useMemo(
-    () => filterCards(cards, { orgName: org || undefined, kind: kind || undefined }),
-    [cards, org, kind]
-  );
+  const visible = useMemo(() => {
+    const base = filterCards(cards, { orgName: org || undefined, kind: kind || undefined });
+    return dateFilter ? cardsCoveringDate(base, dateFilter) : base;
+  }, [cards, org, kind, dateFilter]);
   const groups = useMemo(() => groupCards(visible, localTodayISO()), [visible]);
   const locale = language === 'en' ? 'en-IN' : language;
+
+  // NEXT-LEVEL A1 — the "From your temples" rail: followed events
+  // FIRST, on the plain (unfiltered) view only. Following nothing —
+  // or nothing followed having an event — means NO rail at all:
+  // never an empty shelf. The cards still appear in the groups
+  // below; the rail is the devotee's shortcut shelf, capped at 6.
+  const unfiltered = !org && !kind && !dateFilter;
+  const rail = useMemo(
+    () => (unfiltered ? followedCards(cards, follows).slice(0, 6) : []),
+    [unfiltered, cards, follows]
+  );
+  // The panchang strip: sacred days of the next 30 days with the
+  // count of discovered events covering each. One engine pass over
+  // 31 days, memoised on the loaded cards (the panjikaMonth idiom).
+  const strip = useMemo(
+    () => (loading ? [] : observanceStrip(cards, localTodayISO(), 30)),
+    [loading, cards]
+  );
+  const observanceLabel = (day: ObservanceDay): string => {
+    const n = day.names[0];
+    if (n) return language === 'bn' ? n.bn : language === 'hi' ? n.hi || n.en : n.en;
+    return day.tithiName;
+  };
 
   const renderCard = (card: DiscoveryCard) => {
     const inner = (
@@ -263,6 +306,55 @@ export const PublicEventsPage: React.FC = () => {
       </div>
 
       <div className="max-w-3xl mx-auto px-4">
+        {/* NEXT-LEVEL A1 — the panchang strip: the sacred days of
+            the next 30 days (DB festivals + the engine's tithi
+            observances), each with its discovered-event count.
+            Tapping one filters the list to that date; tapping it
+            again (or "Show all dates") clears the filter. */}
+        {!loading && strip.length > 0 && (
+          <section className="mt-6">
+            <h2 className="text-xs font-black uppercase tracking-[0.18em] text-orange-700 mb-3">
+              {t('surfaces.events.observancesTitle')}
+            </h2>
+            <div className="flex gap-2 overflow-x-auto pb-1 -mx-4 px-4">
+              {strip.map((day) => {
+                const active = dateFilter === day.date;
+                return (
+                  <button
+                    key={day.date}
+                    type="button"
+                    onClick={() => setDateFilter(active ? '' : day.date)}
+                    aria-pressed={active}
+                    className={`shrink-0 text-left px-3.5 py-2.5 rounded-2xl border min-h-[44px] transition-all ${
+                      active
+                        ? 'bg-orange-600 border-orange-600 text-white shadow'
+                        : 'bg-white border-orange-100 text-stone-800 hover:shadow'
+                    }`}
+                  >
+                    <span className="block text-xs font-black leading-tight">
+                      {observanceLabel(day)}
+                    </span>
+                    <span className={`block text-[11px] font-bold mt-0.5 ${active ? 'text-orange-100' : 'text-stone-500'}`}>
+                      {fmtDate(day.date, locale)} ·{' '}
+                      {day.eventCount === 1
+                        ? t('surfaces.events.observanceEventOne')
+                        : t('surfaces.events.observanceEvents').replace('{count}', String(day.eventCount))}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+            {dateFilter && (
+              <button
+                type="button"
+                onClick={() => setDateFilter('')}
+                className="mt-2 text-xs font-black text-orange-700 underline underline-offset-2 min-h-[44px]"
+              >
+                {t('surfaces.events.observancesClear')}
+              </button>
+            )}
+          </section>
+        )}
         {loading ? (
           <div className="flex items-center justify-center gap-2 text-stone-500 text-sm py-16">
             <Loader2 size={18} className="animate-spin" />
@@ -282,6 +374,16 @@ export const PublicEventsPage: React.FC = () => {
           </p>
         ) : (
           <>
+            {rail.length > 0 && (
+              <section className="mt-8">
+                <h2 className="text-xs font-black uppercase tracking-[0.18em] text-orange-700 mb-3">
+                  {t('surfaces.events.yourTemplesTitle')}
+                </h2>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {rail.map(renderCard)}
+                </div>
+              </section>
+            )}
             {renderGroup(t('surfaces.events.discoverToday'), groups.today)}
             {renderGroup(t('surfaces.events.discoverThisWeek'), groups.thisWeek)}
             {renderGroup(t('surfaces.events.discoverComingUp'), groups.comingUp)}

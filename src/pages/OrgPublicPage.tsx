@@ -51,6 +51,7 @@ import { PublicLanguageButton } from '../components/public/PublicLanguageButton'
 import { NativeLanguageStrip } from '../components/language/NativeLanguageStrip';
 import { useSanctumLite } from '../components/common/PanchangHeader';
 import { festivalDressingToday } from '../lib/festivalDressing';
+import { followOrg, readFollows, unfollowOrg } from '../lib/follows';
 import { JoinRequestModal } from '../components/org/JoinRequestModal';
 import {
   applyPageMeta,
@@ -768,7 +769,26 @@ export const OrgPublicPage: React.FC = () => {
   const isTrustee = page
     ? myMemberships.some((m) => m.workspaceId === page.orgId && m.role === 'Trustee')
     : false;
-  const following = page ? isFollowing(page.orgId) : false;
+
+  // NEXT-LEVEL A1 — the devotee's own follow list (user_follows).
+  // The MembershipContext cache above resets on every sign-in and
+  // is never rehydrated, so on its own the button forgot the
+  // devotee between sessions; the user_follows doc is the durable
+  // state, and this page's toggle mirrors into it (see
+  // handleFollow) so the /events "From your temples" rail and the
+  // Solo strip can bring the devotee back. The org-side followers
+  // subcollection (the temple's count + announcements feed) keeps
+  // its own write, unchanged.
+  const [ufOrgs, setUfOrgs] = useState<string[]>([]);
+  useEffect(() => {
+    const uid = (firebaseUser as { uid?: string } | null)?.uid || '';
+    if (!uid) { setUfOrgs([]); return; }
+    let cancelled = false;
+    readFollows(uid).then((s) => { if (!cancelled) setUfOrgs(s.orgIds); });
+    return () => { cancelled = true; };
+  }, [firebaseUser]);
+
+  const following = page ? isFollowing(page.orgId) || ufOrgs.includes(page.orgId) : false;
 
   const handleFollow = async () => {
     if (!page || busy) return;
@@ -776,10 +796,25 @@ export const OrgPublicPage: React.FC = () => {
       alert(T('orgpublic_signin_follow', 'Please sign in to follow organisations.', 'অনুগ্রহ করে সংস্থাগুলোকে অনুসরণ করতে সাইন ইন করুন।', 'कृपया संस्थाओं को फॉलो करने के लिए साइन इन करें।'));
       return;
     }
+    const wasFollowing = following;
     setBusy(true);
     try {
       await toggleFollow(page);
       setFollowers(await followerCount(page.orgId));
+      // Mirror into user_follows — fail-soft: the org-side toggle
+      // is the primary act and has already succeeded; a failed
+      // mirror only delays the rail, never breaks the button.
+      try {
+        const uid = (firebaseUser as { uid?: string }).uid || '';
+        if (uid) {
+          const next = wasFollowing
+            ? await unfollowOrg(uid, page.orgId)
+            : await followOrg(uid, page.orgId);
+          setUfOrgs(next.orgIds);
+        }
+      } catch {
+        /* mirror is best-effort */
+      }
     } catch {
       /* toast already shown */
     } finally {

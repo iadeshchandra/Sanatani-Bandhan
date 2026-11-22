@@ -22,6 +22,7 @@ import { Eye, EyeOff, Plus, HandHeart, ScanLine, History } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import { PanchangHeader } from '../components/common/PanchangHeader';
 import { OrgEventsShelf } from './OrgEventsShelf';
+import { FollowedTemplesStrip } from './FollowedTemplesStrip';
 import { OfflineSevakStatus } from '../components/common/OfflineSevakStatus';
 import { SoloUsualRow } from './SoloUsualRow';
 import { openDanaSheet } from '../lib/danaSheet';
@@ -253,6 +254,12 @@ export const SoloHome: React.FC<{ goTab: (t: 'sadhana' | 'panchang' | 'panjika' 
           organisations this devotee belongs to (public page events,
           recurrence-expanded; honest empty state). */}
       <OrgEventsShelf />
+
+      {/* NEXT-LEVEL A1 — "From your temples": the next events from
+          the temples/festival series this devotee FOLLOWS (not a
+          member of — following is the lighter bond). Renders
+          nothing at all when they follow nothing. */}
+      <FollowedTemplesStrip uid={uid} />
 
       {/* Wallet glance — spec §1: balance DIRECTLY below the home header.
           One Big Number (30px) + 4 quick actions; whole card taps → Wallet. */}

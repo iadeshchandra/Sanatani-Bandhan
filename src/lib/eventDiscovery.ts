@@ -21,7 +21,14 @@
 import type { FestivalEventDoc, Lang3 } from './festival';
 import type { SangamEvent } from '../sangam/types';
 import type { PublicEventItem } from './orgPublic';
-import { expandOccurrences, localTodayISO } from './eventRecurrence';
+import {
+  absoluteTithiName,
+  absoluteTithiOfDate,
+  expandOccurrences,
+  localTodayISO,
+  TITHI_PRESETS,
+} from './eventRecurrence';
+import { PANJIKA_FESTIVALS, type PanjikaFestival } from './panjikaFestivals';
 
 /** The ONLY collections the discovery surface may read. Guard-pinned. */
 export const PUBLIC_EVENT_SOURCES = ['festival_events', 'sangamEvents', 'orgPages'] as const;
@@ -310,4 +317,116 @@ export function filterCards(cards: DiscoveryCard[], filter: DiscoveryFilter): Di
       (!filter.orgName || c.orgName === filter.orgName) &&
       (!filter.kind || c.kind === filter.kind)
   );
+}
+
+/* ------------------------------------------------------------------ */
+/* NEXT-LEVEL A1 — the subscribable calendar: follows + panchang       */
+/* ------------------------------------------------------------------ */
+
+/**
+ * The follow lists the A1 matchers read — structurally the
+ * lib/follows FollowState, declared here so this pure shaping lib
+ * never imports the Firestore-touching follows module (the E7
+ * purity law: shaping stays firebase-free and unit-testable).
+ */
+export interface FollowSets {
+  orgIds: readonly string[];
+  festivalIds: readonly string[];
+}
+
+/**
+ * Does this card belong to the devotee's calendar? A festival card
+ * matches when its series is followed (the card id carries the plan
+ * id — `festival:${planId}`, and the plan id IS the published doc
+ * id) OR when its organisation is followed; Sangam and org-page
+ * cards match on their organisation alone (they have no series id
+ * a devotee could follow).
+ */
+export function isFollowedCard(card: DiscoveryCard, follows: FollowSets): boolean {
+  if (
+    card.kind === 'festival' &&
+    follows.festivalIds.includes(card.id.slice('festival:'.length))
+  ) {
+    return true;
+  }
+  return !!card.orgId && follows.orgIds.includes(card.orgId);
+}
+
+/** The followed subset of a card list, order preserved (soonest first). */
+export function followedCards(cards: DiscoveryCard[], follows: FollowSets): DiscoveryCard[] {
+  if (follows.orgIds.length === 0 && follows.festivalIds.length === 0) return [];
+  return cards.filter((c) => isFollowedCard(c, follows));
+}
+
+/** Cards whose span covers a civil date (a multi-day festival counts
+ *  on every day it runs) — the panchang strip's tap target and the
+ *  /events date filter share this one definition. */
+export function cardsCoveringDate(cards: DiscoveryCard[], iso: string): DiscoveryCard[] {
+  return cards.filter((c) => c.startISO <= iso && c.endISO >= iso);
+}
+
+export interface ObservanceName {
+  en: string;
+  bn: string;
+  hi?: string;
+}
+
+export interface ObservanceDay {
+  date: string;
+  /** DB festival names for the day (at most two) — empty when the
+   *  day is an engine tithi observance the DB does not name. */
+  names: ObservanceName[];
+  /** The canonical engine's name for the day's tithi observance
+   *  ('Krishna Ekadashi', 'Purnima') — set ONLY on the preset
+   *  observance days (TITHI_PRESETS, the E1 recurrence set); ''
+   *  otherwise. Computed by the same engine the home header and
+   *  tithi recurrence trust — never invented here. */
+  tithiName: string;
+  /** How many discovered events cover this date. */
+  eventCount: number;
+}
+
+/**
+ * The panchang strip: the sacred days of the next `withinDays`
+ * days, from the app's two canonical sources — the Panjika festival
+ * DB (curated names; its civic 'holiday' entries — Independence
+ * Day, Victory Day — are NOT observances and are excluded) and the
+ * panchang engine's preset tithi observances (Ekadashi, Purnima,
+ * Amavasya, Pradosh, Sankashti — TITHI_PRESETS). The DB carries no
+ * tithi field, so tithi names come from the engine
+ * (absoluteTithiOfDate/Name), exactly as the Panjika month grid
+ * already does. One engine call per day in the window — the
+ * panjikaMonth performance idiom; callers memoise.
+ */
+export function observanceStrip(
+  cards: DiscoveryCard[],
+  todayISO: string,
+  withinDays = 30,
+  list: PanjikaFestival[] = PANJIKA_FESTIVALS
+): ObservanceDay[] {
+  const endISO = addDaysISO(todayISO, withinDays);
+  const presetDays = new Set(TITHI_PRESETS.flatMap((p) => p.tithiDays));
+  const byDate = new Map<string, PanjikaFestival[]>();
+  for (const f of list) {
+    if (f.category === 'holiday') continue;
+    if (f.date < todayISO || f.date > endISO) continue;
+    const arr = byDate.get(f.date) || [];
+    arr.push(f);
+    byDate.set(f.date, arr);
+  }
+  const out: ObservanceDay[] = [];
+  for (let iso = todayISO; iso <= endISO; iso = addDaysISO(iso, 1)) {
+    const [y, m, d] = iso.split('-').map(Number);
+    const abs = absoluteTithiOfDate(y, m, d);
+    const db = byDate.get(iso) || [];
+    const isPreset = presetDays.has(abs);
+    if (db.length === 0 && !isPreset) continue;
+    out.push({
+      date: iso,
+      names: db.slice(0, 2).map((f) => ({ en: f.nameEn, bn: f.nameBn, hi: f.nameHi })),
+      tithiName: isPreset ? absoluteTithiName(abs) : '',
+      eventCount: cardsCoveringDate(cards, iso).length,
+    });
+  }
+  return out;
 }

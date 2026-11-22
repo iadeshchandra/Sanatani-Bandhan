@@ -31,6 +31,10 @@ import {
   type OutreachStrings,
 } from '../../lib/outreachPacks';
 import { safeExternalUrl } from '../../lib/safeUrl';
+import {
+  followFestival, isFollowingFestival, readFollows, unfollowFestival,
+} from '../../lib/follows';
+import { BellPlus, Check } from 'lucide-react';
 import { FestivalMemoryCard } from './FestivalMemoryCard';
 import { FeedbackCard } from './FeedbackCard';
 import { feedbackPromptEligible } from '../../lib/festivalFeedback';
@@ -65,6 +69,43 @@ export const FestivalEventPage: React.FC<{ previewEvent?: FestivalEventDoc }> = 
   const prefilledFor = React.useRef<string>('');
 
   const uid = (firebaseUser as { uid?: string } | null)?.uid || '';
+
+  // NEXT-LEVEL A1 — follow this festival series (the subscribable
+  // calendar). The follow target is the event doc id, which IS the
+  // War Room plan id (the publish stamps plan.id as the doc id), so
+  // following the series here is what the /events rail matches.
+  // Reading stays free for everyone; the follow tap is the engage
+  // act — signed out, it opens the sign-in door with a return here
+  // (the same pattern this page's feedback section uses).
+  const [festFollowing, setFestFollowing] = useState(false);
+  const [festFollowBusy, setFestFollowBusy] = useState(false);
+  useEffect(() => {
+    if (previewEvent || !uid || !eventId) { setFestFollowing(false); return; }
+    let cancelled = false;
+    readFollows(uid).then((s) => {
+      if (!cancelled) setFestFollowing(isFollowingFestival(s, eventId));
+    });
+    return () => { cancelled = true; };
+  }, [uid, eventId, previewEvent]);
+
+  const handleFollowFestival = async () => {
+    if (!event || festFollowBusy) return;
+    if (!uid) {
+      navigate(`/login?next=${encodeURIComponent(`/festival/${orgId}/${eventId}`)}`);
+      return;
+    }
+    setFestFollowBusy(true);
+    try {
+      const next = festFollowing
+        ? await unfollowFestival(uid, event.id)
+        : await followFestival(uid, event.id);
+      setFestFollowing(isFollowingFestival(next, event.id));
+    } catch {
+      /* the button keeps its last honest state — no fake toggle */
+    } finally {
+      setFestFollowBusy(false);
+    }
+  };
 
   // EVENTS E2 — my seva passes for this festival, and passes other
   // devotees have offered to transfer to me. Single-field queries
@@ -282,6 +323,24 @@ export const FestivalEventPage: React.FC<{ previewEvent?: FestivalEventDoc }> = 
           <div className="text-xs text-orange-200/70 mt-0.5">
             {event.dateISO}{event.endDateISO !== event.dateISO ? ` → ${event.endDateISO}` : ''}
           </div>
+          {/* NEXT-LEVEL A1 — follow this festival series. Hidden in
+              preview mode (no Firestore behind a preview). */}
+          {!previewEvent && (
+            <button
+              type="button"
+              onClick={handleFollowFestival}
+              disabled={festFollowBusy}
+              aria-pressed={festFollowing}
+              className={`mt-4 inline-flex items-center gap-1.5 px-4 rounded-full text-xs font-black min-h-[44px] transition-all ${
+                festFollowing
+                  ? 'bg-white text-orange-800 shadow'
+                  : 'bg-white/15 text-white hover:bg-white/25'
+              }`}
+            >
+              {festFollowing ? <Check size={14} /> : <BellPlus size={14} />}
+              {festFollowing ? t('surfaces.events.followingBtn') : t('surfaces.events.followFestival')}
+            </button>
+          )}
         </div>
       </div>
 
