@@ -163,6 +163,26 @@ service cloud.firestore {
     function festRsvpPath(eventId) {
       return /databases/$(database)/documents/festival_rsvps/$(eventId + '__' + request.auth.uid);
     }
+    // The festival_rsvps create shape shared by the devotee path
+    // and the REAL-WORLD PACK desk path (expansion-identical —
+    // proof in the batch RULES-DELTA): workspace + event present,
+    // a real party name, headcount 1..20, day choices bounded
+    // (EVENTS P1: at most 14 days), the pinned key set. Identity,
+    // status and the witness remain each clause's own.
+    function festRsvpShapeOk() {
+      return reqWorkspaceId() != ''
+        && request.resource.data.get('eventId', '') != ''
+        && reqName().size() >= 2
+        && reqName().size() <= 80
+        && request.resource.data.get('headcount', 0) >= 1
+        && request.resource.data.get('headcount', 0) <= 20
+        && (!('days' in request.resource.data)
+            || (request.resource.data.get('days', []) is list
+                && request.resource.data.get('days', []).size() <= 14))
+        && request.resource.data.keys().hasOnly(
+             ['eventId', 'workspaceId', 'uid', 'name', 'headcount', 'slotId', 'createdAt',
+              'status', 'days', 'ticketId']);
+    }
     function festBooked(data, slotId) {
       return data.get('slotBooked', {}).get(slotId, 0);
     }
@@ -230,8 +250,18 @@ service cloud.firestore {
         && festWlSlotOk(oldWl, newWl, slotBefore, uid, slotBefore == slotAfter ? dAfter : dBefore)
         && (slotAfter == slotBefore || festWlSlotOk(oldWl, newWl, slotAfter, uid, dAfter));
     }
-    function anchoredFestivalCounter(eventId) {
-      let rp = festRsvpPath(eventId);
+    // The anchored counter core (REAL-WORLD PACK factoring: one
+    // body for both anchors — expansion-identical for the P0
+    // devotee path, proof in the batch RULES-DELTA). The public
+    // counters move only by the anchored party RSVP's effective-
+    // headcount delta. The devotee anchor is the caller's own
+    // RSVP (festRsvpPath, anchorKey ''); the desk anchor is a
+    // desk sale's party RSVP, its identity stamped onto the
+    // update as rsvpAnchorUid and witnessed by its ticket
+    // (tkDeskSaleWitnessOk). With anchorKey '', the extra ''
+    // entry in the key list can never match a real field name,
+    // and the witness conjunct is vacuously true.
+    function festCounterOk(eventId, rp, uid, anchorKey) {
       let had = exists(rp);
       let has = existsAfter(rp);
       let hcBefore = had ? festEffHc(get(rp).data) : 0;
@@ -240,9 +270,10 @@ service cloud.firestore {
       let slotAfter = has ? getAfter(rp).data.get('slotId', '') : '';
       let wasWl = had && get(rp).data.get('status', 'confirmed') == 'waitlisted';
       let isWl = has && getAfter(rp).data.get('status', 'confirmed') == 'waitlisted';
-      return (had || has)
+      return (anchorKey == '' || tkDeskSaleWitnessOk(eventId, uid))
+        && (had || has)
         && diffKeys()
-             .hasOnly(['rsvpHeadcount', 'slotBooked', 'slotWaitlist', 'updatedAt'])
+             .hasOnly(['rsvpHeadcount', 'slotBooked', 'slotWaitlist', 'updatedAt', anchorKey])
         && tkNewGet('rsvpHeadcount', 0)
              == tkOldGet('rsvpHeadcount', 0) + (hcAfter - hcBefore)
         && tkNewGet('rsvpHeadcount', 0) >= 0
@@ -250,7 +281,48 @@ service cloud.firestore {
              .affectedKeys().hasOnly([slotBefore, slotAfter])
         && festSlotMoveOk(resource.data, request.resource.data, slotBefore, slotAfter, hcBefore, hcAfter)
         && festSlotCapacityOk(resource.data, request.resource.data, slotAfter)
-        && festWaitlistOk(resource.data, request.resource.data, slotBefore, slotAfter, request.auth.uid, wasWl, isWl);
+        && festWaitlistOk(resource.data, request.resource.data, slotBefore, slotAfter, uid, wasWl, isWl);
+    }
+    function anchoredFestivalCounter(eventId) {
+      return festCounterOk(eventId, festRsvpPath(eventId), request.auth.uid, '');
+    }
+
+    // REAL-WORLD PACK — desk (counter) sales. A walk-in may hold
+    // no account at all, so a desk sale's party lives under a
+    // synthetic identity derived from the sale itself: buyerUid
+    // 'desk_' + ticketId. The identity is not a login — no clause
+    // anywhere lets it act (every read/update path keys on a real
+    // request.auth.uid) — and every use below is ALSO witnessed by
+    // the sale's ticket naming the staff caller as recordedBy.
+    // The witness: the party RSVP's own ticket (after-state or
+    // committed) must be a desk sale of this festival, recorded
+    // by the caller, owned by the desk identity the RSVP claims.
+    function tkDeskSaleWitnessOk(eventId, auid) {
+      let rp = /databases/$(database)/documents/festival_rsvps/$(eventId + '__' + auid);
+      let tid = existsAfter(rp) ? getAfter(rp).data.get('ticketId', '') : '';
+      let tp = ticketPath(tid);
+      let tk = tid != '' && existsAfter(tp) ? tkAfterData(tp)
+        : (tid != '' && exists(tp) ? get(tp).data : {});
+      return auid.matches('desk_.+')
+        && tk.size() > 0
+        && tk.get('deskSale', false) == true
+        && tk.get('recordedBy', '') == request.auth.uid
+        && tkBuyerOf(tk) == auid
+        && tkFestOf(tk) == eventId;
+    }
+    // The desk twin of anchoredFestivalCounter: the public
+    // counters may move for a DESK party exactly as for a
+    // devotee's own — by the party's headcount delta, witnessed
+    // by its desk-sale ticket — when the update stamps the desk
+    // identity it answers for (rsvpAnchorUid, the
+    // tierAnchorTicketId pattern). Desk parties are slotless and
+    // confirmed, so the slot/waitlist helpers see a no-op move;
+    // they run anyway — one law for every party.
+    function anchoredDeskCounter(eventId) {
+      let auid = tkNewGet('rsvpAnchorUid', '');
+      return festCounterOk(eventId,
+        /databases/$(database)/documents/festival_rsvps/$(eventId + '__' + auid),
+        auid, 'rsvpAnchorUid');
     }
 
     // EVENTS E2 — seva-pass ticketing anchors (event_tickets). The
@@ -406,7 +478,14 @@ service cloud.firestore {
     // Create shape: household linkage (attendance passes name their
     // party RSVP — the buyer's own doc; add-ons carry neither names
     // nor an RSVP), per-booking cap from the plan's stamped map.
+    // REAL-WORLD PACK factoring: the rsvpUid parameter is the ONLY
+    // difference between the devotee shape (the caller's own uid)
+    // and the desk shape (the synthetic desk identity) — expansion
+    // proof in the batch RULES-DELTA.
     function tkCreateShapeOk(d, plan) {
+      return tkShapeOk(d, plan, request.auth.uid);
+    }
+    function tkShapeOk(d, plan, rsvpUid) {
       let tk = tkPlanCfg(plan);
       let kind = tk.get('tierKinds', {}).get(tkTierOf(d), '');
       let qty = d.get('qty', 0);
@@ -420,7 +499,10 @@ service cloud.firestore {
         && (kind == 'addon'
             ? (d.get('attendees', []).size() == 0 && !('rsvpId' in d))
             : (d.get('attendees', []).size() == qty
-               && d.get('rsvpId', '') == tkFestOf(d) + '__' + request.auth.uid));
+               && d.get('rsvpId', '') == tkFestOf(d) + '__' + rsvpUid));
+    }
+    function tkDeskShapeOk(d, plan) {
+      return tkShapeOk(d, plan, tkBuyerOf(d));
     }
     // The refund percent for a buyer cancel, from the plan ladder
     // (derived sorted desc, at most 5 rungs, terminal 0-day row) —
@@ -543,21 +625,62 @@ service cloud.firestore {
     // Ticket create: buyer-self only, pinned field shape, the
     // workspace agreeing on all three docs, shape + amounts checked
     // against the plan's stamped maps (tkCreateShapeOk/tkAmountsOk).
+    // The three-doc workspace agreement every ticket create
+    // checks (REAL-WORLD PACK factoring — shared by the devotee
+    // and desk create paths, expansion-identical).
+    function tkDocsAgreeOk(d, ev, plan) {
+      return tkWsOf(d) != ''
+        && tkFestOf(d) != ''
+        && tkWsOf(ev) == tkWsOf(d)
+        && tkWsOf(plan) == tkWsOf(d);
+    }
     function tkCreateOk() {
       let d = request.resource.data;
       let ev = get(/databases/$(database)/documents/festival_events/$(tkFestOf(d))).data;
       let plan = get(/databases/$(database)/documents/festival_plans/$(tkFestOf(d))).data;
       return uidIs(tkBuyerOf(d))
-        && tkWsOf(d) != ''
-        && tkFestOf(d) != ''
-        && tkWsOf(ev) == tkWsOf(d)
-        && tkWsOf(plan) == tkWsOf(d)
+        && tkDocsAgreeOk(d, ev, plan)
         && d.keys().hasOnly(
              ['workspaceId', 'festivalId', 'tierId', 'tierName', 'buyerUid', 'buyerName',
               'attendees', 'qty', 'amounts', 'currency', 'discountCode', 'paymentState',
               'rsvpId', 'createdAt'])
         && tkCreateShapeOk(d, plan)
         && tkAmountsOk(d, ev, plan)
+        && tkReleaseOpen(ev);
+    }
+    // REAL-WORLD PACK — desk (counter) sale create. A staff member
+    // of the workspace sells a pass to a walk-in (cash in hand,
+    // possibly no account). The bill is recomputed by the SAME
+    // tkAmountsOk the buyer path uses; the differences are the
+    // honesty rails of a desk sale: the buyer identity is the
+    // synthetic desk identity derived from this very ticket id,
+    // the sale is marked (deskSale) and attributed (recordedBy =
+    // the caller), money states are venue/comp only — never
+    // paid-wallet (a desk identity holds no wallet) — a paid sale
+    // is born received at the desk, and discount codes are refused
+    // outright (anchoredDiscountUse can only witness a real buyer;
+    // codes stay a devotee-channel feature).
+    function tkDeskCreateOk(ticketId) {
+      let d = request.resource.data;
+      let ev = get(/databases/$(database)/documents/festival_events/$(tkFestOf(d))).data;
+      let plan = get(/databases/$(database)/documents/festival_plans/$(tkFestOf(d))).data;
+      return hasRole(tkWsOf(d), R_ANY_STAFF())
+        && tkDocsAgreeOk(d, ev, plan)
+        && d.get('deskSale', false) == true
+        && tkBuyerOf(d) == 'desk_' + ticketId
+        && d.get('recordedBy', '') == request.auth.uid
+        && !('discountCode' in d)
+        && d.keys().hasOnly(
+             ['workspaceId', 'festivalId', 'tierId', 'tierName', 'buyerUid', 'buyerName',
+              'attendees', 'qty', 'amounts', 'currency', 'paymentState',
+              'rsvpId', 'createdAt', 'deskSale', 'recordedBy',
+              'venueReceived', 'receivedBy', 'receivedAt'])
+        && tkDeskShapeOk(d, plan)
+        && tkAmountsOk(d, ev, plan)
+        && tkStateOf(d) != 'paid-wallet'
+        && (tkStateOf(d) == 'comp'
+            || (d.get('venueReceived', false) == true
+                && d.get('receivedBy', '') != ''))
         && tkReleaseOpen(ev);
     }
     // The refund ledger line's anchor (walletTransactions create).
@@ -1038,7 +1161,10 @@ service cloud.firestore {
         || (isLoggedIn() && wsImmutable() && anchoredFestivalCounter(eventId))
         // EVENTS E2: the tierSold anchor — sold counts move only
         // with a witness ticket's purchase / cancel (same batch).
-        || (isLoggedIn() && wsImmutable() && anchoredTierCounter(eventId));
+        || (isLoggedIn() && wsImmutable() && anchoredTierCounter(eventId))
+        // REAL-WORLD PACK: the desk-sale counter anchor — a desk
+        // party's headcount move, witnessed by its desk-sale ticket.
+        || (isLoggedIn() && wsImmutable() && anchoredDeskCounter(eventId));
       allow delete: if hasRole(docWs(), R_TRUSTEE());
     }
 
@@ -1047,23 +1173,27 @@ service cloud.firestore {
         || (isLoggedIn() && uidIs(resUid()));
       allow create: if isLoggedIn()
         && uidIs(reqUid())
-        && reqWorkspaceId() != ''
-        && request.resource.data.get('eventId', '') != ''
-        && reqName().size() >= 2
-        && reqName().size() <= 80
-        && request.resource.data.get('headcount', 0) >= 1
-        && request.resource.data.get('headcount', 0) <= 20
-        // EVENTS P1: optional waitlist status + day-wise choices.
+        && festRsvpShapeOk()
+        // EVENTS P1: optional waitlist status.
         && request.resource.data.get('status', 'confirmed') in ['confirmed', 'waitlisted']
-        && (!('days' in request.resource.data)
-            || (request.resource.data.get('days', []) is list
-                && request.resource.data.get('days', []).size() <= 14))
-        && request.resource.data.keys().hasOnly(
-             ['eventId', 'workspaceId', 'uid', 'name', 'headcount', 'slotId', 'createdAt',
-              'status', 'days', 'ticketId'])
         // EVENTS P0: the doc id is derived ({eventId}__{uid}) so the
         // festival_events counter rule can find THIS RSVP as its anchor.
         && rsvpId == request.resource.data.get('eventId', '') + '__' + request.auth.uid;
+      // REAL-WORLD PACK — a desk sale's party record: created by a
+      // staff member for a walk-in under the synthetic desk identity
+      // (uid 'desk_' + ticketId), witnessed by the sale's own ticket
+      // (tkDeskSaleWitnessOk). Every shape law of the devotee path
+      // above applies — name, headcount, the pinned key set, the
+      // derived doc id — with one tightening: a desk party is
+      // always confirmed (it holds a paid or blessed pass; the
+      // waitlist is a devotee-channel queue).
+      allow create: if isLoggedIn()
+        && hasRole(reqWorkspaceId(), R_ANY_STAFF())
+        && reqUid().matches('desk_.+')
+        && festRsvpShapeOk()
+        && request.resource.data.get('status', 'confirmed') == 'confirmed'
+        && rsvpId == request.resource.data.get('eventId', '') + '__' + reqUid()
+        && tkDeskSaleWitnessOk(request.resource.data.get('eventId', ''), reqUid());
       allow update: if (isLoggedIn() && uidIs(resUid())
           && diffKeysOnly(request.resource.data, resource.data, ['headcount', 'slotId', 'days', 'status'])
           // EVENTS P1: the owner may move status ONLY waitlisted →
@@ -1096,6 +1226,10 @@ service cloud.firestore {
           || tkIsTransferTo()
           || hasRole(docWs(), R_ANY_STAFF()));
       allow create: if isLoggedIn() && tkCreateOk();
+      // REAL-WORLD PACK — a staff-witnessed desk (counter) sale:
+      // the walk-in holds no account; the ticket is owned by the
+      // synthetic desk identity and attributed to the caller.
+      allow create: if isLoggedIn() && tkDeskCreateOk(ticketId);
       // Buyer cancel / wallet refund (the ladder decides the amount).
       allow update: if tkBuyerGuard()
         && tkBuyerCancelOk();
