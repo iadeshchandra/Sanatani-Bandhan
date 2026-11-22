@@ -63,6 +63,20 @@ export interface ReleaseEntry {
 
 export const RELEASES: readonly ReleaseEntry[] = [
   {
+    version: 'v2026.11.22-593b9b4',
+    date: '2026-11-22',
+    sections: {
+      new: [
+        { text: { en: 'Festivals now carry their venue and a map link, so devotees can see exactly where to come — on the festival page and in the public events list.', hi: 'उत्सवों में अब स्थान और मानचित्र लिंक जुड़ता है, ताकि भक्त ठीक-ठीक देख सकें कि कहाँ आना है — उत्सव पृष्ठ पर और सार्वजनिक कार्यक्रम सूची में।', bn: 'উৎসবে এখন স্থান ও মানচিত্রের লিঙ্ক যোগ হয়, যাতে ভক্তরা ঠিক কোথায় আসতে হবে তা দেখতে পারেন — উৎসবের পৃষ্ঠায় ও উন্মুক্ত অনুষ্ঠান তালিকায়।' } },
+        { text: { en: 'Committees can print a gate register for the day and export the full attendee list — a paper sheet for the entrance desk, with a blank column to tick admissions by hand.', hi: 'समितियाँ दिन का गेट रजिस्टर छाप सकती हैं और पूरी उपस्थिति सूची निर्यात कर सकती हैं — प्रवेश डेस्क के लिए कागज़ की शीट, हाथ से प्रवेश टिक करने के लिए खाली कॉलम के साथ।', bn: 'কমিটি দিনের গেট রেজিস্টার ছাপতে ও পুরো উপস্থিতির তালিকা রপ্তানি করতে পারে — প্রবেশ ডেস্কের জন্য কাগজের শিট, হাতে প্রবেশ টিক দেওয়ার খালি কলামসহ।' } },
+        { text: { en: 'The ticket desk can now sell a seva pass to a walk-in devotee who pays cash at the counter — no account needed, and the sale is recorded with the same care as an online booking.', hi: 'टिकट डेस्क अब काउंटर पर नकद देने वाले भक्त को सेवा पास बेच सकता है — खाते की ज़रूरत नहीं, और बिक्री ऑनलाइन बुकिंग जैसी ही सावधानी से दर्ज होती है।', bn: 'টিকিট ডেস্ক এখন কাউন্টারে নগদ দেওয়া ভক্তকে সেবা পাস বিক্রি করতে পারে — অ্যাকাউন্টের দরকার নেই, আর বিক্রিটি অনলাইন বুকিংয়ের মতোই যত্নে লিপিবদ্ধ হয়।' } },
+        { text: { en: 'If a festival\'s date or venue changes, organisers get a ready WhatsApp announcement written from the festival\'s real details, to send to booked guests from their own phone.', hi: 'यदि उत्सव की तिथि या स्थान बदले, तो आयोजकों को उत्सव के असली विवरण से बना तैयार WhatsApp संदेश मिलता है, जो वे अपने फ़ोन से बुक किए अतिथियों को भेज सकते हैं।', bn: 'উৎসবের তারিখ বা স্থান বদলালে আয়োজকরা উৎসবের আসল বিবরণ থেকে তৈরি WhatsApp ঘোষণা পান, যা নিজের ফোন থেকে বুক করা অতিথিদের পাঠাতে পারেন।' } },
+        { text: { en: 'Sponsors whose gift has been received can now be given a printed receipt, referenced to the treasury entry itself — no separate numbering, nothing invented.', hi: 'जिन प्रायोजकों का दान प्राप्त हो चुका है, उन्हें अब छपी रसीद दी जा सकती है, जो स्वयं कोष प्रविष्टि से जुड़ी है — अलग नंबरिंग नहीं, कुछ भी बनाया नहीं गया।', bn: 'যেসব পৃষ্ঠপোষকের দান গৃহীত হয়েছে, তাঁদের এখন ছাপা রসিদ দেওয়া যায়, যা সরাসরি কোষাগারের এন্ট্রির সঙ্গে যুক্ত — আলাদা নম্বর নয়, কিছু বানানো নয়।' } },
+      ],
+    },
+  },
+
+  {
     version: 'v2026.11.22-00b1030',
     date: '2026-11-22',
     sections: {
