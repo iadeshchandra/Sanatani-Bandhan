@@ -136,6 +136,8 @@ const UnifiedProfessionalProfile = lazy(() => import('./components/sevaPro/Unifi
 // in one view. Local-only (localStorage bundles), no Firestore dependency.
 const SevaCatalog = lazy(() => import('./components/sevaPro/SevaCatalog').then(m => ({ default: m.SevaCatalog })));
 const FestivalEventPage = lazy(() => import('./components/festival/FestivalEventPage').then(m => ({ default: m.FestivalEventPage })));
+// EVENTS E7: cross-org public event discovery — read-free, like /orgs.
+const PublicEventsPage = lazy(() => import('./pages/PublicEventsPage').then(m => ({ default: m.PublicEventsPage })));
 const DarshanCheckInDesk = lazy(() => import('./components/domain1/DarshanCheckInDesk').then(m => ({ default: m.DarshanCheckInDesk })));
 const FamilyHouseholdDesk = lazy(() => import('./components/domain1/FamilyHouseholdDesk').then(m => ({ default: m.FamilyHouseholdDesk })));
 const VanshavaliDesk = lazy(() => import('./components/domain1/VanshavaliDesk').then(m => ({ default: m.VanshavaliDesk })));
@@ -1509,6 +1511,9 @@ const AppRoutes: React.FC = () => {
           <Route path="/portal" element={<Navigate to="/" replace />} />
           {/* Membership sprint: public organisation discovery + pages */}
           <Route path="/orgs" element={<OrgDirectory />} />
+          {/* EVENTS E7: public event discovery across all organisations —
+              published festivals, Sangam events, org-page events. */}
+          <Route path="/events" element={<Suspense fallback={<PublicWarmSkeleton />}><PublicEventsPage /></Suspense>} />
           {/* Pillar 3: canonical public org page — accepts orgId or publicSlug. */}
           <Route path="/org/:orgId" element={<OrgPublicPage />} />
           {/* Campus maps (Phase 1): per-org visitor map + trustee-only builder. */}

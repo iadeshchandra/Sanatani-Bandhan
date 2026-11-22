@@ -1069,6 +1069,25 @@ export const LandingPage: React.FC<LandingPageProps> = ({
           </div>
         </section>
 
+        {/* EVENTS E7 — the one door from the homepage to public event
+            discovery: upcoming festivals & gatherings across all
+            organisations, readable by anyone with no account. */}
+        <section className="px-4 sm:px-6 py-12 max-w-4xl mx-auto text-center">
+          <p className="text-xs font-extrabold tracking-[0.22em] uppercase text-orange-600 mb-3">
+            {t('surfaces.events.discoverLandingTitle')}
+          </p>
+          <p className="text-stone-600 text-sm sm:text-base max-w-xl mx-auto">
+            {t('surfaces.events.discoverLandingBody')}
+          </p>
+          <button
+            onClick={() => navigate('/events')}
+            className="mt-5 inline-flex items-center justify-center gap-2 min-h-[44px] px-6 rounded-xl bg-cta hover:bg-cta-hover text-white text-sm font-extrabold tracking-wide transition-all cursor-pointer"
+          >
+            {t('surfaces.events.discoverLandingCta')}
+            <ArrowRight className="w-4 h-4" />
+          </button>
+        </section>
+
         <ToranDivider />
 
         {/* WHO IT'S FOR */}

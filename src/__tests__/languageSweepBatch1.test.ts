@@ -94,7 +94,12 @@ describe('surfaces + vibe dict completeness (en/hi/bn authored)', () => {
     // Room register chrome, the consent-shaped public gratitude
     // line, the department board and its debrief coverage summary)
     // in all 10 languages.
-    expect(keysOf(en).length).toBe(794);
+    // EVENTS E7 adds 19 surfaces.events keys (cross-org public event
+    // discovery: discoverTitle…discoverLandingCta — the /events page
+    // chrome, date-group + filter labels, honest empty states, the
+    // passes/debrief markers and the landing-page door) in all 10
+    // languages.
+    expect(keysOf(en).length).toBe(813);
     for (const bucket of Object.keys(en)) {
       for (const leaf of Object.keys(en[bucket])) {
         for (const dict of [en, hi, bn]) {
