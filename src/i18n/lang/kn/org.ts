@@ -1422,6 +1422,7 @@ export const orgNs: OrgFragment = {
           cancel: "ವಿನಂತಿ ರದ್ದುಗೊಳಿಸಿ",
           retryApply: "ಅನ್ವಯಿಸುವುದನ್ನು ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ",
           kindPayout: "ಖಜಾನೆ ಪಾವತಿ",
+          kindAuction: "ಹರಾಜು ಲಾಟ್",
           kindPayment: "ಪಾವತಿ ವಿವರಗಳು",
           kindRole: "ಪಾತ್ರ ನೀಡುವಿಕೆ",
           statusPending: "ಬಾಕಿ ಇದೆ",
