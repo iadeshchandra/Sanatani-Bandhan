@@ -63,6 +63,16 @@ export interface ReleaseEntry {
 
 export const RELEASES: readonly ReleaseEntry[] = [
   {
+    version: 'v2026.11.24-da8d5a6',
+    date: '2026-11-24',
+    sections: {
+      new: [
+        { text: { en: 'SOS is always in sight: the red SOS button in Personal now shows in full from the moment the app opens — no "Show SOS button" step to hunt for in an emergency. Hold it for a moment to raise the alert, exactly as before.', hi: 'SOS अब हमेशा सामने है: पर्सनल में लाल SOS बटन अब ऐप खुलते ही पूरा दिखता है — आपात स्थिति में "SOS बटन दिखाएँ" वाला कदम खोजना नहीं पड़ता। अलर्ट भेजने के लिए उसे पहले की तरह थोड़ी देर दबाकर रखें।', bn: 'SOS এখন সবসময় চোখের সামনে: পার্সোনালে লাল SOS বোতাম এখন অ্যাপ খুললেই পুরোপুরি দেখা যায় — জরুরি মুহূর্তে "SOS বোতাম দেখান" ধাপটি খুঁজতে হয় না। সতর্কবার্তা পাঠাতে আগের মতোই কিছুক্ষণ চেপে ধরে রাখুন।' } },
+        { text: { en: 'Your Personal home, in four clear parts: Personal (your sadhana, pass, wallet and reminders), Social (messages, polls and the community feed), Locations (your organisations and followed temples), and Management (the door to your organisation, when you have one).', hi: 'आपका पर्सनल होम, चार स्पष्ट भागों में: पर्सनल (आपकी साधना, पास, वॉलेट और अनुस्मारक), सोशल (संदेश, मतदान और समुदाय फ़ीड), स्थान (आपके संगठन और अनुसरण किए गए मंदिर), और प्रबंधन (आपके संगठन का द्वार, जब आपका कोई संगठन हो)।', bn: 'আপনার পার্সোনাল হোম, চারটি স্পষ্ট ভাগে: পার্সোনাল (আপনার সাধনা, পাস, ওয়ালেট ও স্মরণিক), সোশ্যাল (বার্তা, ভোট ও সম্প্রদায়ের ফিড), স্থান (আপনার সংগঠন ও অনুসরণ করা মন্দির), এবং ব্যবস্থাপনা (আপনার সংগঠনের দরজা, থাকলে)।' } },
+      ],
+    },
+  },
+  {
     version: 'v2026.11.24-7a014ae',
     date: '2026-11-24',
     sections: {
