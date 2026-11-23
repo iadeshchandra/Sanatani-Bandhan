@@ -357,17 +357,22 @@ body {
   }
 }
 /* ── SOS FAB clearance (FIX 1: systemic overlap guard) ─────────────────
- * The collapsible SOS button is position:fixed to the viewport bottom-
- * right on every authenticated screen. These rules reserve matching
- * bottom clearance on every scroll container, so no tappable element
- * can ever render underneath the FAB's hit area — in either state.
+ * The SOS button is position:fixed to the viewport bottom-right on
+ * every authenticated screen. These rules reserve matching bottom
+ * clearance on every scroll container, so no tappable element can
+ * ever render underneath the FAB's hit area.
+ *
+ * SOS SURFACED (2026-11-24): the button no longer collapses — the
+ * full 72px face is its only state, and PanicButton holds
+ * `sb-sos-open` for its whole mounted life. The expanded-state pads
+ * below are therefore the ones that always apply; the base
+ * `sb-has-sos` pads remain as the pre-mount floor (SOSFlow adds
+ * `sb-has-sos` before the button mounts).
  *
  * Geometry (mobile <768px — FAB at bottom:calc(92px + safe-area)):
- *   collapsed mini: 48px tall  → top edge 140px → pad 156px
- *   expanded: 72px + SOS label + first-use hint → top edge ≈224px → pad 240px
+ *   surfaced: 72px + SOS label + first-use hint → top edge ≈224px → pad 240px
  * Geometry (desktop ≥768px — FAB at bottom:20px):
- *   collapsed mini → top edge 68px  → pad 84px
- *   expanded       → top edge ≈152px → pad 168px
+ *   surfaced       → top edge ≈152px → pad 168px
  * Why padding works for every page shape: the FAB is anchored to the
  * viewport bottom and the padding to the content's bottom edge. With
  * padding ≥ FAB top edge, the last content row always rests above the
@@ -413,17 +418,22 @@ body.sb-has-sos.sb-sos-open .sb-sos-clear {
 }
 /* ── Form-route SOS clearance (QUEUED #52, audit D12) ─────────────────
  * On the focused form routes (/register-org, /login, /signup) the SOS
- * mini docks TOP-CENTRE (QUEUED #41) so it can never cover a field or
+ * button docks TOP-CENTRE (QUEUED #41) so it can never cover a field or
  * the primary CTA at the bottom. But the top-centre dock sits exactly
- * where those pages centre their headings — the audit caught the mini
- * overlapping the "Create workspace" heading on /register-org. The
- * systemic fix mirrors the bottom-clearance law above: while
+ * where those pages centre their headings — the audit caught the
+ * floater overlapping the "Create workspace" heading on /register-org.
+ * The systemic fix mirrors the bottom-clearance law above: while
  * PanicButton is on a form route it sets `sb-form-sos` on <body>, and
- * the page reserves the mini's strip (10px offset + 48px mini + margin)
- * at the top, so the floater only ever floats over empty scene.
+ * the page reserves the cluster's strip at the top, so the floater
+ * only ever floats over empty scene.
+ *
+ * SOS SURFACED (2026-11-24): the strip is sized for the FULL surfaced
+ * cluster — hint row (~28px) + 72px button + SOS chip (~20px) + gaps
+ * + the 10px dock offset + margin ≈ 150px (it was 66px when the dock
+ * carried only the retired 48px collapsed mini).
  */
 body.sb-form-sos {
-  padding-top: calc(66px + env(safe-area-inset-top));
+  padding-top: calc(150px + env(safe-area-inset-top));
 }
 
 /* ============================================================

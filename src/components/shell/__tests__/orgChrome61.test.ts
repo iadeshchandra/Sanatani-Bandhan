@@ -160,11 +160,24 @@ describe('A3-5 toast viewport', () => {
 });
 
 describe('A3-11 touch targets', () => {
-  it('the SOS hint-dismiss and collapse controls carry 44px hit areas', () => {
+  it('the SOS hint-dismiss carries a 44px hit area, and the button is always surfaced', () => {
     const src = fs.readFileSync(path.join(SRC, 'crisis/PanicButton.tsx'), 'utf-8');
     expect(src).not.toContain('min-w-[28px]');
     expect(src).not.toContain('min-w-[32px]');
-    expect((src.match(/min-w-\[44px\] min-h-\[44px\]/g) || []).length).toBeGreaterThanOrEqual(2);
+    // PIN MOVE (declared, SOS SURFACED 2026-11-24): this pin used to
+    // count ≥2 44px controls — the hint-dismiss AND the collapse
+    // button. The collapse machinery is retired by the owner's F5
+    // decision (the full button is always visible; there is nothing
+    // left to collapse), so the count drops to the one small control
+    // that remains, and the pin gains the surfaced law itself: no
+    // collapsed state, no "Show SOS button" reveal anywhere in the
+    // component.
+    expect((src.match(/min-w-\[44px\] min-h-\[44px\]/g) || []).length).toBeGreaterThanOrEqual(1);
+    expect(src).not.toContain('setCollapsed');
+    expect(src).not.toContain('MINI_SIZE');
+    expect(src).not.toContain('COLLAPSE_IDLE_MS');
+    expect(src).not.toContain('panicExpand');
+    expect(src).not.toContain('panicCollapse');
   });
 
   it('the sidebar collapse + mobile-close toggles are 44px', () => {

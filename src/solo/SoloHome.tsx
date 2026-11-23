@@ -21,6 +21,7 @@ import { mkt, type MktLang } from '../lib/marketplaceCopy';
 import { Eye, EyeOff, Plus, HandHeart, ScanLine, History } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 import { PanchangHeader } from '../components/common/PanchangHeader';
+import { PillarHeader } from '../components/common/PillarHeader';
 import { OrgEventsShelf } from './OrgEventsShelf';
 import { FollowedTemplesStrip } from './FollowedTemplesStrip';
 import { OfflineSevakStatus } from '../components/common/OfflineSevakStatus';
@@ -229,6 +230,13 @@ export const SoloHome: React.FC<{ goTab: (t: 'sadhana' | 'panchang' | 'panjika' 
 
   return (
     <div className="space-y-4">
+      {/* FOUR PILLARS (owner decision 2026-11-24): the home is organised
+          under four labelled sections — Personal, Social, Locations,
+          Management (lib/pillars). Sections, not navigation: every
+          element below is the same element as before, in the same
+          order within its section. */}
+      <section className="space-y-4">
+        <PillarHeader pillar="personal" />
       {/* Welcome banner — VIBE B1: the dark amber slab became the
           sanctum PanchangHeader (ivory/sandalwood, lamplight, festival
           dressing, tithi greeting + brass muhurat chip). The greeting,
@@ -249,17 +257,6 @@ export const SoloHome: React.FC<{ goTab: (t: 'sadhana' | 'panchang' | 'panjika' 
           usage (cold start: the starter set, plainly labelled). */}
       <OfflineSevakStatus variant="bar" />
       <SoloUsualRow goTab={goTab} />
-
-      {/* EVENTS P1 — "From your orgs": upcoming events from the
-          organisations this devotee belongs to (public page events,
-          recurrence-expanded; honest empty state). */}
-      <OrgEventsShelf />
-
-      {/* NEXT-LEVEL A1 — "From your temples": the next events from
-          the temples/festival series this devotee FOLLOWS (not a
-          member of — following is the lighter bond). Renders
-          nothing at all when they follow nothing. */}
-      <FollowedTemplesStrip uid={uid} />
 
       {/* Wallet glance — spec §1: balance DIRECTLY below the home header.
           One Big Number (30px) + 4 quick actions; whole card taps → Wallet. */}
@@ -336,62 +333,6 @@ export const SoloHome: React.FC<{ goTab: (t: 'sadhana' | 'panchang' | 'panjika' 
 
       {/* Progressive discovery — Suchana suggests the next natural feature */}
       <SuggestionCards uid={uid} />
-
-      {/* Messages — chat entry (full-screen overlay, not a modal) */}
-      {uid !== 'anon' && (
-        <button
-          type="button"
-          onClick={() => setChatOpen(true)}
-          className="w-full rounded-2xl bg-gradient-to-br from-amber-700 via-orange-700 to-amber-800 text-amber-50 p-4 flex items-center gap-4 text-left shadow-sm hover:shadow-md transition-shadow min-h-[76px]"
-        >
-          <div className="relative shrink-0">
-            <div className="text-3xl" aria-hidden>
-              💬
-            </div>
-            {unreadTotal > 0 && (
-              <span className="absolute -top-1.5 -right-2 min-w-[22px] h-[22px] px-1 rounded-full bg-amber-200 text-amber-900 text-[11px] font-extrabold flex items-center justify-center shadow">
-                {unreadTotal > 99 ? '99+' : unreadTotal}
-              </span>
-            )}
-          </div>
-          <div className="flex-1">
-            <div className="text-sm font-extrabold">
-              <T en="Messages" bn="বার্তা" hi="संदेश" />
-            </div>
-            <div className="text-[11px] text-amber-200/80">
-              {unreadTotal > 0 ? (
-                <T
-                  en={`${unreadTotal} unread — your sangha is speaking`}
-                  bn={`${unreadTotal}টি অপঠিত — আপনার সংঘ কথা বলছে`}
-                  hi={`${unreadTotal} अपठित — आपका संघ बोल रहा है`}
-                />
-              ) : (
-                <T
-                  en="Calm conversations with verified Sanatanis"
-                  bn="যাচাইকৃত সনাতনীদের সঙ্গে শান্ত কথোপকথন"
-                  hi="सत्यापित सनातनियों के साथ शांत बातचीत"
-                />
-              )}
-            </div>
-          </div>
-          <div className="text-amber-200/70 text-xl" aria-hidden>
-            →
-          </div>
-        </button>
-      )}
-      {chatOpen && uid !== 'anon' && (
-        <>
-          <Chat
-            uid={uid}
-            selfInfo={selfInfo}
-            initialChatId={chatInitialId || undefined}
-            onClose={() => { setChatOpen(false); setChatInitialId(null); }}
-          />
-          {/* First-run guides — each shows once, dismissable forever. */}
-          <ChatFirstRunHint />
-          <RequestFirstRunWatcher uid={uid} />
-        </>
-      )}
 
       {/* Suchana + Guides entry row */}
       <div className="grid grid-cols-2 gap-3">
@@ -605,8 +546,87 @@ export const SoloHome: React.FC<{ goTab: (t: 'sadhana' | 'panchang' | 'panjika' 
         </Card>
       </div>
 
-      {/* Progressive joining */}
+      </section>
+
+      <section className="space-y-4">
+        <PillarHeader pillar="social" />
+      {/* Messages — chat entry (full-screen overlay, not a modal) */}
+      {uid !== 'anon' && (
+        <button
+          type="button"
+          onClick={() => setChatOpen(true)}
+          className="w-full rounded-2xl bg-gradient-to-br from-amber-700 via-orange-700 to-amber-800 text-amber-50 p-4 flex items-center gap-4 text-left shadow-sm hover:shadow-md transition-shadow min-h-[76px]"
+        >
+          <div className="relative shrink-0">
+            <div className="text-3xl" aria-hidden>
+              💬
+            </div>
+            {unreadTotal > 0 && (
+              <span className="absolute -top-1.5 -right-2 min-w-[22px] h-[22px] px-1 rounded-full bg-amber-200 text-amber-900 text-[11px] font-extrabold flex items-center justify-center shadow">
+                {unreadTotal > 99 ? '99+' : unreadTotal}
+              </span>
+            )}
+          </div>
+          <div className="flex-1">
+            <div className="text-sm font-extrabold">
+              <T en="Messages" bn="বার্তা" hi="संदेश" />
+            </div>
+            <div className="text-[11px] text-amber-200/80">
+              {unreadTotal > 0 ? (
+                <T
+                  en={`${unreadTotal} unread — your sangha is speaking`}
+                  bn={`${unreadTotal}টি অপঠিত — আপনার সংঘ কথা বলছে`}
+                  hi={`${unreadTotal} अपठित — आपका संघ बोल रहा है`}
+                />
+              ) : (
+                <T
+                  en="Calm conversations with verified Sanatanis"
+                  bn="যাচাইকৃত সনাতনীদের সঙ্গে শান্ত কথোপকথন"
+                  hi="सत्यापित सनातनियों के साथ शांत बातचीत"
+                />
+              )}
+            </div>
+          </div>
+          <div className="text-amber-200/70 text-xl" aria-hidden>
+            →
+          </div>
+        </button>
+      )}
+      {chatOpen && uid !== 'anon' && (
+        <>
+          <Chat
+            uid={uid}
+            selfInfo={selfInfo}
+            initialChatId={chatInitialId || undefined}
+            onClose={() => { setChatOpen(false); setChatInitialId(null); }}
+          />
+          {/* First-run guides — each shows once, dismissable forever. */}
+          <ChatFirstRunHint />
+          <RequestFirstRunWatcher uid={uid} />
+        </>
+      )}
+      </section>
+
+      <section className="space-y-4">
+        <PillarHeader pillar="locations" />
+      {/* EVENTS P1 — "From your orgs": upcoming events from the
+          organisations this devotee belongs to (public page events,
+          recurrence-expanded; honest empty state). */}
+      <OrgEventsShelf />
+
+      {/* NEXT-LEVEL A1 — "From your temples": the next events from
+          the temples/festival series this devotee FOLLOWS (not a
+          member of — following is the lighter bond). Renders
+          nothing at all when they follow nothing. */}
+      <FollowedTemplesStrip uid={uid} />
+      </section>
+
+      <section className="space-y-4">
+        <PillarHeader pillar="management" />
+      {/* Progressive joining — the Grow doorway: in Personal the
+          Management pillar is a door, never the console itself. */}
       <JoinUpgrade />
+      </section>
     </div>
   );
 };

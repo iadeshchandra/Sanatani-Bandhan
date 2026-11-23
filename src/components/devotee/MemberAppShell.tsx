@@ -26,6 +26,7 @@ import YatraNetDesk from '../domain7/YatraNetDesk';
 import { DevoteePortal } from './DevoteePortal';
 import { calculatePanchang, getPanchangTodayLine } from '../../utils/panchang';
 import { ModeSwitch } from '../common/ModeSwitch';
+import { PillarHeader } from '../common/PillarHeader';
 import { GrowSheet } from '../common/GrowSheet';
 import { MyOrganisationsStrip } from '../common/QuickLook';
 
@@ -122,8 +123,21 @@ export default function MemberAppShell() {
         // polls awaiting the member's vote) above the feed, opening
         // the full Polls sheet. No new tab: the shell's navigation
         // is untouched, and a poll is at most two taps from Home.
+        //
+        // FOUR PILLARS (owner decision 2026-11-24; lib/pillars): this
+        // home BODY is the Social pillar — the polls band and the
+        // community feed under one labelled section. The other
+        // pillars live in this shell's persistent chrome by the M1
+        // design and are not re-homed here: Personal in the sidebar
+        // profile card + PORTAL/PROFILE tabs, Locations in the My
+        // Organisations (Quick Look) strip above this body, and
+        // Management as that strip's peek → "Open full workspace"
+        // doorway plus the header's Grow / ModeSwitch.
         return (
           <div className="h-full flex flex-col overflow-hidden">
+            <div className="px-4 pt-3 shrink-0">
+              <PillarHeader pillar="social" />
+            </div>
             <MemberPollsSection />
             <div className="flex-1 min-h-0">
               <SanataniSocialFeed />
