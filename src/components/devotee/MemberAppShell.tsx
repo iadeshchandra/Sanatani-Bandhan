@@ -24,6 +24,9 @@ import DevoteeAccountPortal from '../domain5/DevoteeAccountPortal';
 import YatraNetDesk from '../domain7/YatraNetDesk';
 import { DevoteePortal } from './DevoteePortal';
 import { calculatePanchang, getPanchangTodayLine } from '../../utils/panchang';
+import { ModeSwitch } from '../common/ModeSwitch';
+import { GrowSheet } from '../common/GrowSheet';
+import { MyOrganisationsStrip } from '../common/QuickLook';
 
 export default function MemberAppShell() {
   const { 
@@ -56,6 +59,9 @@ export default function MemberAppShell() {
   } = useNotificationCenter(firebaseUser?.uid ?? null);
   const [activeTab, setActiveTab] = useState<'HOME' | 'SADHANA' | 'PUROHIT' | 'PORTAL' | 'YATRA_NET' | 'VIVAH' | 'PROFILE'>('HOME');
   const [showNotifications, setShowNotifications] = useState(false);
+  // TWO-MODE M1: the Grow sheet is shared by the header ModeSwitch
+  // (its no-access state) and this shell's legacy switch doors below.
+  const [growOpen, setGrowOpen] = useState(false);
 
   const panchang = calculatePanchang();
 
@@ -78,7 +84,10 @@ export default function MemberAppShell() {
   // spellings; the verdicts agree for every staff edge).
   const handleSwitchToOrganisation = () => {
     if (!canOpenConsole) {
-      showToast('Access Restricted: Mandir Console requires Sevadar, Trustee, or Priest credentials.', 'error', 'Permission Denied');
+      // TWO-MODE M1: no enrolment is an invitation, not an error —
+      // the old bare "Access Restricted" toast is retired; the Grow
+      // sheet (the JoinUpgrade doors) is the honest next step.
+      setGrowOpen(true);
       return;
     }
     if (activeWorkspace?.id?.startsWith('DEMO_')) {
@@ -301,18 +310,14 @@ export default function MemberAppShell() {
             </div>
 
             <div className="flex items-center gap-2 shrink-0">
-              {/* Quick Switch Button (Desktop & Mobile) */}
-              <Button
-                variant="secondary"
-                tone="dark"
-                size="sm"
-                onClick={handleSwitchToOrganisation}
-                title="Return to Organisation Console"
-              >
-                <Building2 className="w-3.5 h-3.5 text-saffron-400" />
-                <span className="hidden sm:inline">Org Console</span>
-                <span className="sm:hidden">Org</span>
-              </Button>
+              {/* TWO-MODE M1: THE mode switch lives in this header —
+                  segmented Personal | Organisation when the shared
+                  verdict opens the console door, the Grow invitation
+                  when it does not. It replaces the old one-way
+                  "Org Console" button (the banner + sidebar doors
+                  below keep their wording and now open the same
+                  Grow sheet when the verdict is shut). */}
+              <ModeSwitch tone="light" onGrowRequest={() => setGrowOpen(true)} />
 
               {/* World-Readiness B4 (G-L9): the canonical language door — this
                   shell's private 4-language dropdown (en/hi/bn/sa, hand-listed)
@@ -351,6 +356,11 @@ export default function MemberAppShell() {
               </button>
             </div>
           </header>
+
+          {/* TWO-MODE M1: the Quick Look strip — one card per
+              enrolment, a peek without switching. Renders nothing
+              when the member holds no enrolment. */}
+          <MyOrganisationsStrip />
 
           {/* Tab Subheader for Desktop (horizontal fast switcher) */}
           <div className="hidden lg:flex items-center gap-2 px-6 py-2 bg-white border-b border-temple-200 overflow-x-auto scrollbar-hide">
@@ -402,6 +412,9 @@ export default function MemberAppShell() {
           })}
         </div>
       </nav>
+
+      {/* TWO-MODE M1: the shared Grow sheet (body portal inside). */}
+      <GrowSheet open={growOpen} onClose={() => setGrowOpen(false)} />
     </div>
   );
 }

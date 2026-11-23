@@ -131,7 +131,12 @@ describe('surfaces + vibe dict completeness (en/hi/bn authored)', () => {
     // hint, resolve/remove actions, the public "Live at the
     // festival" section with its Reunited badge, and the /events
     // card chip) in all 10 languages.
-    expect(keysOf(en).length).toBe(912);
+    // TWO-MODE M1 adds 27 surfaces.twoMode keys (the two-mode
+    // switch + Quick Look: personal…tapToOpen — the segmented
+    // Personal | Organisation control, the Grow invitation and its
+    // four JoinUpgrade doors, the My Organisations strip and the
+    // peek sheet with its honest figures note) in all 10 languages.
+    expect(keysOf(en).length).toBe(939);
     for (const bucket of Object.keys(en)) {
       for (const leaf of Object.keys(en[bucket])) {
         for (const dict of [en, hi, bn]) {

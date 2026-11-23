@@ -283,6 +283,9 @@ export interface TranslationSchema {
     portalLogin?: { [key: string]: string };
     notFound?: { [key: string]: string };
     orgDirectory?: { [key: string]: string };
+    // TWO-MODE M1 (2026-11-23) — the two-mode switch + Quick Look
+    // chrome. Authored in all 10.
+    twoMode?: { [key: string]: string };
   };
   // Error-Polish batch (G-E4/G-E5): friendlyError targets — the ONLY
   // strings a non-auth failure may ever render (see lib/friendlyError.ts).

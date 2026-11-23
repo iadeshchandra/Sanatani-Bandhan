@@ -23,6 +23,7 @@ import { normalizeMembershipRole } from '../../lib/landingSurface';
 import { membershipEffectiveRole } from '../../lib/membershipAccess';
 import { T } from '../../solo/ui';
 import { OrgLogo } from '../common/OrgLogo';
+import { ModeSwitch } from '../common/ModeSwitch';
 
 /* OrgSpaceShell — the Phase 2 organisation-space chrome.
  * =====================================================================
@@ -119,6 +120,7 @@ export const OrgSpaceShell: React.FC<{ children: React.ReactNode }> = ({ childre
     currentRole,
     enterSoloSession,
     setOrgRoleOverride,
+    viewMode,
   } = useAuthWorkspace();
   const { myMemberships, membershipsLoaded, refreshMemberships } = useMembership();
   const { showToast } = useToast();
@@ -365,6 +367,12 @@ export const OrgSpaceShell: React.FC<{ children: React.ReactNode }> = ({ childre
               }}
             />
           </div>
+          {/* TWO-MODE M1: THE mode switch, in the console header —
+              the same header slot the member shell's header carries
+              in Personal mode, so the switch lives in one place per
+              mode and the two never stack (in MEMBER mode this bar
+              yields to the member shell's own header switch). */}
+          {viewMode === 'MANAGER' && <ModeSwitch tone="dark" />}
           {/* Role chip — plain role name, no "Viewing as" framing (Track 0:
               "viewing" language reads as demo/preview chrome to real users). */}
           <span
