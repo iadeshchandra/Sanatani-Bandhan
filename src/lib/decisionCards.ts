@@ -36,7 +36,7 @@ import {
 } from './resolutionLogic';
 
 export interface DecisionCard {
-  kind: 'poll' | 'resolution';
+  kind: 'poll' | 'resolution' | 'auction';
   id: string;
   title: string;
   /** POLLS P1: the class + standing label, e.g. "Decision poll · Binding". */
@@ -174,6 +174,67 @@ export function resolutionDecisionCard(res: ResolutionCardDoc, now: number): Dec
     detailLine,
     ...(res.details ? { note: res.details } : {}),
     ...(typeof res.concludedAt === 'number' ? { concludedAt: res.concludedAt } : {}),
+  };
+}
+
+/* ------------------------------------------------------------------ */
+/* AUCTION A1 (Nilam) — the public result card                         */
+/* ------------------------------------------------------------------ */
+
+/** The public-safe slice of an auction lot (lib/auctionLots owns
+ *  the full record; the card reads only what may be shown). */
+export interface AuctionCardLot {
+  id: string;
+  title?: string;
+  lotClass?: string;
+  status?: string;
+  reservePrice?: number;
+  registrations?: unknown[];
+  outcome?: {
+    winnerName?: string;
+    winningAmount?: number;
+    publishWinnerName?: boolean;
+  };
+  history?: Record<string, { at?: number } | undefined>;
+}
+
+const AUCTION_CLASS_LINES: Record<string, string> = {
+  'rights-lease': 'rights & lease allotment',
+  movables: 'movables auction',
+  'immovable-sale': 'immovable property sale',
+};
+
+const inrGroup = (n: number): string =>
+  Number.isFinite(n) ? Math.round(n).toLocaleString('en-IN') : '0';
+
+/**
+ * A settled/accepted Nilam lot → its board card, or null while
+ * the lot has no recorded outcome. Aggregates only: the winner's
+ * NAME appears solely when the committee deliberately set
+ * publishWinnerName at acceptance (the E6 consent discipline) —
+ * amounts and counts are the public proof; personal data is not.
+ */
+export function auctionResultCard(lot: AuctionCardLot): DecisionCard | null {
+  if (lot.status !== 'accepted' && lot.status !== 'settled') return null;
+  const outcome = lot.outcome;
+  if (!outcome || typeof outcome.winningAmount !== 'number') return null;
+  const bidders = Array.isArray(lot.registrations) ? lot.registrations.length : 0;
+  const amount = inrGroup(outcome.winningAmount);
+  const outcomeLine =
+    outcome.publishWinnerName && outcome.winnerName
+      ? `Allotted to ${outcome.winnerName} — winning amount ${amount}`
+      : `Allotted — winning amount ${amount}`;
+  const classLine = AUCTION_CLASS_LINES[lot.lotClass ?? ''] ?? 'auction';
+  const detailLine =
+    `Reserve ${inrGroup(lot.reservePrice ?? 0)} · ${bidders} registered bidder${bidders === 1 ? '' : 's'} · Nilam ${classLine}`;
+  const concludedAt = lot.history?.settled?.at ?? lot.history?.accepted?.at;
+  return {
+    kind: 'auction',
+    id: lot.id,
+    title: lot.title || 'Nilam lot',
+    outcomeLine,
+    detailLine,
+    ...(typeof concludedAt === 'number' ? { concludedAt } : {}),
   };
 }
 

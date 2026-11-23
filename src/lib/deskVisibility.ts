@@ -127,7 +127,7 @@ function baseDeskVisibleForRole(
     const accountantAllowed = [
       'quick-chanda-pos', 'treasury', 'hundi-audit', 'ratna-bhandar',
       'taxReceipts', 'form10bd', 'campaigns', 'karmaLedger', 'assets', 'inventory',
-      'bhoomi', 'vahan', 'recurring-seva',
+      'bhoomi', 'nilam', 'vahan', 'recurring-seva',
     ];
     return accountantAllowed.includes(mod.id) || mod.domain === 2;
   }
@@ -164,7 +164,7 @@ function baseDeskVisibleForRole(
   if (['treasury', 'taxReceipts', 'form10bd', 'hundi-audit', 'ratna-bhandar'].includes(mod.id)) {
     return checkPermission(['ACCOUNTANT', 'MANAGER', 'TRUSTEE']);
   }
-  if (['campaigns', 'assets'].includes(mod.id)) {
+  if (['campaigns', 'assets', 'nilam'].includes(mod.id)) {
     return checkPermission(['ACCOUNTANT', 'MANAGER', 'TRUSTEE']);
   }
   if (mod.id === 'inventory') {

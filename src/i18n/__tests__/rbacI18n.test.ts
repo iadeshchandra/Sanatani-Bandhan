@@ -55,8 +55,9 @@ describe('org.access parity (en/hi/bn)', () => {
   const hiAccess = leaves(accessOf(hiOrg), 'access');
   const bnAccess = leaves(accessOf(bnOrg), 'access');
 
-  it('authored access sections exist and are complete (72 keys)', () => {
-    expect(enAccess.length).toBe(72);
+  it('authored access sections exist and are complete (73 keys)', () => {
+    // 73 since AUCTION A1 added org.access.approvals.kindAuction.
+    expect(enAccess.length).toBe(73);
   });
 
   it('hi and bn key sets are identical to en', () => {

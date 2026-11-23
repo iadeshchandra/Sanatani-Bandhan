@@ -18,6 +18,7 @@ import { collection, getDocs, limit, query, where } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 import { useLanguage } from '../../context/LanguageContext';
 import {
+  auctionResultCard,
   pollDecisionCard,
   resolutionDecisionCard,
   sortDecisionCards,
@@ -77,6 +78,22 @@ export const DecisionCards: React.FC<Props> = ({ workspaceId, isCommittee }) => 
         });
       } catch {
         /* resolutions unreadable for this viewer — the board stays clean */
+      }
+      try {
+        // AUCTION A1 (Nilam): settled/accepted lots publish their
+        // result here. The lot doc itself is staff-read (it holds
+        // bidder phone numbers and ID references) — so this query
+        // simply fails soft for viewers who may not read lots, and
+        // the card builder only ever reads the public-safe fields.
+        const lotSnap = await getDocs(
+          query(collection(db, 'auction_lots'), where('workspaceId', '==', workspaceId), limit(50))
+        );
+        lotSnap.docs.forEach((d) => {
+          const card = auctionResultCard({ id: d.id, ...(d.data() as object) } as never);
+          if (card) out.push(card);
+        });
+      } catch {
+        /* lots unreadable for this viewer — the board stays clean */
       }
       if (!cancelled) setCards(sortDecisionCards(out).slice(0, 12));
     })();

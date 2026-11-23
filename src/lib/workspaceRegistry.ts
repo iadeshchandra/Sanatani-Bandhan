@@ -185,7 +185,7 @@ export const workspaceRegistry: Record<WorkspaceType, string[]> = {
     // flagship family-lifecycle suite — it is native here (and in
     // Ashram), not an App Store discovery exercise.
     'samskara-one',
-    'bhoomi', 'vahan', 'recurring-seva', 'sanatani-vivah',
+    'bhoomi', 'nilam', 'vahan', 'recurring-seva', 'sanatani-vivah',
     // R-1: added — the setup wizard recommends these as Mandir defaults and
     // the Trustee/Accountant/Sevadar home screens link straight to them.
     'checkin', 'donorCare', 'hundi-audit', 'quick-chanda-pos',
@@ -218,7 +218,7 @@ export const workspaceRegistry: Record<WorkspaceType, string[]> = {
     'dashboard', 'devotees', 'family', 'treasury', 'campaigns',
     'sanghaDrills', 'panchayatPolls', 'sanatani-vivah',
     'sandeshBroadcast', 'dharmicAssistant', 'masterSettings',
-    'bhoomi', 'vahan', 'recurring-seva',
+    'bhoomi', 'nilam', 'vahan', 'recurring-seva',
     // R-1: added 'donorCare' — wizard default for Sangha.
     'donorCare',
     // Matha One: monastic management (Sangha-native — mathas are sanghas).
@@ -234,7 +234,7 @@ export const workspaceRegistry: Record<WorkspaceType, string[]> = {
     'dashboard', 'devotees', 'family', 'treasury', 'campaigns',
     'sanghaDrills', 'panchayatPolls', 'sanatani-vivah',
     'sandeshBroadcast', 'dharmicAssistant', 'masterSettings',
-    'bhoomi', 'vahan', 'recurring-seva',
+    'bhoomi', 'nilam', 'vahan', 'recurring-seva',
     // R-1: added 'donorCare' — mirrors Sangha (community org parity).
     'donorCare',
     // Ceremony enablement (owner decision, 2026-11-22): mirrors Sangha
@@ -253,7 +253,7 @@ export const workspaceRegistry: Record<WorkspaceType, string[]> = {
     'sandeshBroadcast', 'dharmicAssistant', 'masterSettings', 'spiritualSettings',
     // QUEUED #57 (owner decision): Samskara One native (see Mandir).
     'samskara-one',
-    'bhoomi', 'vahan', 'recurring-seva',
+    'bhoomi', 'nilam', 'vahan', 'recurring-seva',
     // R-1: added — the setup wizard recommends these as Ashram defaults.
     // Ashram One replaces the mock 'dharamshala' desk with the real suite.
     // Annakshetra One: kitchen & bhandara management (Ashram-native).
@@ -291,7 +291,7 @@ export const workspaceRegistry: Record<WorkspaceType, string[]> = {
     // stays native where it is the primary surface (Vidyalaya).
     'gurukul', 'granthLibrary', 'goshala',
     'sandeshBroadcast', 'dharmicAssistant', 'masterSettings',
-    'bhoomi', 'recurring-seva',
+    'bhoomi', 'nilam', 'recurring-seva',
     // Pathshala One: complete school-management suite (Gurukul + Vidyalaya only).
     'pathshala',
     // R-1 REMOVED 'vahan' (fleet): gurukuls do not operate transport fleets;
@@ -332,7 +332,7 @@ export const workspaceRegistry: Record<WorkspaceType, string[]> = {
     // absent here, so Trust's own AI desk was permanently mount-blocked
     // in the ONLY org type whose registry listed it. Canonical id now.
     'sandeshBroadcast', 'dharmicAssistant', 'trusteeGovernance', 'legalVault', 'masterSettings',
-    'bhoomi', 'vahan', 'recurring-seva', 'sanatani-vivah',
+    'bhoomi', 'nilam', 'vahan', 'recurring-seva', 'sanatani-vivah',
     // R-1: added 'donorCare' — wizard default for Trust.
     'donorCare',
     // Cash Custody: hundi-to-bank chain of custody (Trust/NGO-native).
@@ -347,7 +347,7 @@ export const workspaceRegistry: Record<WorkspaceType, string[]> = {
     // QUEUED #58 (audit A1-D04): 'sevaTrust' removed — see Trust above.
     'campaigns', 'assets', 'annadanam', 'rakthaSeva', 'inventory',
     'sandeshBroadcast', 'trusteeGovernance', 'legalVault', 'masterSettings', 'crisis-command',
-    'bhoomi', 'vahan', 'recurring-seva',
+    'bhoomi', 'nilam', 'vahan', 'recurring-seva',
     // R-1: added — the setup wizard recommends these as AkshayaPatra defaults
     // ('donorCare' for patrons). Annakshetra One replaces the mock
     // 'smartBhandar' desk with the real kitchen & bhandara suite.
@@ -362,7 +362,7 @@ export const workspaceRegistry: Record<WorkspaceType, string[]> = {
     'tirth-one',
     'sandeshBroadcast', 'dharmicAssistant',
     'trusteeGovernance', 'sevadar-roster', 'crisis-command', 'masterSettings',
-    'bhoomi', 'vahan', 'recurring-seva',
+    'bhoomi', 'nilam', 'vahan', 'recurring-seva',
     // R-1: added — wizard defaults / crowd-safety pairing for a tirth complex.
     'checkin', 'donorCare', 'yatranet-gis',
   ],
@@ -376,7 +376,7 @@ export const workspaceRegistry: Record<WorkspaceType, string[]> = {
     'tirth-one',
     'sandeshBroadcast', 'dharmicAssistant',
     'trusteeGovernance', 'sevadar-roster', 'crisis-command', 'masterSettings',
-    'bhoomi', 'vahan', 'recurring-seva',
+    'bhoomi', 'nilam', 'vahan', 'recurring-seva',
     // R-1: added — wizard defaults for Tirth (yatri flow, stays, GIS safety).
     'checkin', 'donorCare', 'yatranet-gis', 'quick-chanda-pos',
   ],

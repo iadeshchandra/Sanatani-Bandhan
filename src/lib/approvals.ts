@@ -9,7 +9,7 @@
  * underlying change applies EXACTLY ONCE, only on approval;
  * rejection applies nothing, ever.
  *
- * Three gated kinds:
+ * Four gated kinds:
  *  (a) 'treasury.payout'  — an Expense voucher at/above the
  *      workspace threshold (payouts ARE expense records in this
  *      codebase — there is no separate payout entity). The full
@@ -37,7 +37,13 @@ import type { UserRole } from '../types';
 import { stableStringify } from './auditChain';
 import { sha256Hex } from '../cashcustody/cashCustodyStore';
 
-export type ApprovalKind = 'treasury.payout' | 'payment.details' | 'role.grant';
+export type ApprovalKind =
+  | 'treasury.payout'
+  | 'payment.details'
+  | 'role.grant'
+  // AUCTION A1 (Nilam): a lot leaving draft, and a lot's recorded
+  // outcome — both sealed snapshots applied by lib/auctionLots.
+  | 'auction.lot';
 export type ApprovalStatus = 'PENDING' | 'APPROVED' | 'REJECTED' | 'CANCELLED';
 
 /** Thrown (as Error.code) by write paths when a gated action is
@@ -88,6 +94,7 @@ export const MAKER_ROLES: Record<ApprovalKind, readonly UserRole[]> = {
   'treasury.payout': ['Trustee', 'Accountant', 'SuperAdmin'],
   'payment.details': ['Trustee', 'SuperAdmin'],
   'role.grant': ['Trustee', 'SuperAdmin'],
+  'auction.lot': ['Trustee', 'Accountant', 'SuperAdmin'],
 };
 
 /**
@@ -102,6 +109,9 @@ export const CHECKER_ROLES: Record<ApprovalKind, readonly UserRole[]> = {
   'treasury.payout': ['Trustee', 'Accountant', 'SuperAdmin'],
   'payment.details': ['Trustee', 'SuperAdmin'],
   'role.grant': ['Trustee', 'SuperAdmin'],
+  // A community's property moves on governance eyes, not finance
+  // alone — Trustee+ decides, as with payment details.
+  'auction.lot': ['Trustee', 'SuperAdmin'],
 };
 
 export function payloadDigest(payload: Record<string, unknown>): string {

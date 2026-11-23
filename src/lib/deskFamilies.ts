@@ -106,6 +106,7 @@ export const DESK_FAMILY: Record<string, DeskFamilyId> = {
   assets: 'money',
   inventory: 'money',
   bhoomi: 'money',
+  nilam: 'money',
   vahan: 'money',
   'recurring-seva': 'money',
 

@@ -154,7 +154,10 @@ describe('surfaces + vibe dict completeness (en/hi/bn authored)', () => {
     // secrecy choice, the quorum/pass marks with the frozen-
     // electorate note, the card badges, the recorded verdict
     // lines, and the result certificate) in all 10 languages.
-    expect(keysOf(en).length).toBe(1046);
+    // POLLS P1 added 26 keys (1046); AUCTION A1 adds 99 surfaces.nilam keys
+    // (deskTitle…resultPrint — the Nilam auction & allotment desk) in all
+    // 10 languages, taking the pin to 1145.
+    expect(keysOf(en).length).toBe(1145);
     for (const bucket of Object.keys(en)) {
       for (const leaf of Object.keys(en[bucket])) {
         for (const dict of [en, hi, bn]) {
@@ -623,7 +626,7 @@ const WIRED: Array<[string, string]> = [
   ["pages/ForInstitutionsPage.tsx", "surfaces.institutions.whatYourInstitutionGets"],
   ["pages/LandingPage.tsx", "surfaces.landing.2MonthsFree"],
   ["pages/LandingPage.tsx", "surfaces.landing.35000Year"],
-  ["pages/LandingPage.tsx", "surfaces.landing.all72Desks"],
+  ["pages/LandingPage.tsx", "surfaces.landing.allDesks"],
   ["pages/LandingPage.tsx", "surfaces.landing.billingPeriod"],
   ["pages/LandingPage.tsx", "surfaces.landing.branchesNotLogins"],
   ["pages/LandingPage.tsx", "surfaces.landing.chooseYourInstitutionType"],

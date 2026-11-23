@@ -171,6 +171,7 @@ const HundiCountingAuditDesk = lazy(() => import('./components/domain2/HundiCoun
 const RatnaBhandarAssetDesk = lazy(() => import('./components/domain2/RatnaBhandarAssetDesk').then(m => ({ default: m.RatnaBhandarAssetDesk })));
 const QuickChandaPOS = lazy(() => import('./components/domain2/QuickChandaPOS').then(m => ({ default: m.QuickChandaPOS })));
 const BhoomiRealEstateDesk = lazy(() => import('./components/domain2/BhoomiRealEstateDesk').then(m => ({ default: m.BhoomiRealEstateDesk })));
+const NilamDesk = lazy(() => import('./components/domain2/NilamDesk').then(m => ({ default: m.NilamDesk })));
 const VahanFleetDesk = lazy(() => import('./components/domain2/VahanFleetDesk').then(m => ({ default: m.VahanFleetDesk })));
 const RecurringSevaDesk = lazy(() => import('./components/domain2/RecurringSevaDesk').then(m => ({ default: m.RecurringSevaDesk })));
 
@@ -811,6 +812,10 @@ const AppContent: React.FC = () => {
       case 'property-leases':
       case 'bhoomi-real-estate':
         return checkPermission(['ACCOUNTANT', 'MANAGER', 'TRUSTEE']) ? <BhoomiRealEstateDesk /> : <RestrictedAccess />;
+      case 'nilam':
+        // AUCTION A1: the auction & allotment record desk — same
+        // finance/governance gate as the asset register it feeds on.
+        return checkPermission(['ACCOUNTANT', 'MANAGER', 'TRUSTEE']) ? <NilamDesk /> : <RestrictedAccess />;
       case 'vahan':
       case 'fleet':
       case 'vahan-fleet':

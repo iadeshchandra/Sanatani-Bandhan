@@ -286,6 +286,8 @@ export interface TranslationSchema {
     // TWO-MODE M1 (2026-11-23) — the two-mode switch + Quick Look
     // chrome. Authored in all 10.
     twoMode?: { [key: string]: string };
+    // AUCTION A1 — Nilam (2026-11-23): the auction & allotment desk.
+    nilam?: { [key: string]: string };
   };
   // Error-Polish batch (G-E4/G-E5): friendlyError targets — the ONLY
   // strings a non-auth failure may ever render (see lib/friendlyError.ts).
@@ -2936,6 +2938,7 @@ export interface TranslationSchema {
           cancel: string;
           retryApply: string;
           kindPayout: string;
+          kindAuction: string;
           kindPayment: string;
           kindRole: string;
           statusPending: string;

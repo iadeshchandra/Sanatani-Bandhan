@@ -43,6 +43,7 @@ import {
 } from '../../lib/approvals';
 import { approvalService, type ApprovalApplier } from '../../context/data/approvalsStore';
 import { friendlyError } from '../../lib/friendlyError';
+import { applyAuctionLotApproval } from '../../lib/auctionLots';
 
 export const ApprovalsPanel: React.FC = () => {
   const { t } = useLanguage();
@@ -95,6 +96,12 @@ export const ApprovalsPanel: React.FC = () => {
       const fields = (r.payload as unknown as PaymentDetailsPayload).fields;
       updateWorkspaceDetails(fields as any);
       await executeSafeUpdate('workspaces', r.workspaceId, fields, 'update');
+      return;
+    }
+    if (r.kind === 'auction.lot') {
+      // AUCTION A1 (Nilam): the sealed snapshot lands on the lot —
+      // precondition + drift checks live in lib/auctionLots.
+      await applyAuctionLotApproval(r);
       return;
     }
     // role.grant
@@ -185,7 +192,9 @@ export const ApprovalsPanel: React.FC = () => {
       ? t('org.access.approvals.kindPayout')
       : r.kind === 'payment.details'
         ? t('org.access.approvals.kindPayment')
-        : t('org.access.approvals.kindRole');
+        : r.kind === 'auction.lot'
+          ? t('org.access.approvals.kindAuction')
+          : t('org.access.approvals.kindRole');
 
   const chipCls = 'text-[10px] font-black uppercase tracking-widest px-2 py-1 rounded-full shrink-0';
   const statusChip = (r: ApprovalRequestDoc) => {

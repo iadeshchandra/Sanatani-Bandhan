@@ -57,11 +57,11 @@ function deskNumbers(text: string): number[] {
 }
 
 describe('D-08 — one desk count, from the catalog', () => {
-  it('the catalog itself is the pinned truth (72 desks, 7 domains)', () => {
+  it('the catalog itself is the pinned truth (73 desks, 7 domains)', () => {
     // If the catalog legitimately grows/shrinks, update this pin AND
     // every surface below in the same commit — that is the discipline
     // this guard exists to enforce.
-    expect(DESK_COUNT).toBe(72);
+    expect(DESK_COUNT).toBe(73);
     expect(DOMAIN_COUNT).toBe(7);
     expect(new Set(rows.map((r) => r.id)).size).toBe(DESK_COUNT); // no duplicate ids
   });
@@ -84,7 +84,7 @@ describe('D-08 — one desk count, from the catalog', () => {
     expect(landing).toContain('Desks across ${DESK_DOMAIN_COUNT} domains');
     expect(landing).not.toContain(`'${DESK_COUNT}', 'Desks across`);
     // The spelled-out prose line follows the same truth.
-    expect(landingCopy).toContain('Seventy-two desks');
+    expect(landingCopy).toContain('Seventy-three desks');
     expect(landingCopy).not.toContain('Sixty-six');
   });
 

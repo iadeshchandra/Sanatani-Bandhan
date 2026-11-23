@@ -83,9 +83,10 @@ const modelIds = (type: string, role: string, extra = {}, deskScope?: string[] |
   );
 
 describe('family map totality (directory completeness)', () => {
-  it('the extracted catalog is the real 72-desk catalog', () => {
-    expect(CATALOG_IDS.length).toBe(72);
-    expect(new Set(CATALOG_IDS).size).toBe(72);
+  it('the extracted catalog is the real 73-desk catalog', () => {
+    // 73 since AUCTION A1 added the Nilam desk.
+    expect(CATALOG_IDS.length).toBe(73);
+    expect(new Set(CATALOG_IDS).size).toBe(73);
   });
 
   it('every catalog desk has exactly one family, and nothing else does', () => {

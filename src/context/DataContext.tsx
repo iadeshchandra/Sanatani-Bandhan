@@ -1130,6 +1130,7 @@ interface DataContextType {
   /** M-18: next sequential receipt number for a series (SB-80G / SB-CHANDA), per workspace+year. */
   getNextReceiptNumber: (prefix: 'SB-80G' | 'SB-CHANDA') => string;
   addAsset: (asset: Omit<AssetRecord, 'id'>) => boolean;
+  updateAsset: (id: string, updates: Partial<AssetRecord>) => void;
   updateInventoryStock: (id: string, newStock: number) => void;
   addInventoryItem: (item: Omit<InventoryItem, 'id' | 'lastRestockedDate'>) => boolean;
   addPoojaBooking: (booking: Omit<PoojaBooking, 'id' | 'receiptRef' | 'status' | 'paymentStatus'>) => boolean;
@@ -3415,6 +3416,17 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return true;
   };
 
+  // AUCTION A1 (Nilam): the register's first update path — the
+  // updateBhoomiProperty idiom verbatim. Settlement of a lot
+  // marks its source asset here (outcome note + condition), so
+  // the register closes the loop the audit found open.
+  const updateAsset = (id: string, updates: Partial<AssetRecord>) => {
+    setAllAssets((prev) =>
+      prev.map((a) => (a.id === id ? { ...a, ...updates } : a))
+    );
+    showToast('Asset record updated', 'success');
+  };
+
   const updateInventoryStock = (id: string, newStock: number) => {
     const oldItem = allInventory.find((item) => item.id === id) || null;
     setAllInventory((prev) =>
@@ -4177,6 +4189,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         updateTreasuryTransaction,
         getNextReceiptNumber,
         addAsset,
+        updateAsset,
         updateInventoryStock,
         addInventoryItem,
         addPoojaBooking,
@@ -4225,7 +4238,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         treasuryExactTotals,
         loadMoreCollection,
         receiptSeqDegraded,
-      }), [isDataLoading, devotees, puja_bookings, donations, inventory_items, poojaBookings, treasury, inventory, families, vanshavali, guests, assets, residentPujas, purohits, pitruRecords, cows, annadanamList, rooms, gurukulStudents, campaigns, matrimonyProfiles, shlokas, resolutions, shifts, bhoomiProperties, rentReceipts, fleetVehicles, fuelLogs, serviceRecords, sevaSubscriptions, seedDemoData, clearSampleData, clearPracticeData, practiceCounts, addDevotee, updateDevotee, deleteDevotee, addFamily, updateVanshavali, addGuest, promoteGuestToMember, addTreasuryTransaction, updateTreasuryTransaction, getNextReceiptNumber, addAsset, updateInventoryStock, addInventoryItem, addPoojaBooking, updatePoojaStatus, updatePoojaLiveUrl, addCow, adoptCow, addAnnadanam, addResolution, voteOnResolution, addShift, addCampaignDonation, addResidentPuja, addPitruRecord, addGurukulStudent, updateGurukulStudent, purgeAutoDeleteRecords, addBhoomiProperty, updateBhoomiProperty, deleteBhoomiProperty, addRentReceipt, addFleetVehicle, updateFleetVehicle, deleteFleetVehicle, addFuelLog, addServiceRecord, addSevaSubscription, updateSevaSubscription, recordSubscriptionPayment, demoUpsellModule, closeDemoUpsell, getDemoStats, resetDemoWorkspace, convertDemoToReal, activeBranchId, branches, isMultiBranch, mainBranchId, recordsForBranch, getBranchRecordCount, selectBranch, myBranchIds, isBranchAccessible, collectionWindows, treasuryExactTotals, loadMoreCollection, receiptSeqDegraded]);
+      }), [isDataLoading, devotees, puja_bookings, donations, inventory_items, poojaBookings, treasury, inventory, families, vanshavali, guests, assets, residentPujas, purohits, pitruRecords, cows, annadanamList, rooms, gurukulStudents, campaigns, matrimonyProfiles, shlokas, resolutions, shifts, bhoomiProperties, rentReceipts, fleetVehicles, fuelLogs, serviceRecords, sevaSubscriptions, seedDemoData, clearSampleData, clearPracticeData, practiceCounts, addDevotee, updateDevotee, deleteDevotee, addFamily, updateVanshavali, addGuest, promoteGuestToMember, addTreasuryTransaction, updateTreasuryTransaction, getNextReceiptNumber, addAsset, updateAsset, updateInventoryStock, addInventoryItem, addPoojaBooking, updatePoojaStatus, updatePoojaLiveUrl, addCow, adoptCow, addAnnadanam, addResolution, voteOnResolution, addShift, addCampaignDonation, addResidentPuja, addPitruRecord, addGurukulStudent, updateGurukulStudent, purgeAutoDeleteRecords, addBhoomiProperty, updateBhoomiProperty, deleteBhoomiProperty, addRentReceipt, addFleetVehicle, updateFleetVehicle, deleteFleetVehicle, addFuelLog, addServiceRecord, addSevaSubscription, updateSevaSubscription, recordSubscriptionPayment, demoUpsellModule, closeDemoUpsell, getDemoStats, resetDemoWorkspace, convertDemoToReal, activeBranchId, branches, isMultiBranch, mainBranchId, recordsForBranch, getBranchRecordCount, selectBranch, myBranchIds, isBranchAccessible, collectionWindows, treasuryExactTotals, loadMoreCollection, receiptSeqDegraded]);
 
   return (
     <DataContext.Provider
@@ -4276,6 +4289,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         updateTreasuryTransaction,
         getNextReceiptNumber,
         addAsset,
+        updateAsset,
         updateInventoryStock,
         addInventoryItem,
         addPoojaBooking,

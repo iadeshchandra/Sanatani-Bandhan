@@ -728,7 +728,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
                 operatingSystem: 'Web browser, Progressive Web App',
                 applicationCategory: 'BusinessApplication',
                 description:
-                  'Free dharmic institution management platform for mandirs, goshalas, ashrams, gurukuls and sanghas — treasury, audits, member CRM, 80G receipts, 72 desks, and 100% offline-first. ₹0 forever.',
+                  'Free dharmic institution management platform for mandirs, goshalas, ashrams, gurukuls and sanghas — treasury, audits, member CRM, 80G receipts, 73 desks, and 100% offline-first. ₹0 forever.',
                 offers: { '@type': 'Offer', price: '0', priceCurrency: 'INR' },
               },
               {
@@ -1293,7 +1293,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
               {safeTranslate('landing_h2_one_platform', 'One platform for every dharmic institution.', 'প্রতিটি ধার্মিক প্রতিষ্ঠানের জন্য একটি প্ল্যাটফর্ম।', 'हर धार्मिक संस्थान के लिए एक मंच।')}
             </h2>
             <p className="mt-4 text-stone-500 leading-relaxed">
-              Seventy-two desks, twelve worlds — treasury, goshala, darshan, kitchen, community and more.
+              Seventy-three desks, twelve worlds — treasury, goshala, darshan, kitchen, community and more.
               Pick your institution above, or explore every capability below.
             </p>
           </Reveal>
@@ -1856,7 +1856,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({
             <nav aria-label="Features">
               <h4 className="text-xs font-black tracking-widest uppercase text-stone-500 mb-4">Features</h4>
               <ul className="space-y-2.5 text-sm font-medium">
-                <li><button type="button" onClick={() => scrollTo('showcase')} className="hover:text-orange-400 transition-colors cursor-pointer min-h-[44px] inline-flex items-center">{t('surfaces.landing.all72Desks')}</button></li>
+                <li><button type="button" onClick={() => scrollTo('showcase')} className="hover:text-orange-400 transition-colors cursor-pointer min-h-[44px] inline-flex items-center">{t('surfaces.landing.allDesks')}</button></li>
                 <li><button type="button" onClick={() => scrollTo('showcase')} className="hover:text-orange-400 transition-colors cursor-pointer min-h-[44px] inline-flex items-center">{t('surfaces.landing.treasuryAmp80g')}</button></li>
                 <li><button type="button" onClick={() => scrollTo('showcase')} className="hover:text-orange-400 transition-colors cursor-pointer min-h-[44px] inline-flex items-center">{t('surfaces.landing.goshalaAmpBhandar')}</button></li>
                 <li><button type="button" onClick={() => scrollTo('dharma')} className="hover:text-orange-400 transition-colors cursor-pointer min-h-[44px] inline-flex items-center">{t('surfaces.landing.whyDharma')}</button></li>

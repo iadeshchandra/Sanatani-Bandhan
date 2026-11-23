@@ -69,4 +69,21 @@
     width: 100%;
     box-shadow: none !important;
   }
+
+  /* AUCTION A1 — the Nilam public notice and result notice print
+     ALONE, same isolation idiom, .receipt-paper law as above. */
+  body:has(.print-nilam-notice) * {
+    visibility: hidden;
+  }
+  body:has(.print-nilam-notice) .print-nilam-notice,
+  body:has(.print-nilam-notice) .print-nilam-notice * {
+    visibility: visible;
+  }
+  body:has(.print-nilam-notice) .print-nilam-notice {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    box-shadow: none !important;
+  }
 }
