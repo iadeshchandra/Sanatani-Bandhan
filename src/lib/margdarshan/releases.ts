@@ -63,6 +63,21 @@ export interface ReleaseEntry {
 
 export const RELEASES: readonly ReleaseEntry[] = [
   {
+    version: 'v2026.11.23-f31779d',
+    date: '2026-11-23',
+    sections: {
+      new: [
+        { text: { en: 'Polls now come in two kinds: Pulse polls for quick opinion, and Decision polls for real decisions — labelled Binding or Advisory BEFORE anyone votes, so nobody is surprised by what a result means.', hi: 'मतदान अब दो प्रकार के हैं: त्वरित राय के लिए पल्स मतदान, और असली निर्णयों के लिए निर्णय मतदान — किसी के भी वोट देने से पहले बाध्यकारी या सलाहकार लिखा रहता है, ताकि परिणाम का अर्थ किसी को चौंकाए नहीं।', bn: 'ভোট এখন দুই ধরনের: দ্রুত মতামতের জন্য পালস ভোট, আর আসল সিদ্ধান্তের জন্য সিদ্ধান্ত ভোট — কেউ ভোট দেওয়ার আগেই বাধ্যতামূলক না পরামর্শমূলক লেখা থাকে, যাতে ফলাফলের অর্থে কেউ চমকে না যান।' } },
+        { text: { en: 'A Decision poll freezes who may vote at launch and carries a quorum mark and a pass mark. When it ends, the result — tallies, turnout, whether quorum was met, and the verdict — is written once on the poll itself and can never be rewritten. A tie is recorded as a tie.', hi: 'निर्णय मतदान शुरू होते ही तय कर देता है कि कौन वोट दे सकता है, और उसमें कोरम व पास का अंक रहता है। समाप्ति पर परिणाम — गिनती, भागीदारी, कोरम पूरा हुआ या नहीं, और फ़ैसला — मतदान पर एक बार लिखा जाता है और फिर कभी बदला नहीं जा सकता। बराबरी को बराबरी ही लिखा जाता है।', bn: 'সিদ্ধান্ত ভোট শুরু হওয়ার সঙ্গে সঙ্গে ঠিক করে দেয় কে ভোট দিতে পারবেন, আর তাতে কোরাম ও পাসের মাপ থাকে। শেষ হলে ফলাফল — গণনা, অংশগ্রহণ, কোরাম পূর্ণ হলো কিনা, আর রায় — ভোটের গায়ে একবার লেখা হয় এবং আর কখনো বদলানো যায় না। সমান-সমান হলে সমান-সমানই লেখা থাকে।' } },
+        { text: { en: 'The committee can choose a secret or a named ballot on member Decision polls. Committee polls and written-answer polls stay named, as before — and the poll says so openly.', hi: 'सदस्य निर्णय मतदानों में समिति गुप्त या नाम-युक्त मतपत्र चुन सकती है। समिति मतदान और लिखित-उत्तर मतदान पहले की तरह नाम-युक्त रहते हैं — और मतदान यह खुलकर कहता है।', bn: 'সদস্য সিদ্ধান্ত ভোটে কমিটি গোপন বা নামযুক্ত ব্যালট বেছে নিতে পারে। কমিটি ভোট আর লিখিত-উত্তরের ভোট আগের মতোই নামযুক্ত থাকে — আর ভোটটি তা প্রকাশ্যেই বলে।' } },
+      ],
+      fixed: [
+        { text: { en: 'The poll report is repaired and is now a proper Result Certificate: the question, the counts, turnout against quorum, and the verdict — printable from the poll desk and from the Transparency Board. Earlier, the report wrongly showed no votes at all.', hi: 'मतदान रिपोर्ट ठीक हो गई है और अब यह एक सच्चा परिणाम प्रमाणपत्र है: प्रश्न, गिनती, कोरम के सामने भागीदारी, और फ़ैसला — मतदान डेस्क और पारदर्शिता बोर्ड से छापा जा सकता है। पहले रिपोर्ट ग़लती से कोई वोट ही नहीं दिखाती थी।', bn: 'ভোটের প্রতিবেদন মেরামত হয়েছে এবং এখন এটি একটি যথাযথ ফলাফল সনদ: প্রশ্ন, গণনা, কোরামের বিপরীতে অংশগ্রহণ, আর রায় — ভোট ডেস্ক ও স্বচ্ছতা বোর্ড থেকে ছাপানো যায়। আগে প্রতিবেদনটি ভুল করে কোনো ভোটই দেখাত না।' } },
+      ],
+    },
+  },
+
+  {
     version: 'v2026.11.23-eac3cff',
     date: '2026-11-23',
     sections: {
