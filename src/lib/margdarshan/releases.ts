@@ -63,6 +63,18 @@ export interface ReleaseEntry {
 
 export const RELEASES: readonly ReleaseEntry[] = [
   {
+    version: 'v2026.11.23-5b599a5',
+    date: '2026-11-23',
+    sections: {
+      new: [
+        { text: { en: 'Polls now live on your Personal Home. A Polls band shows every poll from the organisations you belong to that is waiting for your vote — one tap opens it, and voting there uses the very same ballot box as the committee desk: one member, one vote, exactly as before.', hi: 'मतदान अब आपके व्यक्तिगत मुखपृष्ठ पर रहते हैं। एक मतदान-पट्टी उन सभी संस्थाओं के मतदान दिखाती है जिनसे आप जुड़े हैं और जो आपके मत की प्रतीक्षा में हैं — एक स्पर्श में खुलता है, और वहाँ मतदान उसी मतपेटी से होता है जिसका उपयोग समिति डेस्क करता है: एक सदस्य, एक मत, पहले की तरह ही।', bn: 'ভোট এখন আপনার ব্যক্তিগত হোমে থাকে। একটি ভোট-ব্যান্ড সেই সব প্রতিষ্ঠানের ভোট দেখায় যেগুলির সঙ্গে আপনি যুক্ত এবং যেগুলি আপনার ভোটের অপেক্ষায় আছে — এক ছোঁয়ায় খোলে, এবং সেখানে ভোট দেওয়া হয় ঠিক সেই একই ভোটবাক্সে যা কমিটি ডেস্ক ব্যবহার করে: এক সদস্য, এক ভোট, আগের মতোই।' } },
+        { text: { en: 'Decision polls still show their Decision and Binding-or-Advisory label before you vote, results appear only when the poll\'s own visibility setting allows, and finished polls show the recorded result — the verdict and the turnout — that the committee published.', hi: 'निर्णय मतदान अब भी मतदान से पहले अपना निर्णय और बाध्यकारी-या-सलाहकारी चिह्न दिखाते हैं, परिणाम तभी दिखते हैं जब मतदान की अपनी दृश्यता व्यवस्था अनुमति दे, और समाप्त मतदान समिति द्वारा प्रकाशित दर्ज परिणाम — निर्णय और मतदान-प्रतिशत — दिखाते हैं।', bn: 'সিদ্ধান্ত ভোট এখনও ভোট দেওয়ার আগে তার সিদ্ধান্ত এবং বাধ্যতামূলক-বা-পরামর্শমূলক চিহ্ন দেখায়, ফলাফল তখনই দেখা যায় যখন ভোটের নিজস্ব দৃশ্যমানতা ব্যবস্থা অনুমতি দেয়, এবং শেষ হওয়া ভোট কমিটির প্রকাশিত লিপিবদ্ধ ফলাফল — রায় ও ভোটের হার — দেখায়।' } },
+        { text: { en: 'Voting reminders no longer nag people who have already voted: when a committee sends a reminder, your own app checks your own ballot and shows the reminder only if you have not voted yet. Nobody — not even the committee — learns how anyone voted. Committees also get a WhatsApp reminder message composed from the real poll, sent from their own WhatsApp as always.', hi: 'मतदान अनुस्मारक अब उन लोगों को परेशान नहीं करते जो पहले ही मतदान कर चुके हैं: जब समिति अनुस्मारक भेजती है, तो आपका अपना ऐप आपके अपने मत की जाँच करता है और अनुस्मारक तभी दिखाता है जब आपने अभी तक मतदान न किया हो। कोई भी — समिति भी नहीं — यह नहीं जान पाता कि किसने कैसे मतदान किया। समितियों को असली मतदान से बना WhatsApp अनुस्मारक संदेश भी मिलता है, हमेशा की तरह उनके अपने WhatsApp से भेजा गया।', bn: 'ভোটের অনুস্মারক এখন আর যাঁরা ইতিমধ্যে ভোট দিয়েছেন তাঁদের বিরক্ত করে না: কমিটি অনুস্মারক পাঠালে, আপনার নিজের অ্যাপ আপনার নিজের ভোট যাচাই করে এবং অনুস্মারক তখনই দেখায় যখন আপনি এখনও ভোট দেননি। কেউ — কমিটিও নয় — জানতে পারে না কে কীভাবে ভোট দিয়েছে। কমিটিগুলি আসল ভোট থেকে তৈরি WhatsApp অনুস্মারক বার্তাও পায়, বরাবরের মতো তাঁদের নিজের WhatsApp থেকে পাঠানো।' } },
+      ],
+    },
+  },
+
+  {
     version: 'v2026.11.23-60b1056',
     date: '2026-11-23',
     sections: {
