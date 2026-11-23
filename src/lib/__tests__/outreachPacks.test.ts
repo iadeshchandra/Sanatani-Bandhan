@@ -11,6 +11,7 @@ import {
   buildChangeMessage,
   buildInviteMessage,
   buildOutreachMessage,
+  buildPollReminderMessage,
   datesLineFor,
   daysBeforeFor,
   fillTemplate,
@@ -19,6 +20,8 @@ import {
   type ChangeStrings,
   type OutreachData,
   type OutreachStrings,
+  type PollReminderData,
+  type PollReminderStrings,
 } from '../outreachPacks';
 
 const S: OutreachStrings = {
@@ -181,5 +184,40 @@ describe('buildChangeMessage — the REAL-WORLD PACK change pack', () => {
     const msg = buildChangeMessage(DATA, { newDates: '   ', newVenue: ' ' }, CS);
     expect(msg).not.toContain('New dates');
     expect(msg).not.toContain('New venue');
+  });
+});
+
+describe('buildPollReminderMessage — POLLS P2a WhatsApp reminder pack', () => {
+  const PS: PollReminderStrings = {
+    pollReminder:
+      '🙏 Namaskar — {org} is asking: {poll} {standing} Voting closes {closes}. If you have not voted yet, please open Sanatani Bandhan and cast your vote from Polls on your Personal home.',
+  };
+  const PD: PollReminderData = {
+    pollTitle: 'Which day should the festival be held?',
+    orgName: 'Mayapur Samaj',
+    closesLine: '28 Nov 2026',
+    standingLine: 'This is a formal vote of the house — binding: the house will act on the result.',
+  };
+
+  it('composes from the poll\u2019s real data: question, org, standing, closing', () => {
+    const m = buildPollReminderMessage(PD, PS);
+    expect(m).toContain('Which day should the festival be held?');
+    expect(m).toContain('Mayapur Samaj');
+    expect(m).toContain('binding: the house will act on the result');
+    expect(m).toContain('28 Nov 2026');
+    expect(m).not.toMatch(/\{[a-zA-Z]+\}/);
+  });
+
+  it('a missing closing line degrades its sentence, never prints a placeholder', () => {
+    const m = buildPollReminderMessage({ ...PD, closesLine: '' }, PS);
+    expect(m).not.toMatch(/\{[a-zA-Z]+\}/);
+    expect(m).not.toContain('Voting closes .');
+    expect(m).toContain('Which day should the festival be held?');
+  });
+
+  it('the wa.me link encodes the reminder losslessly', () => {
+    const m = buildPollReminderMessage(PD, PS);
+    const url = whatsAppUrl(m);
+    expect(decodeURIComponent(url.slice('https://wa.me/?text='.length))).toBe(m);
   });
 });

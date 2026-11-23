@@ -457,6 +457,36 @@ export function notifyOrgAnnouncement(recipientUid: string, a: OrgAnnouncementIn
   return send(recipientUid, event);
 }
 
+export interface PollReminderNotifyInput {
+  orgId: string;
+  orgName: string;
+  pollId: string;
+  pollTitle: string;
+  /** The committee broadcast that triggered this reminder — part of
+   *  the dedupe key, so each new committee trigger may remind once,
+   *  and a replay of the same trigger never rings twice. */
+  broadcastId: string;
+}
+
+/**
+ * Poll reminder → IMPORTANT (POLLS P2a). Emitted ONLY by the
+ * member's own device (org/pollReminderFanout), only after that
+ * device has read the member's OWN ballot doc and found none —
+ * a member who has already voted never receives this. The sender
+ * (the committee) learns nothing: no read of anyone else's ballot
+ * exists anywhere in the chain.
+ */
+export function notifyPollReminder(recipientUid: string, a: PollReminderNotifyInput): Promise<EmitResult> {
+  if (!isFlagEnabled('announcements_enabled')) {
+    return Promise.resolve({ status: 'dropped', itemId: '', decision: undefined as never });
+  }
+  const event = base('org', 'important', 'pollReminder', { orgName: a.orgName, title: a.pollTitle }, `pollremind:${a.pollId}:${a.broadcastId}`, {
+    deepLink: `/org/${a.orgId}`,
+    payload: { orgId: a.orgId, pollId: a.pollId, broadcastId: a.broadcastId },
+  });
+  return send(recipientUid, event);
+}
+
 /* ------------------------------------------------------------------ */
 /* Social — community warmth. All GENTLE: batched into digests, fed to  */
 /* the Suchana stream, never pings, never breaks quiet hours.          */

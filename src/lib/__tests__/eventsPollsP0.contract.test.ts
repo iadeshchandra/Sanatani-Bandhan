@@ -109,8 +109,16 @@ describe('clients: ballots, conclusions and honest copy', () => {
   const panchayat = read('src/components/domain6/PanchayatPollingDesk.tsx');
 
   it('community polls vote through the ballot box (batch: ballot + counts)', () => {
-    expect(pollsTab).toMatch(/writeBatch/);
-    expect(pollsTab).toMatch(/'polls', pollId, 'votes', uid/);
+    // POLLS P2a: the batch itself moved to the shared ballot write
+    // path (lib/pollVoting) so the member's Polls home casts the
+    // IDENTICAL write; the desk casts through it, and the batch —
+    // ballot doc + anchored counts in one commit — lives there.
+    const pollVoting = read('src/lib/pollVoting.ts');
+    expect(pollVoting).toMatch(/writeBatch/);
+    expect(pollVoting).toMatch(/'polls', pollId, 'votes', uid/);
+    expect(pollsTab).toMatch(/castChoiceBallot/);
+    expect(pollsTab).toMatch(/castMultiBallot/);
+    expect(pollsTab).toMatch(/castTextBallot/);
     expect(pollsTab).not.toMatch(/votedUsers\.\$\{currentUser\.id\}/);
     expect(pollsTab).not.toMatch(/\[\`votedUsers\./);
   });

@@ -19,6 +19,7 @@ import SanataniVivahDesk from '../domain4/SanataniVivahDesk';
 import { PurohitMarketDesk } from '../domain3/PurohitMarketDesk';
 import PurohitPortalUnified from '../domain3/PurohitPortalUnified';
 import SanataniSocialFeed from './SanataniSocialFeed';
+import { MemberPollsSection } from './MemberPolls';
 import { PersonalAccountDesk } from '../account/PersonalAccountDesk';
 import DevoteeAccountPortal from '../domain5/DevoteeAccountPortal';
 import YatraNetDesk from '../domain7/YatraNetDesk';
@@ -115,8 +116,20 @@ export default function MemberAppShell() {
 
   const renderContent = () => {
     switch (activeTab) {
-      case 'HOME': 
-        return <SanataniSocialFeed />;
+      case 'HOME':
+        // POLLS NEXT-LEVEL P2a: the member's Polls home rides at the
+        // top of Personal Home — an entry band (with the count of
+        // polls awaiting the member's vote) above the feed, opening
+        // the full Polls sheet. No new tab: the shell's navigation
+        // is untouched, and a poll is at most two taps from Home.
+        return (
+          <div className="h-full flex flex-col overflow-hidden">
+            <MemberPollsSection />
+            <div className="flex-1 min-h-0">
+              <SanataniSocialFeed />
+            </div>
+          </div>
+        );
       case 'PUROHIT': 
         return <div className="h-full overflow-y-auto custom-scrollbar"><PurohitPortalUnified /></div>;
       case 'SADHANA': 

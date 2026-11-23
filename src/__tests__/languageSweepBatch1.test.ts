@@ -157,7 +157,13 @@ describe('surfaces + vibe dict completeness (en/hi/bn authored)', () => {
     // POLLS P1 added 26 keys (1046); AUCTION A1 adds 99 surfaces.nilam keys
     // (deskTitle…resultPrint — the Nilam auction & allotment desk) in all
     // 10 languages, taking the pin to 1145.
-    expect(keysOf(en).length).toBe(1145);
+    // POLLS NEXT-LEVEL P2a adds 27 surfaces.events keys (the member
+    // Polls home + the secrecy-safe reminder: memberPollsTitle…
+    // pollReminderCloses — the Personal-home entry band and Polls
+    // sheet, the member vote card, the WhatsApp reminder pack and
+    // its standing lines, and the in-app reminder broadcast copy)
+    // in all 10 languages, taking the pin to 1172.
+    expect(keysOf(en).length).toBe(1172);
     for (const bucket of Object.keys(en)) {
       for (const leaf of Object.keys(en[bucket])) {
         for (const dict of [en, hi, bn]) {

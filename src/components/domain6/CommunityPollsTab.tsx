@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
-import { collection, query, where, onSnapshot, doc, setDoc, updateDoc, increment, deleteDoc, writeBatch, serverTimestamp, Timestamp } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, doc, setDoc, updateDoc, deleteDoc, Timestamp } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 import {
   pollTotalVotes, pollIsOpen, pollKind, pollResultsVisible, pollResultVisibility, pollIsEditable,
@@ -10,6 +10,11 @@ import {
   type MyBallot,
 } from '../../lib/pollLogic';
 import { publishBroadcast } from '../../org/broadcastService';
+import { castChoiceBallot, castMultiBallot, castTextBallot } from '../../lib/pollVoting';
+import {
+  pollReminderBroadcastBody, pollReminderBroadcastTitle,
+} from '../../lib/memberPolls';
+import { buildPollReminderMessage, whatsAppUrl } from '../../lib/outreachPacks';
 import { 
   BarChart2, BarChart3, PieChart, Plus, Trash2, CheckCircle2, 
   X, Loader2, Users, ShieldCheck, Clock, AlertTriangle, 
@@ -348,21 +353,15 @@ export const CommunityPollsTab: React.FC = () => {
     if (myVoteFor(poll)) return showToastMsg("You have already voted.", "error");
 
     try {
-      // ONE batch: my private ballot doc + the poll's counts, together.
-      // The rules anchor the +1 to the NEW ballot doc under my own uid —
-      // a second vote from any device is impossible (the ballot doc
-      // already exists, so the anchor fails), and the poll doc itself
-      // never learns who chose what.
-      const batch = writeBatch(db);
-      batch.set(doc(db, 'polls', pollId, 'votes', uid), {
-        optionId,
-        votedAt: serverTimestamp()
-      });
-      batch.update(doc(db, 'polls', pollId), {
-        [`options.${optionId}.votes`]: increment(1),
-        totalVotes: increment(1)
-      });
-      await batch.commit();
+      // ONE batch: my private ballot doc + the poll's counts, together
+      // — the shared ballot write path (lib/pollVoting, POLLS P2a):
+      // the desk and the member's Polls home cast through the very
+      // same function, so a vote is the same write from either door.
+      // The rules anchor the +1 to the NEW ballot doc under my own
+      // uid — a second vote from any device is impossible (the ballot
+      // doc already exists, so the anchor fails), and the poll doc
+      // itself never learns who chose what.
+      await castChoiceBallot(db, pollId, uid, optionId);
       showToastMsg("Your vote has been recorded.", 'success');
       pushToDataLayer('select_content', { content_type: 'Poll_Vote', item_id: pollId });
     } catch (e: any) {
@@ -391,15 +390,8 @@ export const CommunityPollsTab: React.FC = () => {
       );
     }
     try {
-      const batch = writeBatch(db);
-      batch.set(doc(db, 'polls', pollId, 'votes', uid), {
-        optionIds: picks,
-        votedAt: serverTimestamp()
-      });
-      const updates: Record<string, unknown> = { totalVotes: increment(1) };
-      picks.forEach(id => { updates[`options.${id}.votes`] = increment(1); });
-      batch.update(doc(db, 'polls', pollId), updates);
-      await batch.commit();
+      // The shared ballot write path (lib/pollVoting, POLLS P2a).
+      await castMultiBallot(db, pollId, uid, picks);
       showToastMsg("Your vote has been recorded.", 'success');
     } catch (e: any) {
       console.error(e);
@@ -423,13 +415,8 @@ export const CommunityPollsTab: React.FC = () => {
       return showToastMsg(problem === 'too-long' ? "Please keep your response within 280 characters." : "Please write a response first.", "error");
     }
     try {
-      const batch = writeBatch(db);
-      batch.set(doc(db, 'polls', pollId, 'votes', uid), {
-        text,
-        votedAt: serverTimestamp()
-      });
-      batch.update(doc(db, 'polls', pollId), { totalVotes: increment(1) });
-      await batch.commit();
+      // The shared ballot write path (lib/pollVoting, POLLS P2a).
+      await castTextBallot(db, pollId, uid, text);
       showToastMsg("Your response has been recorded.", 'success');
     } catch (e: any) {
       console.error(e);
@@ -567,10 +554,19 @@ export const CommunityPollsTab: React.FC = () => {
     });
   };
 
+  // POLLS NEXT-LEVEL P2a — the secrecy-safe reminder. The committee
+  // publishes ONE announcement addressed to the whole community (the
+  // title carries the poll's title after the stable prefix — the
+  // parse contract in lib/memberPolls). It CANNOT target non-voters:
+  // the committee neither knows nor learns who has voted. Instead,
+  // each member's own device resolves the reminder against the
+  // member's OWN ballot (org/pollReminderFanout): members who have
+  // already voted never see it; members who have not get a personal
+  // Suchana item. The sender learns nothing either way.
   const handleSendReminder = (poll: any) => {
     setConfirmDialog({
       title: "Publish a Reminder",
-      message: `This publishes a community announcement for "${poll.title}" through the org's announcement feed, so members see it in their Suchana. Ballots are private, so the reminder goes to the whole community — it cannot target only those who have not voted.`,
+      message: `This publishes a community announcement for "${poll.title}" through the org's announcement feed. Ballots stay private: the announcement is addressed to everyone, but each member's own app quietly checks their own ballot — members who have already voted will not be reminded, and nobody can learn who has or has not voted.`,
       confirmText: "PUBLISH REMINDER",
       isDanger: false,
       onConfirm: async () => {
@@ -578,11 +574,17 @@ export const CommunityPollsTab: React.FC = () => {
         try {
           const uid = firebaseUser?.uid;
           if (!uid) throw new Error('Please sign in again to publish a reminder.');
+          const closesSentence = poll.expiresAt
+            ? t('surfaces.events.pollReminderCloses').replace(
+                '{date}',
+                new Date(poll.expiresAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })
+              )
+            : '';
           await publishBroadcast({
             orgId: activeWorkspace.id,
             orgName: activeWorkspace.name || '',
-            title: `Voting reminder: ${poll.title}`,
-            body: `Voting is open in Community Polls${poll.expiresAt ? ` until ${new Date(poll.expiresAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}` : ''}. Open the Panchayat desk to cast your vote.`,
+            title: pollReminderBroadcastTitle(poll.title),
+            body: pollReminderBroadcastBody(t('surfaces.events.pollReminderBody'), closesSentence),
             createdBy: uid,
             createdByName: currentUser?.name || '',
           });
@@ -593,6 +595,49 @@ export const CommunityPollsTab: React.FC = () => {
         }
       }
     });
+  };
+
+  // POLLS NEXT-LEVEL P2a — the WhatsApp reminder pack (E8 pattern):
+  // a ready message composed from the poll's real data, sent by the
+  // organiser from their OWN WhatsApp to people they choose there.
+  const [waPollId, setWaPollId] = useState<string | null>(null);
+  const [waCopied, setWaCopied] = useState(false);
+
+  const pollWaMessage = (poll: any): string => {
+    const cls = pollClass(poll);
+    const standingLine =
+      cls === 'decision'
+        ? pollIsBinding(poll)
+          ? t('surfaces.events.pollStandingBinding')
+          : t('surfaces.events.pollStandingAdvisory')
+        : t('surfaces.events.pollStandingPulse');
+    return buildPollReminderMessage(
+      {
+        pollTitle: poll.title || '',
+        orgName: activeWorkspace?.name || '',
+        closesLine: poll.expiresAt
+          ? new Date(poll.expiresAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
+          : '',
+        standingLine,
+      },
+      { pollReminder: t('surfaces.events.shareMsgPollReminder') }
+    );
+  };
+
+  const copyWaMessage = async (poll: any) => {
+    const message = pollWaMessage(poll);
+    try {
+      await navigator.clipboard.writeText(message);
+    } catch {
+      const ta = document.createElement('textarea');
+      ta.value = message;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+    }
+    setWaCopied(true);
+    setTimeout(() => setWaCopied(false), 2000);
   };
   
   const openAudit = (poll: any) => {
@@ -871,7 +916,7 @@ export const CommunityPollsTab: React.FC = () => {
               <div className="bg-blue-100 text-blue-600 p-2 rounded-lg shrink-0"><BellRing size={16}/></div>
               <div>
                 <p className="text-xs font-black text-stone-900 mb-1">2. Final Reminders</p>
-                <p className="text-[10px] font-bold text-stone-600 leading-relaxed">Before a poll ends, click 'Remind' to publish a community announcement. Because ballots are private, the reminder reaches the whole community — it cannot target only those who have not voted.</p>
+                <p className="text-[10px] font-bold text-stone-600 leading-relaxed">Before a poll ends, click 'Remind' to publish a community announcement. The announcement is addressed to everyone, but each member's own app quietly checks their own ballot: members who already voted never see the reminder, and nobody — including you — can learn who has or has not voted. A WhatsApp version sits beside it, sent from your own WhatsApp.</p>
               </div>
             </div>
             <div className="flex items-start gap-3">
@@ -1156,8 +1201,11 @@ export const CommunityPollsTab: React.FC = () => {
                            )}
                            {poll.status === 'ACTIVE' && (
                              <>
-                               <button onClick={() => handleSendReminder(poll)} className="flex-1 sm:flex-none bg-saffron-50 hover:bg-saffron-600 hover:text-white text-saffron-600 border border-saffron-200 px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex justify-center items-center gap-1.5 shadow-sm hover:shadow-md" title="Remind Unvoted Members">
+                               <button onClick={() => handleSendReminder(poll)} className="flex-1 sm:flex-none bg-saffron-50 hover:bg-saffron-600 hover:text-white text-saffron-600 border border-saffron-200 px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex justify-center items-center gap-1.5 shadow-sm hover:shadow-md" title="Remind members who have not voted — their own app checks their ballot privately">
                                  <BellRing size={14}/> Remind
+                               </button>
+                               <button onClick={() => setWaPollId(waPollId === poll.id ? null : poll.id)} aria-expanded={waPollId === poll.id} className="flex-1 sm:flex-none bg-emerald-50 hover:bg-emerald-600 hover:text-white text-emerald-700 border border-emerald-200 px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex justify-center items-center gap-1.5 shadow-sm hover:shadow-md" title={t('surfaces.events.pollWaTitle')}>
+                                 <MessageSquare size={14}/> {t('surfaces.events.pollWaBtn')}
                                </button>
                                <button onClick={() => { setConcludeData({ id: poll.id, title: poll.title, note: '' }); setShowConcludeModal(true); }} className="flex-1 sm:flex-none bg-stone-100 hover:bg-stone-800 hover:text-white text-stone-600 border border-stone-200 px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex justify-center items-center gap-1.5 shadow-sm hover:shadow-md">
                                  <Lock size={14}/> Conclude
@@ -1178,6 +1226,42 @@ export const CommunityPollsTab: React.FC = () => {
                        )}
                      </div>
                    </div>
+
+                   {/* POLLS P2a — the WhatsApp reminder pack for this
+                       poll: composed from the poll's real data, sent
+                       from the organiser's own WhatsApp. */}
+                   {isManagerOrAdmin && poll.status === 'ACTIVE' && waPollId === poll.id && (
+                     <div className="mt-4 bg-emerald-50/60 border border-emerald-100 rounded-2xl p-4 sm:p-5">
+                       <p className="text-[10px] font-black text-emerald-800 uppercase tracking-widest mb-1.5">
+                         {t('surfaces.events.pollWaTitle')}
+                       </p>
+                       <p className="text-[11px] font-bold text-stone-500 leading-relaxed mb-2">
+                         {t('surfaces.events.pollWaNote')}
+                       </p>
+                       <div className="rounded-xl bg-white border border-emerald-200 px-3 py-2 mb-3">
+                         <span className="text-xs font-bold text-emerald-800">
+                           {t('surfaces.events.shareOwnWhatsApp')}
+                         </span>
+                       </div>
+                       <p className="text-sm font-bold text-stone-700 leading-relaxed bg-white border border-stone-100 rounded-xl p-4 whitespace-pre-wrap shadow-inner">
+                         {pollWaMessage(poll)}
+                       </p>
+                       <div className="flex flex-wrap gap-2 mt-3">
+                         <button
+                           onClick={() => window.open(whatsAppUrl(pollWaMessage(poll)), '_blank', 'noopener')}
+                           className="flex-1 sm:flex-none bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex justify-center items-center gap-1.5 shadow-sm min-h-[44px]"
+                         >
+                           <MessageSquare size={14}/> WhatsApp
+                         </button>
+                         <button
+                           onClick={() => void copyWaMessage(poll)}
+                           className="flex-1 sm:flex-none bg-white hover:bg-stone-800 hover:text-white text-stone-700 border border-stone-300 px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex justify-center items-center gap-1.5 shadow-sm min-h-[44px]"
+                         >
+                           <FileText size={14}/> {waCopied ? '✓' : 'Copy'}
+                         </button>
+                       </div>
+                     </div>
+                   )}
                 </div>
               );
             })}

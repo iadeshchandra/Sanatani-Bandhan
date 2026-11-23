@@ -284,6 +284,14 @@ export const WARM_COPY: Record<WarmCopyKind, Record<string, CopyEntry>> = {
       title: t('📢 {orgName}', '📢 {orgName}', '📢 {orgName}'),
       body: t('{title}', '{title}', '{title}'),
     },
+    pollReminder: {
+      title: t('🗳️ {orgName}', '🗳️ {orgName}', '🗳️ {orgName}'),
+      body: t(
+        'Voting is open: {title}. If you have not voted yet, your voice is awaited — open Polls from your Personal home.',
+        'ভোট চলছে: {title}। আপনি এখনো ভোট না দিয়ে থাকলে, আপনার মতামতের অপেক্ষা — আপনার ব্যক্তিগত হোম থেকে Polls খুলুন।',
+        'मतदान खुला है: {title}। यदि आपने अभी तक मत नहीं दिया है, तो आपकी आवाज़ की प्रतीक्षा है — अपने Personal होम से Polls खोलें।',
+      ),
+    },
     eventRsvp: {
       title: t('You are invited: {title} 📿', 'আমন্ত্রণ: {title} 📿', 'आमंत्रण: {title} 📿'),
       body: t(

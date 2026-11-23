@@ -20,6 +20,11 @@
  *    tick while the app is open (same pattern as aartiReminders).
  *    Broadcasts arrive when the devotee next opens the app — the trustee
  *    composer says exactly that.
+ *  - POLLS P2a: before the generic pick, committee POLL REMINDERS are
+ *    resolved by org/pollReminderFanout against the member's OWN
+ *    ballot — a member who already voted never hears the reminder
+ *    (neither as a poll item nor as this generic announcement), and
+ *    an unvoted member hears the personal poll item instead.
  *
  * NOTE: notifyHelpers is imported LAZILY inside the checker — the emit
  * chain pulls in firebase ESM, which breaks jest at import time. Pure
@@ -79,20 +84,41 @@ export async function checkOrgBroadcasts(uid: string, opts: { now?: number } = {
   if (!uid || uid === 'anon') return 0;
   const now = opts.now ?? Date.now();
   try {
-    const follows = await fetchFollowedOrgs(uid);
-    if (follows.length === 0) return 0;
-
-    const broadcasts = await fetchRecentBroadcasts(
-      follows.map((f) => f.orgId),
-      now - BROADCAST_RECENCY_MS,
-    );
-    if (broadcasts.length === 0) return 0;
-
     const seen = loadSeen(uid);
     const baseline = seen === null;
+
+    // POLLS NEXT-LEVEL P2a — the poll-reminder phase runs FIRST.
+    // A committee poll reminder is a broadcast like any other, but
+    // for a member of the org it must be resolved against the
+    // member's OWN ballot before it may ring: voted → suppressed
+    // (and marked handled, so the generic pick below never rings
+    // it either); unvoted → a personal Suchana item instead of the
+    // generic announcement. Lazy import + fail-soft, like the emit
+    // chain below: a reminder failure never breaks announcements.
+    let pollHandled: Record<string, number> = {};
+    try {
+      const fanout = await import('./pollReminderFanout');
+      pollHandled = await fanout.checkPollReminders(uid, {
+        now,
+        baseline,
+        seen: seen ?? {},
+      });
+    } catch {
+      pollHandled = {};
+    }
+
+    const follows = await fetchFollowedOrgs(uid);
+    const broadcasts =
+      follows.length === 0
+        ? []
+        : await fetchRecentBroadcasts(
+            follows.map((f) => f.orgId),
+            now - BROADCAST_RECENCY_MS,
+          );
+
     const { notify, markSeen } = pickNotifications({
       broadcasts,
-      seen: seen ?? {},
+      seen: { ...(seen ?? {}), ...pollHandled },
       follows,
       now,
       baseline,
@@ -100,7 +126,7 @@ export async function checkOrgBroadcasts(uid: string, opts: { now?: number } = {
 
     // Persist the seen marks FIRST — if an emit crashes midway, the
     // devotee is never re-blasted on the next check.
-    saveSeen(uid, { ...(seen ?? {}), ...markSeen });
+    saveSeen(uid, { ...(seen ?? {}), ...pollHandled, ...markSeen });
     if (notify.length === 0) return 0;
 
     // Lazy: the emit chain pulls in firebase — only needed when we publish.

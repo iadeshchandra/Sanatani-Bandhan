@@ -177,6 +177,54 @@ export function buildChangeMessage(
   });
 }
 
+/* ------------------------------------------------------------------ */
+/* POLLS NEXT-LEVEL P2a — the Poll Reminder pack                       */
+/* ------------------------------------------------------------------ */
+
+/**
+ * The facts of an open poll, for the committee's WhatsApp reminder.
+ * Every value is real poll data: the question, the organisation,
+ * when voting closes, and the poll's standing — its class and, for
+ * a Decision poll, whether the house is bound by the result (the
+ * P1 labelling law rides along: the standing is stated BEFORE the
+ * vote, in the reminder too). The standing line is composed by the
+ * caller from the dictionary (pulse / advisory / binding), so this
+ * builder stays a pure interpolator like every other pack.
+ */
+export interface PollReminderData {
+  pollTitle: string;
+  orgName: string;
+  /** Human closing line, e.g. "28 Nov 2026, 6:00 pm" ('' if none). */
+  closesLine: string;
+  /** The standing sentence (pulse / advisory / binding). */
+  standingLine: string;
+}
+
+export interface PollReminderStrings {
+  /** "🙏 Namaskar — {org} is asking: {poll} {standing} Voting closes {closes}. If you have not voted yet, please open Sanatani Bandhan and cast your vote from Polls on your Personal home." */
+  pollReminder: string;
+}
+
+/**
+ * The committee's WhatsApp voting reminder: composed here, sent by
+ * the organiser from their OWN WhatsApp to people they choose
+ * there — the panel carries the standing honesty line, and the app
+ * sends nothing. It pairs with the in-app reminder (lib/memberPolls):
+ * the in-app one suppresses itself on the devices of members who
+ * already voted; this one reaches the organiser's own contacts.
+ */
+export function buildPollReminderMessage(
+  data: PollReminderData,
+  s: PollReminderStrings
+): string {
+  return fillTemplate(s.pollReminder, {
+    poll: data.pollTitle || '',
+    org: data.orgName || '',
+    closes: data.closesLine || '',
+    standing: data.standingLine || '',
+  });
+}
+
 /** Whole days from now until the festival's first moment — the
  *  same clock the rules use (lib/eventTickets' festival clock). */
 export function daysBeforeFor(dateISO: string, nowMs: number): number {
