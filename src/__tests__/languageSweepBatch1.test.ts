@@ -136,7 +136,12 @@ describe('surfaces + vibe dict completeness (en/hi/bn authored)', () => {
     // Personal | Organisation control, the Grow invitation and its
     // four JoinUpgrade doors, the My Organisations strip and the
     // peek sheet with its honest figures note) in all 10 languages.
-    expect(keysOf(en).length).toBe(939);
+    // NEXT-LEVEL B1a adds 19 surfaces.events keys (fairness
+    // transparency: quotaLeft…fairPublishedOn — the live remaining
+    // quota line and its open-count note, the public "How booking
+    // went" results block with its no-surge line, and the War Room
+    // publish/withdraw chrome) in all 10 languages.
+    expect(keysOf(en).length).toBe(958);
     for (const bucket of Object.keys(en)) {
       for (const leaf of Object.keys(en[bucket])) {
         for (const dict of [en, hi, bn]) {

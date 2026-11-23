@@ -45,6 +45,7 @@ import {
   withdrawTransfer,
   type EventTicket,
 } from '../../lib/eventTickets';
+import { quotasForEvent, tierQuota } from '../../lib/festivalFairness';
 
 const inputCls =
   'w-full rounded-xl border border-stone-200 bg-white px-3 py-2.5 text-sm text-stone-800 focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-200 min-h-[44px]';
@@ -208,11 +209,18 @@ export const TicketPurchaseSection: React.FC<SectionProps> = ({ event, uid, buye
         </div>
       )}
 
-      {/* Tier picker */}
+      {/* Tier picker — NEXT-LEVEL B1a: every metered tier also
+          carries its live quota, shaped by lib/festivalFairness
+          from the SAME anchored counters the purchase path trusts
+          (tierCaps + tierSold on this doc), so the count a devotee
+          reads here is the count the rules enforce at checkout.
+          Plain fact only — no countdown, no hurry, no scarcity
+          styling; an unmetered tier shows no quota line at all. */}
       <div className="space-y-2 mb-3">
         {tiers.map((x) => {
           const u = unitPriceAt(x, Date.now());
           const rem = tierRemaining(x, event.tierSold, x.id);
+          const q = tierQuota(x, event.tierSold, event.tierCaps);
           const active = tier?.id === x.id;
           return (
             <button key={x.id} disabled={rem <= 0}
@@ -227,12 +235,21 @@ export const TicketPurchaseSection: React.FC<SectionProps> = ({ event, uid, buye
               <span className="block text-[11px] text-stone-500 mt-0.5">
                 {x.kind === 'addon' ? tr('ticketAddonNote') : tr('ticketPassNote')}
                 {u.earlyBirdApplied && x.earlyBird ? ` · ${tr('ticketEarlyUntil')} ${x.earlyBird.untilDate}` : ''}
-                {rem <= 0 ? ` · ${tr('ticketSoldOut')}` : ''}
+                {q.capacity !== null
+                  ? q.soldOut
+                    ? ` · ${tr('quotaBookedOut')}`
+                    : ` · ${tr('quotaLeft').replace('{remaining}', String(q.remaining)).replace('{capacity}', String(q.capacity))}`
+                  : rem <= 0
+                    ? ` · ${tr('ticketSoldOut')}`
+                    : ''}
               </span>
             </button>
           );
         })}
       </div>
+      {quotasForEvent(event).some((q) => q.capacity !== null) && (
+        <p className="text-[11px] text-stone-400 mb-3 -mt-1">{tr('quotaNote')}</p>
+      )}
 
       {tier && !soldOut && (
         <>

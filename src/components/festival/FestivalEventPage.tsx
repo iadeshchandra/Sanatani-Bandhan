@@ -22,6 +22,7 @@ import {
   applyFestivalRsvp, claimFestivalWaitlist, removeFestivalRsvp, waitlistPosition,
 } from '../../lib/festivalRsvp';
 import { festivalConcluded } from '../../lib/festivalMemory';
+import { fairnessResultsVisible } from '../../lib/festivalFairness';
 import { boardForDisplay, boardHasVisible, type LiveBoardKind } from '../../lib/liveBoard';
 import { timeAgo } from '../../lib/p2pLedger';
 import { EventPassCard } from './EventPassCard';
@@ -534,6 +535,84 @@ export const FestivalEventPage: React.FC<{ previewEvent?: FestivalEventDoc }> = 
                 </div>
               )}
             </div>
+          </div>
+        )}
+
+        {/* NEXT-LEVEL B1a — the committee MAY publish the booking
+            results from the War Room debrief: per tier, places
+            offered and places booked (the same anchored counters
+            devotees watched while booking), the totals, the
+            still-waiting count when the register could count it,
+            and the release moment when one was announced. The
+            block renders only once the festival has concluded
+            (lib/festivalFairness.fairnessResultsVisible) — booking
+            is certainly closed before any result is shown — and
+            never when unpublished. The shape carries no name and
+            no per-person figure, by construction. */}
+        {fairnessResultsVisible(event, Date.now()) && event.fairnessSummary && (
+          <div className="bg-white rounded-3xl shadow-sm border border-orange-100 p-6">
+            <h2 className="font-extrabold text-stone-800 mb-1 text-center">
+              {t('surfaces.events.fairResultsTitle')}
+            </h2>
+            <p className="text-center text-xs text-stone-400 mb-4">
+              {t('surfaces.events.fairResultsNote')}
+            </p>
+            <div>
+              {event.fairnessSummary.tiers.map((row) => {
+                const liveTier = event.ticketTiers?.find((x) => x.id === row.tierId);
+                return (
+                  <div key={row.tierId} className="flex items-baseline justify-between gap-3 py-1.5 border-b border-stone-100 last:border-0">
+                    <span className="text-sm text-stone-600">{liveTier ? tr(liveTier.name) : row.tierName}</span>
+                    <span className="tnum font-bold text-stone-700">
+                      {row.offered !== null
+                        ? t('surfaces.events.fairTierBooked')
+                            .replace('{booked}', row.booked.toLocaleString('en-IN'))
+                            .replace('{offered}', row.offered.toLocaleString('en-IN'))
+                        : t('surfaces.events.fairTierBookedOpen')
+                            .replace('{booked}', row.booked.toLocaleString('en-IN'))}
+                    </span>
+                  </div>
+                );
+              })}
+              {event.fairnessSummary.totalOffered !== null && (
+                <div className="flex items-baseline justify-between gap-3 py-1.5">
+                  <span className="text-sm font-bold text-stone-700">{t('surfaces.events.fairTotalLabel')}</span>
+                  <span className="tnum font-black text-stone-800">
+                    {t('surfaces.events.fairTotalBooked')
+                      .replace('{booked}', event.fairnessSummary.totalBooked.toLocaleString('en-IN'))
+                      .replace('{offered}', event.fairnessSummary.totalOffered.toLocaleString('en-IN'))}
+                  </span>
+                </div>
+              )}
+              {event.fairnessSummary.totalOffered === null && event.fairnessSummary.tiers.length > 0 && (
+                <div className="flex items-baseline justify-between gap-3 py-1.5">
+                  <span className="text-sm font-bold text-stone-700">{t('surfaces.events.fairTotalLabel')}</span>
+                  <span className="tnum font-black text-stone-800">
+                    {t('surfaces.events.fairTotalBookedOpen')
+                      .replace('{booked}', event.fairnessSummary.totalBooked.toLocaleString('en-IN'))}
+                  </span>
+                </div>
+              )}
+            </div>
+            {event.fairnessSummary.waitlistParties !== undefined && (
+              <p className="text-sm text-stone-500 mt-3">
+                {t('surfaces.events.fairWaitlist')
+                  .replace('{count}', event.fairnessSummary.waitlistParties.toLocaleString('en-IN'))}
+              </p>
+            )}
+            {event.fairnessSummary.releaseAtMs !== undefined && (
+              <p className="text-sm text-stone-500 mt-1">
+                {t('surfaces.events.fairRelease').replace(
+                  '{date}',
+                  new Date(event.fairnessSummary.releaseAtMs).toLocaleDateString('en-IN', {
+                    day: 'numeric', month: 'short', year: 'numeric',
+                  })
+                )}
+              </p>
+            )}
+            <p className="text-center text-xs text-stone-400 mt-4">
+              {t('surfaces.events.fairNoSurge')}
+            </p>
           </div>
         )}
 

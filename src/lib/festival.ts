@@ -634,6 +634,21 @@ export interface FestivalEventDoc {
    * Absent = the team has never posted (or the page predates A4).
    */
   liveBoard?: LiveBoardEntry[];
+  /**
+   * NEXT-LEVEL B1a — the published booking results ("how booking
+   * went"), stamped onto the doc ONLY when staff deliberately
+   * publish them from the War Room debrief (the same setDoc merge
+   * path as debriefSummary — the rules' R_BOARD update clause pins
+   * no key set). Aggregates only: per-tier places offered/booked
+   * from the anchored tierSold counters, festival totals, the
+   * still-waiting count when the register can speak for it, and
+   * the release moment when a release calendar was used. No name
+   * and no per-person figure exists in this shape, so none can
+   * leak. The public page renders it only once the festival has
+   * concluded (lib/festivalFairness.fairnessResultsVisible).
+   * Absent = never published (or withdrawn).
+   */
+  fairnessSummary?: FestivalFairnessSummary;
   updatedAt: string;
 }
 
@@ -665,6 +680,48 @@ export interface FestivalDebriefSummary {
   totalUtilised: number | null;
   /** Currency the money figures were recorded in. */
   currency: string;
+}
+
+/**
+ * NEXT-LEVEL B1a — one tier's row in the published booking results
+ * (see FestivalEventDoc.fairnessSummary). Built by
+ * lib/festivalFairness.buildFairnessSummary from the debrief's own
+ * tier rows (anchored tierSold vs tierCaps), so the public count
+ * and the committee's count are the same numbers by construction.
+ */
+export interface FestivalFairnessTierRow {
+  tierId: string;
+  /** The tier's public English name — a pass type, never a person. */
+  tierName: string;
+  kind: TicketTier['kind'];
+  /** Places offered — null = the tier carried no fixed limit. */
+  offered: number | null;
+  /** Places booked (the anchored tierSold counter). */
+  booked: number;
+}
+
+/**
+ * NEXT-LEVEL B1a — the public-safe booking results. Every figure
+ * is an aggregate of the festival's anchored counters and its
+ * RSVP register; the shape cannot carry a name, a contact or any
+ * per-person figure.
+ */
+export interface FestivalFairnessSummary {
+  /** ISO timestamp of (re)publication. */
+  publishedAt: string;
+  tiers: FestivalFairnessTierRow[];
+  /** Σ offered — null when any tier was unmetered (a total over a
+   *  partly-unlimited offer would misstate what was offered). */
+  totalOffered: number | null;
+  /** Σ booked — a fact whatever the offer's shape was. */
+  totalBooked: number;
+  /** Parties still on the waitlist when staff published (the
+   *  register as it stands) — present ONLY when the register
+   *  could honestly count them; omitted, never estimated. */
+  waitlistParties?: number;
+  /** The E8 release moment (epoch ms) — present ONLY when a
+   *  release calendar was used. */
+  releaseAtMs?: number;
 }
 
 /**

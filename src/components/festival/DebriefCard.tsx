@@ -68,6 +68,7 @@ import {
 } from '../../lib/festivalDebrief';
 import { FeedbackPanel } from './FeedbackPanel';
 import { departmentCoverage } from '../../lib/festivalSponsors';
+import { buildFairnessSummary } from '../../lib/festivalFairness';
 
 interface Props {
   wf: WarFestival;
@@ -238,6 +239,41 @@ export const DebriefCard: React.FC<Props> = ({ wf, plan, event, rsvps }) => {
       await updateDoc(doc(db, 'festival_events', plan.id), { debriefSummary: deleteField() });
     } finally {
       setPubBusy(false);
+    }
+  };
+
+  /* NEXT-LEVEL B1a — the booking results, published the same way:
+   * a staff-stamped aggregates-only field on the festival's own
+   * published doc (merge write; field delete withdraws). The
+   * figures are THIS card's own tier rows (anchored tierSold vs
+   * tierCaps) and funnel (the register as it stands), shaped by
+   * lib/festivalFairness — the public count and the committee's
+   * count are the same numbers by construction. The public page
+   * renders it only after the festival concludes. */
+  const [confirmFair, setConfirmFair] = useState(false);
+  const [fairBusy, setFairBusy] = useState(false);
+  const publishedFairness = event?.fairnessSummary;
+  const publishFairness = async () => {
+    setFairBusy(true);
+    try {
+      const summary = buildFairnessSummary({
+        tierRows,
+        waitlistParties: funnel.waitlistedParties,
+        ticketReleaseAtMs: event?.ticketReleaseAtMs,
+        nowIso: new Date().toISOString(),
+      });
+      await setDoc(doc(db, 'festival_events', plan.id), { fairnessSummary: summary }, { merge: true });
+      setConfirmFair(false);
+    } finally {
+      setFairBusy(false);
+    }
+  };
+  const unpublishFairness = async () => {
+    setFairBusy(true);
+    try {
+      await updateDoc(doc(db, 'festival_events', plan.id), { fairnessSummary: deleteField() });
+    } finally {
+      setFairBusy(false);
     }
   };
 
@@ -659,6 +695,47 @@ export const DebriefCard: React.FC<Props> = ({ wf, plan, event, rsvps }) => {
           </p>
         )}
       </section>
+
+      {/* ── 5c · Fairness results (NEXT-LEVEL B1a) — publish the
+          booking count itself: per-tier offered/booked from the
+          anchored counters, the still-waiting count, the release
+          moment when one was used. Shown only for a festival that
+          actually sold passes; the public page renders the block
+          only after the festival concludes. ──────────────────── */}
+      {(event?.ticketTiers?.length ?? 0) > 0 && (
+        <section className="no-print">
+          <h4 className="font-black text-stone-700">{t('surfaces.events.fairStaffTitle')}</h4>
+          <SourceNote>{t('surfaces.events.fairStaffNote')}</SourceNote>
+          <div className="flex flex-wrap gap-2 mt-2">
+            {publishedFairness ? (
+              <Btn variant="ghost" onClick={unpublishFairness} disabled={fairBusy} className="min-h-[44px]">
+                {t('surfaces.events.fairUnpublish')}
+              </Btn>
+            ) : confirmFair ? (
+              <>
+                <Btn onClick={publishFairness} disabled={fairBusy} className="min-h-[44px]">
+                  {t('surfaces.events.fairPublish')}
+                </Btn>
+                <Btn variant="ghost" onClick={() => setConfirmFair(false)} className="min-h-[44px]">
+                  ✕
+                </Btn>
+              </>
+            ) : (
+              <Btn variant="ghost" onClick={() => setConfirmFair(true)} className="min-h-[44px]">
+                {t('surfaces.events.fairPublish')}
+              </Btn>
+            )}
+          </div>
+          {confirmFair && !publishedFairness && (
+            <p className="text-sm text-stone-500 mt-2">{t('surfaces.events.fairPublishConfirm')}</p>
+          )}
+          {publishedFairness && (
+            <p className="text-sm text-emerald-700 font-semibold mt-2">
+              ✓ {t('surfaces.events.fairPublishedOn').replace('{date}', publishedFairness.publishedAt.slice(0, 10))}
+            </p>
+          )}
+        </section>
+      )}
 
       {/* ── 5a · The printable sheet — paper only ──────────────── */}
       {printing && (
