@@ -22,6 +22,8 @@ import {
   applyFestivalRsvp, claimFestivalWaitlist, removeFestivalRsvp, waitlistPosition,
 } from '../../lib/festivalRsvp';
 import { festivalConcluded } from '../../lib/festivalMemory';
+import { boardForDisplay, boardHasVisible, type LiveBoardKind } from '../../lib/liveBoard';
+import { timeAgo } from '../../lib/p2pLedger';
 import { EventPassCard } from './EventPassCard';
 import { PassCalendarActions } from './PassCalendarActions';
 import { bookedDaysFor } from '../../lib/passPersistence';
@@ -48,7 +50,7 @@ const inputCls =
 export const FestivalEventPage: React.FC<{ previewEvent?: FestivalEventDoc }> = ({ previewEvent }) => {
   const { orgId, eventId } = useParams<{ orgId: string; eventId: string }>();
   const navigate = useNavigate();
-  const { safeTranslate, t } = useLanguage();
+  const { safeTranslate, t, currentLang } = useLanguage();
   const { firebaseUser, currentUser } = useAuthWorkspace();
 
   const [event, setEvent] = useState<FestivalEventDoc | null>(previewEvent || null);
@@ -384,6 +386,62 @@ export const FestivalEventPage: React.FC<{ previewEvent?: FestivalEventDoc }> = 
                   <span className="text-orange-800 font-black text-sm">🪔 {t.time}</span>
                 </li>
               ))}
+            </ul>
+          </div>
+        )}
+
+        {/* NEXT-LEVEL A4 — the live notice board: the organising
+            team's day-of notes (gate changes, lost & found,
+            announcements), written onto this doc from the War Room
+            and read here read-free like the rest of the page. The
+            section exists ONLY when the board has visible entries —
+            never an empty shelf. Reader's order (lib/liveBoard):
+            open lost & found first, then the day's notes
+            newest-first, then resolved lost & found — kept visible
+            with the Reunited badge as the warm closing note. */}
+        {boardHasVisible(event.liveBoard) && (
+          <div className="bg-white rounded-3xl shadow-sm border border-orange-100 p-6">
+            <h2 className="font-extrabold text-stone-800 mb-1 text-center">
+              📌 {t('surfaces.events.boardPublicTitle')}
+            </h2>
+            <p className="text-center text-xs text-stone-400 mb-4">
+              {t('surfaces.events.boardPublicNote')}
+            </p>
+            <ul className="space-y-2">
+              {boardForDisplay(event.liveBoard || []).map((e) => {
+                const kindBadge: Record<LiveBoardKind, string> = {
+                  gate: 'bg-orange-100 text-orange-800',
+                  lost: 'bg-amber-100 text-amber-900',
+                  found: 'bg-emerald-100 text-emerald-900',
+                  announcement: 'bg-stone-100 text-stone-700',
+                };
+                const agoLang = (currentLang || 'en').slice(0, 2);
+                return (
+                  <li
+                    key={e.id}
+                    className={`rounded-xl border px-4 py-3 ${
+                      e.resolved ? 'border-stone-100 bg-stone-50/60' : 'border-orange-100 bg-orange-50/40'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className={`text-[10px] font-black uppercase tracking-wide rounded-full px-2 py-0.5 ${kindBadge[e.kind]}`}>
+                        {t(`surfaces.events.boardKind${e.kind.charAt(0).toUpperCase()}${e.kind.slice(1)}`)}
+                      </span>
+                      <span className="text-[11px] text-stone-500">
+                        {timeAgo(e.at, agoLang === 'bn' || agoLang === 'hi' ? agoLang : 'en')}
+                      </span>
+                      {e.resolved && (
+                        <span className="text-[10px] font-black uppercase tracking-wide text-emerald-800 bg-emerald-100 rounded-full px-2 py-0.5">
+                          {t('surfaces.events.boardReunited')}
+                        </span>
+                      )}
+                    </div>
+                    <p className={`text-sm mt-1 ${e.resolved ? 'text-stone-400' : 'text-stone-700'}`}>
+                      {e.text}
+                    </p>
+                  </li>
+                );
+              })}
             </ul>
           </div>
         )}

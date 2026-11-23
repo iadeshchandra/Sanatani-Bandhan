@@ -125,7 +125,13 @@ describe('surfaces + vibe dict completeness (en/hi/bn authored)', () => {
     // disclosure note, and the honest teaching states for no
     // history / no gate marks / thin history / no bookings yet)
     // in all 10 languages.
-    expect(keysOf(en).length).toBe(892);
+    // NEXT-LEVEL A4 adds 20 surfaces.events keys (the live notice
+    // board: boardTitle…boardChip — the War Room Live Board panel
+    // chrome, the four kind labels, the composer's no-phone-numbers
+    // hint, resolve/remove actions, the public "Live at the
+    // festival" section with its Reunited badge, and the /events
+    // card chip) in all 10 languages.
+    expect(keysOf(en).length).toBe(912);
     for (const bucket of Object.keys(en)) {
       for (const leaf of Object.keys(en[bucket])) {
         for (const dict of [en, hi, bn]) {

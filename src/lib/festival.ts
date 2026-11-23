@@ -13,6 +13,7 @@
  */
 
 import { PANJIKA_FESTIVALS, type PanjikaFestival } from './panjikaFestivals';
+import type { LiveBoardEntry } from './liveBoard';
 import { checklistFor } from './festivalChecklists';
 import { drikTithiAt, drikLunarMonth } from './drikPanchang';
 import { getCalendar } from './regionalCalendars';
@@ -621,6 +622,18 @@ export interface FestivalEventDoc {
    */
   venue?: string;
   mapUrl?: string;
+  /**
+   * NEXT-LEVEL A4 — the live notice board: day-of notes from the
+   * organising team (gate changes, lost & found, announcements),
+   * written by War Room staff through this doc's existing staff
+   * update path (the same setDoc merge that stamps debriefSummary
+   * / sponsorThanks — the rules' R_BOARD clause pins no key set)
+   * and read read-free on the public page. Entries are the
+   * organiser's own words, shaped and capped by lib/liveBoard
+   * (≤20 entries, resolved lost & found kept visible, badged).
+   * Absent = the team has never posted (or the page predates A4).
+   */
+  liveBoard?: LiveBoardEntry[];
   updatedAt: string;
 }
 

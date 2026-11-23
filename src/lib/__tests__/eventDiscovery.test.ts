@@ -149,6 +149,24 @@ describe('festivalCard', () => {
     expect(c).not.toBeNull();
     expect(c!.startISO).toBe('2026-11-20');
   });
+
+  it('counts only the OPEN notes of the live board (NEXT-LEVEL A4)', () => {
+    // No board at all — no chip.
+    expect(festivalCard(festival({}), TODAY, pickEn)!.liveCount).toBe(0);
+    const c = festivalCard(
+      festival({
+        liveBoard: [
+          { id: 'a', kind: 'lost', text: 'Umbrella lost at Gate 1', at: 1000 },
+          { id: 'b', kind: 'gate', text: 'Gate 2 opens at 5 pm', at: 2000 },
+          { id: 'c', kind: 'found', text: 'Keys found', at: 3000, resolved: true },
+        ],
+      }),
+      TODAY,
+      pickEn
+    );
+    // The resolved reunion no longer counts as an open note.
+    expect(c!.liveCount).toBe(2);
+  });
 });
 
 describe('sangamCard', () => {

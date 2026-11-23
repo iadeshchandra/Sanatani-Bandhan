@@ -30,6 +30,7 @@ import { PublishPanel } from './PublishPanel';
 import { ShareInvitePanel } from './ShareInvitePanel';
 import { TicketSalesPanel } from './TicketSalesPanel';
 import { GateRegisterPanel } from './GateRegisterPanel';
+import { LiveBoardPanel } from './LiveBoardPanel';
 import { SponsorsStallsPanel } from './SponsorsStallsPanel';
 import { DepartmentsBoard } from './DepartmentsBoard';
 import { DebriefCard } from './DebriefCard';
@@ -411,6 +412,10 @@ const WarRoomInner: React.FC = () => {
           twin of the gate, printed before the day from the same
           RSVP records (day-of cluster, beside the pass ledger). */}
       <GateRegisterPanel wf={wf} plan={p} />
+      {/* NEXT-LEVEL A4 — the live notice board: day-of gate notes,
+          lost & found and announcements, written onto the published
+          festival_events doc and read read-free on the public page. */}
+      <LiveBoardPanel wf={wf} plan={p} event={cloud.event} />
       {/* EVENTS E6 — the sponsors & stalls register and the seva
           departments board, on the linked Utsav festival record. */}
       <SponsorsStallsPanel wf={wf} plan={p} event={cloud.event} />

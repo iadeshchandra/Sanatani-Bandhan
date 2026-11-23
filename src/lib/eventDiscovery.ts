@@ -19,6 +19,7 @@
  * in the app, so its card carries no link rather than an invented one.
  */
 import type { FestivalEventDoc, Lang3 } from './festival';
+import { unresolvedBoardCount } from './liveBoard';
 import type { SangamEvent } from '../sangam/types';
 import type { PublicEventItem } from './orgPublic';
 import {
@@ -61,6 +62,8 @@ export interface DiscoveryCard {
   hasPasses: boolean;
   /** E4: the committee published a debrief summary. */
   hasDebrief: boolean;
+  /** A4: open notes on the festival's live board (0 = no chip). */
+  liveCount?: number;
   /** Sangam: trustee-posted official org event. */
   official?: boolean;
   /** Sangam sub-kind (utsav|katha|yatra|satsang|seva|other), data label. */
@@ -149,6 +152,10 @@ export function festivalCard(
     href: `/festival/${encodeURIComponent(doc.workspaceId)}/${encodeURIComponent(doc.id)}`,
     hasPasses: Array.isArray(doc.ticketTiers) && doc.ticketTiers.length > 0,
     hasDebrief: !!doc.debriefSummary,
+    // NEXT-LEVEL A4 — the live board rides the SAME published doc
+    // this card is already shaped from: the open-note count is a
+    // field read, not a query. 0 = the card carries no chip.
+    liveCount: unresolvedBoardCount(doc.liveBoard),
   };
 }
 

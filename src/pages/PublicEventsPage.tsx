@@ -18,7 +18,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { collection, getDocs, limit, query, where } from 'firebase/firestore';
-import { ArrowLeft, BadgeCheck, CalendarDays, Loader2, MapPin, Sparkles, Ticket } from 'lucide-react';
+import { ArrowLeft, BadgeCheck, CalendarDays, Loader2, MapPin, Pin, Sparkles, Ticket } from 'lucide-react';
 import { db } from '../lib/firebase';
 import { useLanguage } from '../context/LanguageContext';
 import { useAuthWorkspace } from '../context/AuthWorkspaceContext';
@@ -198,8 +198,13 @@ export const PublicEventsPage: React.FC = () => {
             <MapPin size={15} className="shrink-0" /> {card.place}
           </p>
         )}
-        {(card.hasPasses || card.hasDebrief || card.official) && (
+        {(card.hasPasses || card.hasDebrief || card.official || (card.liveCount || 0) > 0) && (
           <div className="flex flex-wrap gap-2 mt-3">
+            {(card.liveCount || 0) > 0 && (
+              <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-orange-600 text-white text-[11px] font-bold">
+                <Pin size={12} /> {t('surfaces.events.boardChip').replace('{count}', String(card.liveCount))}
+              </span>
+            )}
             {card.hasPasses && (
               <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-100 text-amber-900 text-[11px] font-bold">
                 <Ticket size={12} /> {t('surfaces.events.discoverPasses')}
