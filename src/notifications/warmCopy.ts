@@ -292,6 +292,135 @@ export const WARM_COPY: Record<WarmCopyKind, Record<string, CopyEntry>> = {
         'मतदान खुला है: {title}। यदि आपने अभी तक मत नहीं दिया है, तो आपकी आवाज़ की प्रतीक्षा है — अपने Personal होम से Polls खोलें।',
       ),
     },
+    /* NOTIFICATION WAVE 1 — the poll lifecycle trio (lib/pollLifecycleNotify).
+       Opened/closing reach only members who have not voted (the member's
+       own device checks its own ballot — nobody else's); concluded
+       carries the recorded verdict fragment when one is stored. */
+    pollOpened: {
+      title: t('🗳️ {orgName}', '🗳️ {orgName}', '🗳️ {orgName}'),
+      body: t(
+        'A new poll is open: {title}. Have your say while voting is open.',
+        'একটি নতুন ভোট খোলা হয়েছে: {title}। ভোট চলাকালীন আপনার মতামত দিন।',
+        'एक नया मतदान खुला है: {title}। मतदान खुला रहते अपनी राय दें।',
+      ),
+    },
+    pollClosing: {
+      title: t('🗳️ {orgName}', '🗳️ {orgName}', '🗳️ {orgName}'),
+      body: t(
+        'Voting closes soon: {title}. If you have not voted yet, your voice is awaited.',
+        'ভোট শীঘ্রই শেষ হচ্ছে: {title}। আপনি এখনো ভোট না দিয়ে থাকলে, আপনার মতামতের অপেক্ষা।',
+        'मतदान शीघ्र बंद होगा: {title}। यदि आपने अभी तक मत नहीं दिया है, तो आपकी आवाज़ की प्रतीक्षा है।',
+      ),
+    },
+    pollConcluded: {
+      title: t('🗳️ {orgName}', '🗳️ {orgName}', '🗳️ {orgName}'),
+      body: t(
+        'The poll has concluded: {title}. {verdict}',
+        'ভোট শেষ হয়েছে: {title}। {verdict}',
+        'मतदान संपन्न हुआ: {title}। {verdict}',
+      ),
+    },
+    pollConcludedPlain: {
+      title: t('🗳️ {orgName}', '🗳️ {orgName}', '🗳️ {orgName}'),
+      body: t(
+        'The poll has concluded: {title}.',
+        'ভোট শেষ হয়েছে: {title}।',
+        'मतदान संपन्न हुआ: {title}।',
+      ),
+    },
+    /* Verdict fragments — the TITLE field carries the fragment the
+       concluded body ends with (rendered per language by the helper). */
+    pollVerdictCarried: {
+      title: t('Result: the proposal was carried.', 'ফলাফল: প্রস্তাবটি গৃহীত হয়েছে।', 'परिणाम: प्रस्ताव स्वीकृत हुआ।'),
+      body: t('Result: the proposal was carried.', 'ফলাফল: প্রস্তাবটি গৃহীত হয়েছে।', 'परिणाम: प्रस्ताव स्वीकृत हुआ।'),
+    },
+    pollVerdictNotCarried: {
+      title: t('Result: the proposal was not carried.', 'ফলাফল: প্রস্তাবটি গৃহীত হয়নি।', 'परिणाम: प्रस्ताव स्वीकृत नहीं हुआ।'),
+      body: t('Result: the proposal was not carried.', 'ফলাফল: প্রস্তাবটি গৃহীত হয়নি।', 'परिणाम: प्रस्ताव स्वीकृत नहीं हुआ।'),
+    },
+    pollVerdictQuorumNotMet: {
+      title: t(
+        'Result: too few members voted, so this poll could not decide.',
+        'ফলাফল: খুব কম সদস্য ভোট দিয়েছেন, তাই এই ভোট সিদ্ধান্ত নিতে পারেনি।',
+        'परिणाम: बहुत कम सदस्यों ने मत दिया, इसलिए यह मतदान निर्णय नहीं ले सका।',
+      ),
+      body: t(
+        'Result: too few members voted, so this poll could not decide.',
+        'ফলাফল: খুব কম সদস্য ভোট দিয়েছেন, তাই এই ভোট সিদ্ধান্ত নিতে পারেনি।',
+        'परिणाम: बहुत कम सदस्यों ने मत दिया, इसलिए यह मतदान निर्णय नहीं ले सका।',
+      ),
+    },
+    pollVerdictWinner: {
+      title: t(
+        'Result: “{winner}” received the most support.',
+        'ফলাফল: “{winner}” সবচেয়ে বেশি সমর্থন পেয়েছে।',
+        'परिणाम: “{winner}” को सबसे अधिक समर्थन मिला।',
+      ),
+      body: t(
+        'Result: “{winner}” received the most support.',
+        'ফলাফল: “{winner}” সবচেয়ে বেশি সমর্থন পেয়েছে।',
+        'परिणाम: “{winner}” को सबसे अधिक समर्थन मिला।',
+      ),
+    },
+    pollVerdictTie: {
+      title: t('Result: it ended in a tie.', 'ফলাফল: সমতায় শেষ হয়েছে।', 'परिणाम: बराबरी पर समाप्त हुआ।'),
+      body: t('Result: it ended in a tie.', 'ফলাফল: সমতায় শেষ হয়েছে।', 'परिणाम: बराबरी पर समाप्त हुआ।'),
+    },
+    pollVerdictResponses: {
+      title: t(
+        'Result: {count} responses were received.',
+        'ফলাফল: {count}টি উত্তর পাওয়া গেছে।',
+        'परिणाम: {count} उत्तर प्राप्त हुए।',
+      ),
+      body: t(
+        'Result: {count} responses were received.',
+        'ফলাফল: {count}টি উত্তর পাওয়া গেছে।',
+        'परिणाम: {count} उत्तर प्राप्त हुए।',
+      ),
+    },
+    /* NOTIFICATION WAVE 1 — a followed org published a festival (§2.2). */
+    festivalPublished: {
+      title: t('📿 {orgName}', '📿 {orgName}', '📿 {orgName}'),
+      body: t(
+        'A new festival has been published: {festival}. See the dates and plan your darshan.',
+        'একটি নতুন উৎসব প্রকাশিত হয়েছে: {festival}। তারিখ দেখুন এবং আপনার দর্শনের পরিকল্পনা করুন।',
+        'एक नया उत्सव प्रकाशित हुआ है: {festival}। तिथियाँ देखें और अपने दर्शन की योजना बनाएं।',
+      ),
+    },
+    /* NOTIFICATION WAVE 1 — my e-dip results (§2.2). A result is news:
+       it rings once per status even if I saw it in the desk first. */
+    dipSelected: {
+      title: t('🪔 {festival}', '🪔 {festival}', '🪔 {festival}'),
+      body: t(
+        'Good news — your name was drawn in the e-dip. Please claim your pass before the claim window closes.',
+        'সুখবর — ই-ডিপে আপনার নাম উঠেছে। দাবির সময় শেষ হওয়ার আগে অনুগ্রহ করে আপনার পাসটি দাবি করুন।',
+        'शुभ समाचार — ई-डिप में आपका नाम निकला है। कृपया दावे की अवधि समाप्त होने से पहले अपना पास ले लें।',
+      ),
+    },
+    dipWaitlisted: {
+      title: t('🪔 {festival}', '🪔 {festival}', '🪔 {festival}'),
+      body: t(
+        'Your e-dip entry is on the waiting list. If a place opens, you will hear at once.',
+        'আপনার ই-ডিপ আবেদন অপেক্ষা তালিকায় আছে। জায়গা খালি হলে আপনি সঙ্গে সঙ্গে জানতে পারবেন।',
+        'आपकी ई-डिप प्रविष्टि प्रतीक्षा सूची में है। स्थान खाली होते ही आपको तुरंत सूचना मिलेगी।',
+      ),
+    },
+    dipLapsed: {
+      title: t('🪔 {festival}', '🪔 {festival}', '🪔 {festival}'),
+      body: t(
+        'The claim window for your drawn e-dip place has passed, and the place has moved to the waiting list. Thank you for your understanding.',
+        'আপনার টানা ই-ডিপ জায়গার দাবির সময় পেরিয়ে গেছে, এবং জায়গাটি অপেক্ষা তালিকায় চলে গেছে। আপনার বোঝাপড়ার জন্য ধন্যবাদ।',
+        'आपके निकले ई-डिप स्थान की दावे की अवधि बीत गई है, और वह स्थान प्रतीक्षा सूची में चला गया है। आपकी समझ के लिए धन्यवाद।',
+      ),
+    },
+    dipClaimed: {
+      title: t('🪔 {festival}', '🪔 {festival}', '🪔 {festival}'),
+      body: t(
+        'Your e-dip pass is claimed and held for you. We look forward to your darshan.',
+        'আপনার ই-ডিপ পাস দাবি করা হয়েছে এবং আপনার জন্য রাখা আছে। আপনার দর্শনের অপেক্ষায় রইলাম।',
+        'आपका ई-डिप पास ले लिया गया है और आपके लिए सुरक्षित है। आपके दर्शन की प्रतीक्षा रहेगी।',
+      ),
+    },
     eventRsvp: {
       title: t('You are invited: {title} 📿', 'আমন্ত্রণ: {title} 📿', 'आमंत्रण: {title} 📿'),
       body: t(
@@ -505,6 +634,32 @@ export const WARM_COPY: Record<WarmCopyKind, Record<string, CopyEntry>> = {
   /* order doc does not record it, and Suchana does not invent it.     */
   /* ---------------------------------------------------------------- */
   seva_order: {
+    /* NOTIFICATION WAVE 1 — my seva-pass tickets (§2.2): the buyer's
+       own device watches event_tickets where buyerUid == me. */
+    ticketPurchased: {
+      title: t('🎟️ {festival}', '🎟️ {festival}', '🎟️ {festival}'),
+      body: t(
+        'Your pass for {tier} is booked and held for you. Show it at the gate on the day.',
+        '{tier}-এর জন্য আপনার পাস বুক হয়েছে এবং আপনার জন্য রাখা আছে। দিনে গেটে তা দেখান।',
+        '{tier} के लिए आपका पास बुक हो गया है और आपके लिए सुरक्षित है। उस दिन द्वार पर इसे दिखाएं।',
+      ),
+    },
+    ticketCancelled: {
+      title: t('🎟️ {festival}', '🎟️ {festival}', '🎟️ {festival}'),
+      body: t(
+        'Your pass for {tier} has been cancelled, and its place released.',
+        '{tier}-এর জন্য আপনার পাস বাতিল হয়েছে, এবং তার জায়গা ছেড়ে দেওয়া হয়েছে।',
+        '{tier} के लिए आपका पास रद्द हो गया है, और उसका स्थान छोड़ दिया गया है।',
+      ),
+    },
+    ticketRefunded: {
+      title: t('🎟️ {festival}', '🎟️ {festival}', '🎟️ {festival}'),
+      body: t(
+        'A refund for your {tier} pass has been recorded. The amount returns by the same path it came.',
+        'আপনার {tier} পাসের জন্য ফেরত লিপিবদ্ধ হয়েছে। অর্থ যে পথে এসেছিল সেই পথেই ফিরে যাবে।',
+        'आपके {tier} पास के लिए धनवापसी दर्ज हो गई है। राशि उसी मार्ग से लौटेगी जिससे आई थी।',
+      ),
+    },
     newRequest: {
       title: t('🪔 New seva request', '🪔 নতুন সেবার অনুরোধ', '🪔 नया सेवा अनुरोध'),
       body: t(

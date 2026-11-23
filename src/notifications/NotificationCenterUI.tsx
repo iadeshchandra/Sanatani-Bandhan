@@ -37,6 +37,8 @@ import {
   groupCenterItems,
   summarizeForHeader,
   timeAgo,
+  actionLaneGroups,
+  actionUnreadCount,
   FILTER_LABELS,
   type CenterFilter,
   type CenterGroup,
@@ -62,7 +64,7 @@ export interface NotificationCenterProps {
   initialFilter?: CenterFilter;
 }
 
-const FILTERS: CenterFilter[] = ['all', 'money', 'chat', 'suchana', 'org', 'blessing'];
+const FILTERS: CenterFilter[] = ['all', 'action', 'money', 'chat', 'suchana', 'org', 'blessing'];
 
 function CategoryIcon({ category, className = 'w-5 h-5' }: { category: CenterGroup['category']; className?: string }) {
   switch (category) {
@@ -390,15 +392,19 @@ export const NotificationCenterUI: React.FC<NotificationCenterProps> = ({
   );
   // Items shown in the persistent critical banner are NOT repeated as cards.
   const bannerIds = useMemo(() => new Set(criticalItems.map((i) => i.id)), [criticalItems]);
-  const visibleGroups = useMemo(
-    () =>
-      groups.filter((g) => {
-        if (g.items.every((i) => bannerIds.has(i.id))) return false; // already in the banner
-        if (filter === 'all') return true;
-        return g.category === filter;
-      }),
-    [groups, filter, bannerIds]
-  );
+  // NOTIFICATION WAVE 1 — the Action lane (DESIGN §4): a filtered
+  // view over the SAME items (no second stream, no new storage) —
+  // unread action-tier items across every workspace in scope,
+  // sorted by expiry, soonest-dying premise first.
+  const actionCount = useMemo(() => actionUnreadCount(items), [items]);
+  const visibleGroups = useMemo(() => {
+    if (filter === 'action') return actionLaneGroups(items);
+    return groups.filter((g) => {
+      if (g.items.every((i) => bannerIds.has(i.id))) return false; // already in the banner
+      if (filter === 'all') return true;
+      return g.category === filter;
+    });
+  }, [groups, filter, bannerIds, items]);
   const hasRead = items.some((i) => i.read);
   const unreadTotal = items.filter((i) => !i.read).length;
 
@@ -469,11 +475,20 @@ export const NotificationCenterUI: React.FC<NotificationCenterProps> = ({
                   role="tab"
                   aria-selected={active}
                   onClick={() => setFilter(f)}
-                  className={`shrink-0 min-h-[44px] px-4 rounded-full text-[13px] font-bold transition-colors ${
+                  className={`shrink-0 min-h-[44px] px-4 rounded-full text-[13px] font-bold transition-colors inline-flex items-center gap-1.5 ${
                     active ? 'bg-amber-50 text-amber-900 shadow' : 'bg-white/15 text-amber-100 hover:bg-white/25'
                   }`}
                 >
                   <NT text={FILTER_LABELS[f]} />
+                  {f === 'action' && actionCount > 0 && (
+                    <span
+                      className={`inline-flex items-center justify-center min-w-[20px] h-5 px-1 rounded-full text-[11px] font-black ${
+                        active ? 'bg-amber-600 text-white' : 'bg-amber-400 text-amber-950'
+                      }`}
+                    >
+                      {actionCount}
+                    </span>
+                  )}
                 </button>
               );
             })}
@@ -534,13 +549,23 @@ export const NotificationCenterUI: React.FC<NotificationCenterProps> = ({
                 <NT text={{ en: 'All is calm', bn: 'সব শান্ত', hi: 'सब शांत' }} />
               </p>
               <p className="text-sm text-stone-500 mt-1 max-w-[240px]">
-                <NT
-                  text={{
-                    en: 'No new suchanas here. Breathe easy.',
-                    bn: 'এখানে কোনো নতুন সূচনা নেই। নির্ভারে থাকুন।',
-                    hi: 'यहाँ कोई नई सूचना नहीं। निश्चिंत रहें।',
-                  }}
-                />
+                {filter === 'action' ? (
+                  <NT
+                    text={{
+                      en: 'Nothing awaits your action. Whatever needs you will stand here, soonest first.',
+                      bn: 'আপনার করণীয় কিছু অপেক্ষা করছে না। যা আপনার প্রয়োজন হবে, তা এখানে দাঁড়াবে — যার সময় আগে ফুরোচ্ছে, সে আগে।',
+                      hi: 'आपकी कार्रवाई की प्रतीक्षा में कुछ नहीं है। जो भी आपको चाहिए होगा, वह यहाँ खड़ा होगा — जिसकी अवधि पहले समाप्त हो रही है, वह पहले।',
+                    }}
+                  />
+                ) : (
+                  <NT
+                    text={{
+                      en: 'No new suchanas here. Breathe easy.',
+                      bn: 'এখানে কোনো নতুন সূচনা নেই। নির্ভারে থাকুন।',
+                      hi: 'यहाँ कोई नई सूचना नहीं। निश्चिंत रहें।',
+                    }}
+                  />
+                )}
               </p>
             </div>
           ) : (

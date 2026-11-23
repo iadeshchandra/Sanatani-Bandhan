@@ -19,6 +19,14 @@ export interface NotificationBellProps {
   unreadCount: number;
   /** Unread CRITICAL items (SOS). Red badge only when this is > 0. */
   criticalCount?: number;
+  /**
+   * Unread ACTION-lane items (NOTIFICATION WAVE 1, DESIGN §4) within
+   * the same scoped list. The visible badge stays the total (badge
+   * == list, per scope); the spoken label counts the lane FIRST —
+   * "N need your action, M unread in all" — because action is the
+   * obligation and the stream is not.
+   */
+  actionCount?: number;
   onClick: () => void;
   className?: string;
   label?: TriText;
@@ -33,6 +41,7 @@ const DEFAULT_LABEL: TriText = {
 export const NotificationBell: React.FC<NotificationBellProps> = ({
   unreadCount,
   criticalCount = 0,
+  actionCount = 0,
   onClick,
   className = '',
   label = DEFAULT_LABEL,
@@ -71,6 +80,14 @@ export const NotificationBell: React.FC<NotificationBellProps> = ({
               en: `${unreadCount} unread notifications, including an urgent alert`,
               bn: `${unreadCount}টি অপঠিত বিজ্ঞপ্তি, যার মধ্যে জরুরি সতর্কতা রয়েছে`,
               hi: `${unreadCount} अपठित सूचनाएं, जिनमें एक आवश्यक चेतावनी है`,
+            }}
+          />
+        ) : actionCount > 0 ? (
+          <NT
+            text={{
+              en: `${actionCount} need${actionCount === 1 ? 's' : ''} your action, ${unreadCount} unread in all`,
+              bn: `${actionCount}টিতে আপনার করণীয় আছে, মোট ${unreadCount}টি অপঠিত`,
+              hi: `${actionCount} पर आपकी कार्रवाई चाहिए, कुल ${unreadCount} अपठित`,
             }}
           />
         ) : (

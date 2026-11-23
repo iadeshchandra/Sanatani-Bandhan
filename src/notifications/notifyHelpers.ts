@@ -19,6 +19,7 @@ import { emitNotify } from './emit';
 import { copyFor, renderCopy } from './warmCopy';
 import { summarizeActors, type SocialSummary } from './socialBatcher';
 import { isFlagEnabled } from '../lib/platformGating';
+import type { PollVerdictFragment } from '../lib/pollLifecycleNotify';
 
 /* ------------------------------------------------------------------ */
 /* Small utilities                                                     */
@@ -484,6 +485,151 @@ export function notifyPollReminder(recipientUid: string, a: PollReminderNotifyIn
     deepLink: `/org/${a.orgId}`,
     payload: { orgId: a.orgId, pollId: a.pollId, broadcastId: a.broadcastId },
   });
+  return send(recipientUid, event);
+}
+
+/* ------------------------------------------------------------------ */
+/* NOTIFICATION WAVE 1 — poll lifecycle, tickets, dips, festivals.     */
+/* All four are emitted ONLY by the recipient's own device (the       */
+/* self-listen watchers in lib/) — the self-write-only rules make     */
+/* any other fan-out impossible.                                      */
+/* ------------------------------------------------------------------ */
+
+/** Render a verdict fragment (warmCopy org.pollVerdict*) per language. */
+function verdictFragmentTri(v: PollVerdictFragment): TriText {
+  const entry = copyFor('org', v.key);
+  const params: Params =
+    v.key === 'pollVerdictWinner'
+      ? { winner: v.winner }
+      : v.key === 'pollVerdictResponses'
+        ? { count: v.count }
+        : {};
+  const out = {} as TriText;
+  for (const l of ['en', 'bn', 'hi'] as const) {
+    out[l] = renderCopy(entry, params, l).title || entry.title[l];
+  }
+  return out;
+}
+
+export interface PollLifecycleNotifyInput {
+  copyKey: 'pollOpened' | 'pollClosing' | 'pollConcluded';
+  orgId: string;
+  orgName: string;
+  pollId: string;
+  pollTitle: string;
+  dedupeKey: string;
+  /** Concluded only: the recorded outcome's verdict fragment, when
+   *  the poll carries a stored outcome (P1). Null ⇒ the plain line. */
+  verdict?: PollVerdictFragment | null;
+  /** Poll deadline — the item's premise dies with the poll. */
+  expiresAt?: number;
+}
+
+/**
+ * Poll lifecycle → GENTLE (info tier; DESIGN §2.3). The watcher
+ * (lib/pollLifecycleNotifyService) has already applied the audience
+ * gate and, for opened/closing, the own-ballot suppression — a
+ * member who voted never receives those two.
+ */
+export function notifyPollLifecycle(recipientUid: string, a: PollLifecycleNotifyInput): Promise<EmitResult> {
+  if (!isFlagEnabled('announcements_enabled')) {
+    return Promise.resolve({ status: 'dropped', itemId: '', decision: undefined as never });
+  }
+  const fragment = a.verdict ? verdictFragmentTri(a.verdict) : null;
+  const copyKey =
+    a.copyKey === 'pollConcluded' && !fragment ? 'pollConcludedPlain' : a.copyKey;
+  const event = base('org', 'gentle', copyKey, { orgName: a.orgName, title: a.pollTitle }, a.dedupeKey, {
+    deepLink: `/org/${a.orgId}`,
+    payload: { orgId: a.orgId, pollId: a.pollId },
+  });
+  if (fragment) {
+    for (const l of ['en', 'bn', 'hi'] as const) {
+      event.body[l] = event.body[l].replace('{verdict}', fragment[l]);
+    }
+  }
+  if (a.expiresAt) event.expiresAt = a.expiresAt;
+  return send(recipientUid, event);
+}
+
+export interface TicketNotifyInput {
+  copyKey: 'ticketPurchased' | 'ticketCancelled' | 'ticketRefunded';
+  festivalName: string;
+  tierName: string;
+  ticketId: string;
+  workspaceId: string;
+  festivalId: string;
+  dedupeKey: string;
+  /** Festival end — a purchased pass's news dies with its festival. */
+  expiresAt?: number;
+}
+
+/** My seva-pass ticket changed → IMPORTANT (action tier; §2.2). */
+export function notifyTicketEvent(recipientUid: string, a: TicketNotifyInput): Promise<EmitResult> {
+  const event = base(
+    'seva_order',
+    'important',
+    a.copyKey,
+    { festival: a.festivalName, tier: a.tierName },
+    a.dedupeKey,
+    {
+      deepLink: `/festival/${a.workspaceId}/${a.festivalId}`,
+      payload: { orgId: a.workspaceId, ticketId: a.ticketId, festivalId: a.festivalId },
+    },
+  );
+  if (a.expiresAt) event.expiresAt = a.expiresAt;
+  return send(recipientUid, event);
+}
+
+export interface DipNotifyInput {
+  copyKey: 'dipSelected' | 'dipWaitlisted' | 'dipLapsed' | 'dipClaimed';
+  festivalName: string;
+  entryId: string;
+  workspaceId: string;
+  festivalId: string;
+  dedupeKey: string;
+  /** Selected only: the claim-by moment — the premise's expiry, and
+   *  the Action lane's sort key (soonest-dying first). */
+  expiresAt?: number;
+}
+
+/** My e-dip result → IMPORTANT (action tier; §2.2). A result is
+ *  news: it rings once per status even if I saw it in the desk. */
+export function notifyDipEvent(recipientUid: string, a: DipNotifyInput): Promise<EmitResult> {
+  const event = base('org', 'important', a.copyKey, { festival: a.festivalName }, a.dedupeKey, {
+    deepLink: `/festival/${a.workspaceId}/${a.festivalId}`,
+    payload: { orgId: a.workspaceId, festivalId: a.festivalId, entryId: a.entryId },
+  });
+  if (a.expiresAt) event.expiresAt = a.expiresAt;
+  return send(recipientUid, event);
+}
+
+export interface FestivalPublishedNotifyInput {
+  orgId: string;
+  orgName: string;
+  festivalId: string;
+  festivalName: string;
+  dedupeKey: string;
+}
+
+/** A followed org published a festival → GENTLE (info tier; §2.2). */
+export function notifyFestivalPublished(
+  recipientUid: string,
+  a: FestivalPublishedNotifyInput,
+): Promise<EmitResult> {
+  if (!isFlagEnabled('announcements_enabled')) {
+    return Promise.resolve({ status: 'dropped', itemId: '', decision: undefined as never });
+  }
+  const event = base(
+    'org',
+    'gentle',
+    'festivalPublished',
+    { orgName: a.orgName, festival: a.festivalName },
+    a.dedupeKey,
+    {
+      deepLink: `/festival/${a.orgId}/${a.festivalId}`,
+      payload: { orgId: a.orgId, festivalId: a.festivalId },
+    },
+  );
   return send(recipientUid, event);
 }
 

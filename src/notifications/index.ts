@@ -59,6 +59,10 @@ export {
   collapseKeyFor,
   collapseDuplicateItems,
   collapseSiblingIds,
+  isActionItem,
+  actionUnreadCount,
+  actionLaneItems,
+  actionLaneGroups,
   mockCenterItems,
   mockDigestItems,
 } from './uiTypes';

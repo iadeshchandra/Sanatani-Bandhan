@@ -36,10 +36,13 @@ import { startOrderNotify } from '../lib/orderNotifyService';
 import { startJyotishNotify } from '../lib/jyotishNotifyService';
 import { startSuggestionNotify } from '../lib/suggestionNotifyService';
 import { startApprovalNotify } from '../lib/approvalNotifyService';
+import { startPollLifecycleNotify } from '../lib/pollLifecycleNotifyService';
+import { startTicketDipNotify } from '../lib/ticketDipNotifyService';
+import { startFollowedFestivalNotify } from '../lib/followedFestivalNotifyService';
 import { PlanUpgradeHost } from '../billing/PlanUpgradeFlow';
 
 export const NotificationWiring: React.FC = () => {
-  const { firebaseUser } = useAuthWorkspace();
+  const { firebaseUser, activeWorkspace, currentRole } = useAuthWorkspace();
   const uid = firebaseUser?.uid ?? null;
 
   // Chat arrivals → NotificationCenter (self-listen).
@@ -203,6 +206,48 @@ export const NotificationWiring: React.FC = () => {
   useEffect(() => {
     if (!uid) return undefined;
     return startApprovalNotify(uid);
+  }, [uid]);
+
+  // Poll lifecycle trio → NotificationCenter (self-listen,
+  // NOTIFICATION WAVE 1). My device watches the polls of my
+  // workspaces (membership edges ∪ the active workspace, the P2a
+  // shape) and emits opened / closing-soon / concluded news into my
+  // own inbox. Opened + closing are suppressed on-device when my
+  // OWN ballot already exists — nobody else's ballot is ever read.
+  // Baseline-silent first run per workspace; a dedupe ledger keeps
+  // every stage to one bell per poll.
+  const activeWsId = activeWorkspace?.id ?? null;
+  const activeWsName = activeWorkspace?.name ?? '';
+  const activeWsRole = (currentRole as string | null) ?? null;
+  useEffect(() => {
+    if (!uid) return undefined;
+    return startPollLifecycleNotify(uid, {
+      activeWorkspace: activeWsId
+        ? { id: activeWsId, name: activeWsName, role: activeWsRole ?? 'Devotee' }
+        : null,
+    });
+  }, [uid, activeWsId, activeWsName, activeWsRole]);
+
+  // My tickets + my e-dip results → NotificationCenter (self-listen,
+  // NOTIFICATION WAVE 1). Self-scoped sources (buyerUid / uid == me):
+  // a purchased / cancelled / refunded pass and a selected /
+  // waitlisted / lapsed / claimed dip result each ring once, at
+  // action tier, deep-linked to the festival page. Baseline-silent
+  // first run; per-record state ledgers keep every bell to once.
+  useEffect(() => {
+    if (!uid) return undefined;
+    return startTicketDipNotify(uid);
+  }, [uid]);
+
+  // Followed-org festival alerts → NotificationCenter (self-listen,
+  // NOTIFICATION WAVE 1). My device diffs the published festivals
+  // of the orgs I follow (user_follows ∪ the org-side followers
+  // store, as A1 reads them) against a seen ledger — a followed
+  // temple publishing a festival reaches its followers, once.
+  // Baseline-silent first run.
+  useEffect(() => {
+    if (!uid) return undefined;
+    return startFollowedFestivalNotify(uid);
   }, [uid]);
 
   // Event reminders → NotificationCenter (self-listen, EVENTS P1).

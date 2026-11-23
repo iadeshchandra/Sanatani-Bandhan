@@ -16,6 +16,7 @@ import {
   unreadInScope,
   criticalUnreadInScope,
 } from '../../notifications/orgScope';
+import { actionUnreadCount } from '../../notifications/uiTypes';
 import { MODULE_CATALOG } from '../common/Sidebar';
 import { useLanguage } from '../../context/LanguageContext';
 import { getModuleName } from '../../suggestions/moduleCopy';
@@ -358,6 +359,7 @@ export const OrgSpaceShell: React.FC<{ children: React.ReactNode }> = ({ childre
             <NotificationBell
               unreadCount={orgUnread}
               criticalCount={orgCritical}
+              actionCount={actionUnreadCount(orgItems)}
               onClick={() => setShowOrgCenter(true)}
               className="text-amber-200 hover:text-white hover:bg-white/10 border border-white/10"
               label={{

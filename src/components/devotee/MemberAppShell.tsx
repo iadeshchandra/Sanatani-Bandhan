@@ -13,7 +13,7 @@ import { NotificationBell } from '../../notifications/NotificationBell';
 import { Button } from '../common/ui/Button';
 import { Tabs } from '../common/ui/Tabs';
 import { NotificationCenterUI } from '../../notifications/NotificationCenterUI';
-import { useNotificationCenter } from '../../notifications/index';
+import { useNotificationCenter, actionUnreadCount } from '../../notifications/index';
 import PersonalSadhanaDesk from '../domain5/PersonalSadhanaDesk';
 import SanataniVivahDesk from '../domain4/SanataniVivahDesk';
 import { PurohitMarketDesk } from '../domain3/PurohitMarketDesk';
@@ -342,6 +342,7 @@ export default function MemberAppShell() {
                 <NotificationBell
                   unreadCount={centerItems.filter((i) => !i.read).length}
                   criticalCount={centerCritical.length}
+                  actionCount={actionUnreadCount(centerItems)}
                   onClick={() => setShowNotifications(true)}
                   className="text-temple-600 hover:bg-temple-50 border border-temple-200"
                 />

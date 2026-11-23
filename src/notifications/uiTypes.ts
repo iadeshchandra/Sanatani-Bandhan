@@ -17,11 +17,13 @@ import { categoryFor } from './preferences';
 /* Display categories (filter chips)                                  */
 /* ------------------------------------------------------------------ */
 
-/** The six center filter chips. 'sos' items are critical and always render
- *  in the persistent banner above the chips — they never need a filter. */
-export type CenterFilter = 'all' | 'money' | 'chat' | 'suchana' | 'org' | 'blessing';
+/** The center filter chips. 'sos' items are critical and always render
+ *  in the persistent banner above the chips — they never need a filter.
+ *  'action' (NOTIFICATION WAVE 1, DESIGN §4) is the Action lane: a
+ *  filtered VIEW over the same items, not a display category. */
+export type CenterFilter = 'all' | 'action' | 'money' | 'chat' | 'suchana' | 'org' | 'blessing';
 
-export type DisplayCategory = Exclude<CenterFilter, 'all'>;
+export type DisplayCategory = 'money' | 'chat' | 'suchana' | 'org' | 'blessing';
 
 export function displayCategoryFor(kind: NotifyKind): DisplayCategory {
   switch (kind) {
@@ -49,6 +51,7 @@ export { categoryFor };
 
 export const FILTER_LABELS: Record<CenterFilter, TriText> = {
   all: { en: 'All', bn: 'সব', hi: 'सभी' },
+  action: { en: 'Action', bn: 'করণীয়', hi: 'कार्रवाई' },
   money: { en: 'Money', bn: 'অর্থ', hi: 'धन' },
   chat: { en: 'Chat', bn: 'বার্তা', hi: 'चैट' },
   suchana: { en: 'Suchana', bn: 'সূচনা', hi: 'सूचना' },
@@ -180,6 +183,67 @@ export function groupCenterItems(items: NotificationItem[]): CenterGroup[] {
     const p = PRIORITY_RANK[a.priority] - PRIORITY_RANK[b.priority];
     return p !== 0 ? p : b.latestCreatedAt - a.latestCreatedAt;
   });
+}
+
+/* ------------------------------------------------------------------ */
+/* The Action lane (NOTIFICATION WAVE 1, DESIGN §4)                    */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Action tier == the engine's 'important' priority: the item needs
+ * the user's decision or money action. Critical (SOS class) is its
+ * own tier with its own persistent banner — it never hides in the
+ * lane. Read items leave the lane: the lane is an obligation list,
+ * not a history.
+ */
+export function isActionItem(item: NotificationItem): boolean {
+  return !item.read && item.priority === 'important';
+}
+
+/** Unread action-tier count over an already-scoped list (badge math:
+ *  the bell counts the lane first, then the rest — same list). */
+export function actionUnreadCount(items: NotificationItem[]): number {
+  return items.filter(isActionItem).length;
+}
+
+/**
+ * The lane's order: the item whose premise dies soonest first
+ * (expiresAt ascending — a dip claim window closing tonight outranks
+ * a festival next month); items without an expiry last, newest
+ * first within their group. Pure; the input order never leaks in.
+ */
+export function actionLaneItems(items: NotificationItem[]): NotificationItem[] {
+  const lane = items.filter(isActionItem);
+  const expiry = (i: NotificationItem) =>
+    typeof i.expiresAt === 'number' && i.expiresAt > 0 ? i.expiresAt : null;
+  return lane.sort((a, b) => {
+    const ea = expiry(a);
+    const eb = expiry(b);
+    if (ea !== null && eb !== null) {
+      if (ea !== eb) return ea - eb;
+      return b.createdAt - a.createdAt;
+    }
+    if (ea !== null) return -1;
+    if (eb !== null) return 1;
+    return b.createdAt - a.createdAt;
+  });
+}
+
+/**
+ * The lane rendered through the centre's card machinery: one card
+ * per item, in lane order (grouping by kind+actor would destroy
+ * the expiry order — the lane is a queue, not a thread).
+ */
+export function actionLaneGroups(items: NotificationItem[]): CenterGroup[] {
+  return actionLaneItems(items).map((item) => ({
+    key: `lane:${item.id}`,
+    category: displayCategoryFor(item.kind),
+    priority: item.priority,
+    title: item.title,
+    items: [item],
+    unreadCount: 1,
+    latestCreatedAt: item.createdAt,
+  }));
 }
 
 /* ------------------------------------------------------------------ */
