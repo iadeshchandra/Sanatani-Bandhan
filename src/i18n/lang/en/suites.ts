@@ -21,8 +21,8 @@ export const suites = {
   },
   catalog: {
     "devotee-portal": {
-      name: "My Devotee Portal",
-      desc: "Give every devotee their own app — bookings, receipts, and announcements in one place.",
+      name: "My Personal Portal",
+      desc: "Give every devotee their own personal space — bookings, receipts, and announcements in one place.",
     },
     "dashboard": {
       name: "Command Center",
