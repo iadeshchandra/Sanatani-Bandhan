@@ -63,6 +63,18 @@ export interface ReleaseEntry {
 
 export const RELEASES: readonly ReleaseEntry[] = [
   {
+    version: 'v2026.11.23-60b1056',
+    date: '2026-11-23',
+    sections: {
+      new: [
+        { text: { en: 'Nilam — the auction & allotment desk — is here. When an organisation allots a shop, leases land, sells old materials, or auctions any property, the whole affair is now recorded in the open: the lot, its valuation, the public notice, the registered bidders and their deposits, the outcome, and the settlement.', hi: 'नीलाम — नीलामी व आवंटन डेस्क — आ गया है। जब कोई संस्था दुकान आवंटित करे, भूमि पट्टे पर दे, पुरानी सामग्री बेचे, या कोई संपत्ति नीलाम करे, तो पूरा मामला अब खुलकर दर्ज होता है: लॉट, उसका मूल्यांकन, सार्वजनिक सूचना, पंजीकृत बोलीदाता व उनकी जमा राशि, परिणाम, और निपटान।', bn: 'নিলাম — নিলাম ও বরাদ্দ ডেস্ক — এসে গেছে। কোনো প্রতিষ্ঠান দোকান বরাদ্দ দিলে, জমি ইজারা দিলে, পুরনো সামগ্রী বিক্রি করলে, বা কোনো সম্পত্তি নিলাম করলে, পুরো বিষয়টি এখন প্রকাশ্যে লিপিবদ্ধ হয়: লট, তার মূল্যায়ন, প্রকাশ্য বিজ্ঞপ্তি, নিবন্ধিত দরদাতা ও তাঁদের জমা, ফলাফল, আর নিষ্পত্তি।' } },
+        { text: { en: 'The guards are built in: no lot can move forward without a recorded valuation behind its reserve price; a property sale needs the official sanction recorded before any notice; notices carry real minimum periods (15 days, 30 for property sales); and an unanswered objection blocks the result from being accepted.', hi: 'सुरक्षा-कवच पहले से बने हैं: कोई लॉट आरक्षित मूल्य के पीछे दर्ज मूल्यांकन के बिना आगे नहीं बढ़ सकता; संपत्ति बिक्री में किसी भी सूचना से पहले आधिकारिक स्वीकृति दर्ज होनी चाहिए; सूचनाओं में असली न्यूनतम अवधि रहती है (15 दिन, संपत्ति बिक्री के लिए 30); और अनुत्तरित आपत्ति परिणाम स्वीकार होने से रोकती है।', bn: 'সুরক্ষা-কবচ আগেই তৈরি: কোনো লট সংরক্ষিত মূল্যের পেছনে লিপিবদ্ধ মূল্যায়ন ছাড়া এগোতে পারে না; সম্পত্তি বিক্রিতে যেকোনো বিজ্ঞপ্তির আগে সরকারি অনুমোদন লিপিবদ্ধ থাকতে হয়; বিজ্ঞপ্তিতে আসল ন্যূনতম সময় থাকে (15 দিন, সম্পত্তি বিক্রিতে 30); আর উত্তরহীন আপত্তি ফলাফল গ্রহণ আটকে দেয়।' } },
+        { text: { en: 'Money settles only through the treasury, with the transaction recorded on the lot itself — and the result is published on the Transparency Board for the whole community to see. The desk keeps the record; it cannot grant legal permission, and it says so on its face.', hi: 'पैसा केवल कोषागार के मार्ग से निपटता है, और लेन-देन लॉट पर ही दर्ज रहता है — और परिणाम पारदर्शिता बोर्ड पर पूरे समुदाय के देखने के लिए प्रकाशित होता है। यह डेस्क अभिलेख रखता है; यह कानूनी अनुमति नहीं दे सकता, और यह बात उसके मुख पर ही लिखी है।', bn: 'অর্থ নিষ্পত্তি হয় কেবল কোষাগারের পথে, আর লেনদেন লটের গায়েই লিপিবদ্ধ থাকে — এবং ফলাফল স্বচ্ছতা বোর্ডে পুরো সম্প্রদায়ের দেখার জন্য প্রকাশিত হয়। এই ডেস্ক নথি রাখে; এটি আইনি অনুমতি দিতে পারে না, আর সে কথা তার মুখেই লেখা আছে।' } },
+      ],
+    },
+  },
+
+  {
     version: 'v2026.11.23-f31779d',
     date: '2026-11-23',
     sections: {
