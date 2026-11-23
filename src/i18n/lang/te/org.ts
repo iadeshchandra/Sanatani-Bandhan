@@ -1422,6 +1422,7 @@ export const orgNs: OrgFragment = {
           cancel: "అభ్యర్థన రద్దు చేయండి",
           retryApply: "వర్తించడం మళ్లీ ప్రయత్నించండి",
           kindPayout: "ఖజానా చెల్లింపు",
+          kindAuction: "వేలం లాట్",
           kindPayment: "చెల్లింపు వివరాలు",
           kindRole: "పాత్ర మంజూరు",
           statusPending: "పెండింగ్",
