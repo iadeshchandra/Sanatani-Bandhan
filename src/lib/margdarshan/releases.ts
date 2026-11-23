@@ -63,6 +63,17 @@ export interface ReleaseEntry {
 
 export const RELEASES: readonly ReleaseEntry[] = [
   {
+    version: 'v2026.11.23-77b9297',
+    date: '2026-11-23',
+    sections: {
+      new: [
+        { text: { en: 'Fairness you can see: every ticket tier on a festival page now shows its real remaining places — "23 of 100 places left" — counted from the same anchored register the booking itself trusts. No countdowns, no pressure, and prices that never move with demand. No surge. Ever.', hi: 'पारदर्शिता जो दिखती है: उत्सव-पृष्ठ पर हर टिकट श्रेणी अब अपने वास्तविक शेष स्थान दिखाती है — "100 में से 23 स्थान शेष" — उसी पक्के रजिस्टर से गिने गए जिस पर बुकिंग स्वयं भरोसा करती है। कोई उलटी गिनती नहीं, कोई दबाव नहीं, और ऐसे दाम जो माँग के साथ कभी नहीं बदलते। कोई सर्ज नहीं। कभी नहीं।', bn: 'স্বচ্ছতা যা চোখে দেখা যায়: উৎসবের পৃষ্ঠায় প্রতিটি টিকিট শ্রেণি এখন তার আসল অবশিষ্ট জায়গা দেখায় — "১০০টির মধ্যে ২৩টি জায়গা বাকি" — সেই একই পাকা রেজিস্টার থেকে গোনা যার উপর বুকিং নিজে ভরসা করে। কোনো কাউন্টডাউন নয়, কোনো চাপ নয়, আর এমন দাম যা চাহিদার সঙ্গে কখনো বদলায় না। কোনো সার্জ নয়। কখনোই নয়।' } },
+        { text: { en: 'After a festival ends, the committee can publish "How booking went" on the public page: places offered and booked per tier, and the waiting list — totals only, never a single name.', hi: 'उत्सव समाप्त होने के बाद, समिति सार्वजनिक पृष्ठ पर "बुकिंग कैसी रही" प्रकाशित कर सकती है: हर श्रेणी में दिए गए और बुक हुए स्थान, और प्रतीक्षा-सूची — केवल योग, कभी कोई नाम नहीं।', bn: 'উৎসব শেষ হওয়ার পর, কমিটি পাবলিক পৃষ্ঠায় "বুকিং কেমন গেল" প্রকাশ করতে পারে: প্রতি শ্রেণিতে দেওয়া ও বুক হওয়া জায়গা, এবং অপেক্ষমাণ তালিকা — শুধু মোট সংখ্যা, কখনো কোনো নাম নয়।' } },
+      ],
+    },
+  },
+
+  {
     version: 'v2026.11.23-27d45fb',
     date: '2026-11-23',
     sections: {
