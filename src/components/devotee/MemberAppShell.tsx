@@ -139,7 +139,7 @@ export default function MemberAppShell() {
     { id: 'SADHANA', label: safeTranslate('nav_sadhana', 'Daily Sadhana', 'সাধনা কেন্দ্র', 'दैनिक साधना'), icon: Flame, badge: 'Japa' },
     { id: 'PUROHIT', label: safeTranslate('nav_purohit', 'Purohits & Pujas', 'পুরোহিত ও পূজা', 'पुरोहित व पूजा'), icon: BookOpen, badge: 'Vedic' },
     { id: 'PORTAL', label: safeTranslate('nav_portal', 'Pass & 80G Receipts', 'স্মার্ট পাস ও রশিদ', 'स्मार्ट पास व रसीदें'), icon: Receipt, badge: 'Tax 80G' },
-    { id: 'YATRA_NET', label: safeTranslate('nav_mesh', 'YatraNet Mesh', 'অফলাইন জাল', 'यात्रा-नेट मेश'), icon: Radio, badge: 'P2P' },
+    { id: 'YATRA_NET', label: safeTranslate('nav_mesh', 'YatraNet', 'যাত্রা-নেট', 'यात्रा-नेट'), icon: Radio, badge: undefined },
     { id: 'VIVAH', label: safeTranslate('nav_vivah', 'Sanatani Vivah', 'বিবাহ বন্ধন', 'सनातन विवाह'), icon: Heart, badge: 'Gotra' },
     { id: 'PROFILE', label: safeTranslate('nav_profile', 'My Account & ID', 'আমার প্রোফাইল', 'मेरी प्रोफ़ाइल'), icon: UserCircle, badge: undefined },
   ];

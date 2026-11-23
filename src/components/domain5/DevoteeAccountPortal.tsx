@@ -482,9 +482,9 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
         setIsLocating(false);
         const { latitude, longitude } = pos.coords;
         showToast(
-          `Logged GPS Check-In at [${latitude.toFixed(4)}, ${longitude.toFixed(4)}] via YatraNet! 🚩`,
+          `Checked in here — [${latitude.toFixed(4)}, ${longitude.toFixed(4)}] 🚩`,
           'success',
-          'Pilgrimage Verified'
+          'GPS Check-In'
         );
       },
       (err) => {
@@ -556,7 +556,7 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
 
       addNotification({
         title: '🚨 Emergency SOS Dispatched',
-        message: 'Your emergency distress telemetry has been broadcast to all on-duty temple sevadars & doctors.',
+        message: "Your SOS alert — with your name, blood group and your location at this moment — has been sent to this temple's sevadar desk.",
         type: 'error',
       });
 
@@ -797,7 +797,7 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
                   <span>Sanatani Bandhan Official Smart Pass</span>
                 </h2>
                 <p className="text-xs text-temple-600 mt-0.5">
-                  Cryptographically verified temple credential for sanctum fast-track entry, prasad token redemption, and emergency telemetry.
+                  Your Sanatani member credential — a signed QR pass that refreshes every minute. Organisations on Sanatani Bandhan can scan it at their gates, and it carries your emergency contact for the moments that matter.
                 </p>
               </div>
 
@@ -856,7 +856,7 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
                         {activeWorkspace?.name || 'Sanatani Bandhan Trust'}
                       </h3>
                       <p className="text-[11px] rp-eyebrow font-semibold tracking-wider uppercase">
-                        Vedic Devotee Credential & Sanctum Pass
+                        Vedic Devotee Credential & Member Pass
                       </p>
                     </div>
                   </div>
@@ -976,7 +976,10 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
               {/* Right Side: Pass Benefits & Emergency Quick Tile (Right 5 Cols) */}
               <div className="lg:col-span-5 space-y-4">
                 
-                {/* Fast-Track Privileges Box */}
+                {/* Credential Privileges Box — M3 honesty pass: every
+                    privilege states its true condition (organisations
+                    that use Sanatani Bandhan gates); no invented
+                    fast-track, mesh network, or exemption promises. */}
                 <div className="bg-white p-5 rounded-3xl border border-temple-200 space-y-3">
                   <h4 className="text-sm font-black text-temple-950 uppercase tracking-wider flex items-center gap-2">
                     <Award className="w-4 h-4 text-amber-700" />
@@ -1016,7 +1019,7 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
                   </div>
 
                   <p className="text-xs text-red-700">
-                    In the event of crowd surge, medical emergency, or lost kin, temple sevadars immediately scan this pass to contact:
+                    In a crowd surge, a medical emergency, or if you are separated from your kin, a sevadar can scan this pass to contact:
                   </p>
 
                   <div className="p-3 bg-temple-50 rounded-2xl border border-temple-200 flex items-center justify-between">
@@ -1693,13 +1696,13 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
             <div className="bg-white p-5 rounded-3xl border border-temple-200 shadow-xl flex flex-wrap items-center justify-between gap-4">
               <div>
                 <span className="px-2 py-0.5 rounded text-[10px] font-black uppercase bg-amber-100 text-amber-800 border border-brass-200">
-                  YatraNet Mesh Telemetry
+                  Pilgrimage Footprint
                 </span>
                 <h2 className="text-xl font-black text-temple-950 mt-1">
                   Sacred Pilgrimage Footprint & Geo Check-Ins
                 </h2>
                 <p className="text-xs text-temple-600 mt-0.5">
-                  Verified pilgrimage stamps logged through temple mesh beacons and sacred geo-fences.
+                  Your own GPS check-ins at sacred places, kept as your pilgrimage footprint.
                 </p>
               </div>
 
@@ -1721,8 +1724,8 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
                 <p className="text-2xl" aria-hidden>🚩</p>
                 <p className="text-sm font-bold text-temple-800">{t('surfaces.devoteePortal.noYatraRecordedYet')}</p>
                 <p className="text-xs text-temple-600 max-w-md mx-auto">
-                  When you check in at a shrine with the GPS button above, your darshan will be
-                  kept here — your own true pilgrimage footprint, nothing invented.
+                  Check in with the GPS button above when you reach a shrine — this page
+                  honours only true pilgrimage footprints, nothing invented.
                 </p>
               </div>
             ) : (
@@ -1868,7 +1871,7 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
             </div>
 
             <p className="text-[11px] text-temple-600">
-              Hold this QR steady against the Sanctum Turnstile Scanner or present to Sevadar.
+              Show this QR to a sevadar, or hold it to the scanner at organisations that use Sanatani Bandhan gates.
             </p>
 
             <div className="flex items-center justify-center gap-2 pt-2">
@@ -2025,7 +2028,7 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
             </div>
 
             <p className="text-xs text-temple-700">
-              This broadcasts immediate code red distress telemetry to temple sevadars, campus doctors, and crowd management dispatch:
+              This sends an urgent SOS alert to this temple's sevadar desk, so sevadars can come to your aid. It carries:
             </p>
 
             {/* Situation Selector */}
@@ -2067,7 +2070,7 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
             </div>
 
             <div className="p-3 bg-red-50 rounded-xl border border-red-200 text-[11px] text-red-800">
-              <strong>{t('surfaces.devoteePortal.telemetryIncluded')}{' '}</strong>Name ({profileData.fullName}), Blood Group ({profileData.bloodGroup}), Emergency Phone ({profileData.emergencyPhone}), and Live GPS.
+              <strong>{t('surfaces.devoteePortal.telemetryIncluded')}{' '}</strong>Name ({profileData.fullName}), Blood Group ({profileData.bloodGroup}), Emergency Phone ({profileData.emergencyPhone}), and your location at this moment.
             </div>
 
             <div className="flex items-center gap-3 pt-2">
@@ -2084,7 +2087,7 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
                 disabled={isBroadcastingSos}
                 className="flex-1 py-2.5 min-h-[44px] rounded-xl bg-red-600 hover:bg-red-700 text-white font-black text-xs shadow-lg shadow-red-950/80 cursor-pointer transition-all active:scale-95 disabled:opacity-50"
               >
-                {isBroadcastingSos ? 'Broadcasting...' : 'DISPATCH SOS NOW'}
+                {isBroadcastingSos ? 'Sending...' : 'DISPATCH SOS NOW'}
               </button>
             </div>
           </div>
