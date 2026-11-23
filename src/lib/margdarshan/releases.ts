@@ -63,6 +63,16 @@ export interface ReleaseEntry {
 
 export const RELEASES: readonly ReleaseEntry[] = [
   {
+    version: 'v2026.11.23-9f57764',
+    date: '2026-11-23',
+    sections: {
+      improved: [
+        { text: { en: 'One home, one name: what the app used to call a separate "devotee app" is now simply your Personal space, everywhere — previews, portals and switches all speak of Personal. The word devotee remains where it belongs: your relationship with your temple, and a role inside it.', hi: 'एक घर, एक नाम: जिसे ऐप पहले अलग "भक्त ऐप" कहता था, वह अब हर जगह बस आपका Personal स्थान है — पूर्वावलोकन, पोर्टल और स्विच, सब Personal कहते हैं। "भक्त" शब्द वहीं रहता है जहाँ उसका स्थान है: आपके मंदिर से आपका संबंध, और उसके भीतर एक भूमिका।', bn: 'একটি ঘর, একটি নাম: অ্যাপ যাকে আগে আলাদা "ভক্ত অ্যাপ" বলত, তা এখন সব জায়গায় শুধুই আপনার Personal জায়গা — প্রিভিউ, পোর্টাল ও সুইচ, সবই Personal বলে। "ভক্ত" শব্দটি সেখানেই থাকে যেখানে তার স্থান: আপনার মন্দিরের সঙ্গে আপনার সম্পর্ক, এবং তার ভিতরে একটি ভূমিকা।' } },
+      ],
+    },
+  },
+
+  {
     version: 'v2026.11.23-53cdd52',
     date: '2026-11-23',
     sections: {
