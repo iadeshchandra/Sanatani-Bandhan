@@ -63,6 +63,17 @@ export interface ReleaseEntry {
 
 export const RELEASES: readonly ReleaseEntry[] = [
   {
+    version: 'v2026.11.23-27d45fb',
+    date: '2026-11-23',
+    sections: {
+      improved: [
+        { text: { en: 'Your Smart Pass now says only what is true: a signed member token that refreshes every minute, scannable at organisations that use Sanatani Bandhan gates, carrying your chosen emergency contact and blood group on its face so sevaks can help you and reach your family. Earlier wording that promised special gates and networks the app does not run has been removed, in all 10 languages.', hi: 'आपका स्मार्ट पास अब केवल वही कहता है जो सत्य है: एक हस्ताक्षरित सदस्य टोकन जो हर मिनट ताज़ा होता है, उन संस्थाओं के द्वार पर स्कैन योग्य जो सनातनी बंधन के गेट उपयोग करती हैं, और जिस पर आपका चुना आपातकालीन संपर्क व रक्त-समूह अंकित है ताकि सेवक आपकी सहायता कर सकें और आपके परिवार तक पहुँच सकें। पहले का वह शब्द-चयन हटा दिया गया है जो ऐसे विशेष द्वारों और नेटवर्कों का वादा करता था जो ऐप चलाता ही नहीं — सभी 10 भाषाओं में।', bn: 'আপনার স্মার্ট পাস এখন শুধু তাই বলে যা সত্য: একটি স্বাক্ষরিত সদস্য টোকেন যা প্রতি মিনিটে সতেজ হয়, যেসব প্রতিষ্ঠান সনাতনী বন্ধনের গেট ব্যবহার করে সেখানে স্ক্যানযোগ্য, এবং যার গায়ে আপনার বেছে নেওয়া জরুরি যোগাযোগ ও রক্তের গ্রুপ লেখা থাকে যাতে সেবকরা আপনাকে সাহায্য করতে পারেন এবং আপনার পরিবারের কাছে পৌঁছতে পারেন। আগের সেই শব্দগুলি সরিয়ে দেওয়া হয়েছে যা এমন বিশেষ গেট ও নেটওয়ার্কের প্রতিশ্রুতি দিত যা অ্যাপ চালায়ই না — সব ১০টি ভাষায়।' } },
+        { text: { en: 'The same honesty pass corrected the SOS wording: an alert goes to this temple\'s sevadar desk with your name, blood group, emergency phone and your location at that moment — nothing more is claimed, because nothing more happens.', hi: 'इसी ईमानदारी के साथ SOS का शब्द-चयन भी सुधारा गया: चेतावनी इस मंदिर के सेवक-डेस्क तक जाती है — आपके नाम, रक्त-समूह, आपातकालीन फ़ोन और उस क्षण की आपकी स्थिति के साथ — इससे अधिक का दावा नहीं, क्योंकि इससे अधिक होता भी नहीं।', bn: 'একই সততার সঙ্গে SOS-এর শব্দও ঠিক করা হয়েছে: সতর্কবার্তা এই মন্দিরের সেবক ডেস্কে যায় — আপনার নাম, রক্তের গ্রুপ, জরুরি ফোন ও সেই মুহূর্তে আপনার অবস্থানসহ — এর বেশি দাবি নয়, কারণ এর বেশি ঘটেও না।' } },
+      ],
+    },
+  },
+
+  {
     version: 'v2026.11.23-9f57764',
     date: '2026-11-23',
     sections: {
