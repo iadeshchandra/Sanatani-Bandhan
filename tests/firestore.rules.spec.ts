@@ -1862,3 +1862,153 @@ describe('POLLS NEXT-LEVEL P1 — the Decision-grade core (polls)', () => {
       .collection('votes').doc('user-1').get());
   });
 });
+
+describe('AUCTION A1 — Nilam lots (auction_lots)', () => {
+  const LOT = 'lot-a1-1';
+  const lotDoc = (over: Record<string, unknown> = {}) => ({
+    workspaceId: 'ws-1',
+    source: { kind: 'standalone', label: 'Brass lamps (12)' },
+    lotClass: 'movables',
+    title: 'Brass lamps, set of twelve',
+    description: 'Store-room surplus',
+    mediaRefs: [],
+    reservePrice: 4000,
+    valuationBasis: null,
+    sanction: null,
+    leaseTermYears: null,
+    status: 'draft',
+    history: { draft: { at: 1, by: 'admin-1' } },
+    notice: null,
+    affixtures: [],
+    objections: [],
+    registrations: [],
+    outcome: null,
+    settlement: { depositAmount: 0, depositTxId: '', balanceTxId: '' },
+    failReason: null,
+    createdAt: 1,
+    updatedAt: 1,
+    ...over,
+  });
+  const VALUATION = { kind: 'committee-estimate', figure: 4500, valuedOn: '2026-11-01' };
+  const SANCTION = { authority: 'Commissioner, HR&CE', reference: 'Order 12/2026', date: '2026-11-02' };
+  const NOTICE = { auctionAt: 1765000000000, auctionPlace: 'Temple hall', emdAmount: 400, objectionDeadline: 1764500000000, publishedAt: 1 };
+
+  const seedLot = async (over: Record<string, unknown> = {}) => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await context.firestore().collection('auction_lots').doc(LOT).set(lotDoc(over));
+    });
+  };
+  const staffDb = () => testEnv.authenticatedContext('admin-1').firestore();
+  const acctDb = () => testEnv.authenticatedContext('acct-1').firestore();
+  const devoteeDb = () => testEnv.authenticatedContext('user-1').firestore();
+  const ref = (db: any) => db.collection('auction_lots').doc(LOT);
+
+  it('146. Staff create a draft lot; the birth shape is pinned', async () => {
+    await assertSucceeds(ref(staffDb()).set(lotDoc()));
+    await assertSucceeds(ref(acctDb()).set(lotDoc()));
+    await assertFails(ref(staffDb()).set(lotDoc({ lotClass: 'land' })));
+    await assertFails(ref(staffDb()).set(lotDoc({ title: '' })));
+    await assertFails(ref(staffDb()).set(lotDoc({ status: 'approved' })));
+    await assertFails(ref(staffDb()).set(lotDoc({ registrations: [{ name: 'Early' }] })));
+    await assertFails(ref(staffDb()).set(lotDoc({ surpriseKey: true })));
+    await assertFails(ref(devoteeDb()).set(lotDoc()));
+  });
+
+  it('147. The lot doc is staff-read only — bidder personal data never leaves the desk', async () => {
+    await seedLot();
+    await assertSucceeds(ref(staffDb()).get());
+    await assertSucceeds(ref(acctDb()).get());
+    await assertFails(ref(devoteeDb()).get());
+  });
+
+  it('148. VALUATION GATE: a lot cannot leave draft without a valuation basis', async () => {
+    await seedLot();
+    await assertFails(ref(staffDb()).update({ status: 'approved', updatedAt: 2 }));
+    await assertSucceeds(ref(staffDb()).update({ status: 'approved', valuationBasis: VALUATION, updatedAt: 2 }));
+  });
+
+  it('149. SANCTION GATE: an immovable-sale lot cannot be noticed without a sanction record', async () => {
+    await seedLot({ lotClass: 'immovable-sale', status: 'approved', valuationBasis: VALUATION });
+    await assertFails(ref(staffDb()).update({ status: 'noticed', notice: NOTICE, updatedAt: 2 }));
+    await assertSucceeds(ref(staffDb()).update({ sanction: SANCTION, updatedAt: 2 }));
+    await assertSucceeds(ref(staffDb()).update({ status: 'noticed', notice: NOTICE, updatedAt: 3 }));
+  });
+
+  it('150. SANCTION GATE: a lease over five years is gated the same way; a short lease is not', async () => {
+    await seedLot({ lotClass: 'rights-lease', leaseTermYears: 9, status: 'approved', valuationBasis: VALUATION });
+    await assertFails(ref(staffDb()).update({ status: 'noticed', notice: NOTICE, updatedAt: 2 }));
+    await seedLot({ lotClass: 'rights-lease', leaseTermYears: 3, status: 'approved', valuationBasis: VALUATION });
+    await assertSucceeds(ref(staffDb()).update({ status: 'noticed', notice: NOTICE, updatedAt: 2 }));
+  });
+
+  it('151. TRANSITIONS: the lifecycle cannot skip steps and settled is terminal', async () => {
+    await seedLot({ valuationBasis: VALUATION });
+    await assertFails(ref(staffDb()).update({ status: 'settled', updatedAt: 2 }));
+    await assertFails(ref(staffDb()).update({ status: 'noticed', notice: NOTICE, updatedAt: 2 }));
+    await seedLot({ status: 'settled', valuationBasis: VALUATION });
+    await assertFails(ref(staffDb()).update({ status: 'open', updatedAt: 2 }));
+    // …but an accepted lot whose winner defaults is recorded failed.
+    await seedLot({ status: 'accepted', valuationBasis: VALUATION });
+    await assertSucceeds(ref(staffDb()).update({ status: 'failed', failReason: 'Winner defaulted', updatedAt: 2 }));
+  });
+
+  it('152. NOTICE FREEZE: once noticed, the published notice cannot be rewritten — affixtures still record', async () => {
+    await seedLot({ status: 'noticed', valuationBasis: VALUATION, notice: NOTICE });
+    await assertFails(ref(staffDb()).update({ notice: { ...NOTICE, place: 'Elsewhere' }, updatedAt: 2 }));
+    await assertSucceeds(ref(staffDb()).update({
+      affixtures: [{ place: 'temple-board', at: '2026-11-20', by: 'admin-1' }], updatedAt: 2,
+    }));
+  });
+
+  it('153. ARRAYS NEVER SHRINK and registrations are capped at 100', async () => {
+    const reg = { name: 'Bidder One', phone: '9000000000', idReference: 'Aadhaar ****1234', relatedParty: false, emdAmount: 400, emdMode: 'cash', receivedAt: 1 };
+    await seedLot({ status: 'open', valuationBasis: VALUATION, notice: NOTICE, registrations: [reg] });
+    await assertFails(ref(staffDb()).update({ registrations: [], updatedAt: 2 }));
+    await assertSucceeds(ref(staffDb()).update({ registrations: [reg, { ...reg, name: 'Bidder Two' }], updatedAt: 2 }));
+    const full = Array.from({ length: 100 }, (_, i) => ({ ...reg, name: `Bidder ${i}` }));
+    await seedLot({ status: 'open', valuationBasis: VALUATION, notice: NOTICE, registrations: full });
+    await assertFails(ref(staffDb()).update({ registrations: [...full, reg], updatedAt: 2 }));
+  });
+
+  it('154. OBJECTIONS: an objection records on the lot and its response lands at the same size', async () => {
+    await seedLot({ status: 'open', valuationBasis: VALUATION, notice: NOTICE });
+    const objection = { id: 'ob1', objectorName: 'Neighbour', text: 'The boundary is disputed', receivedOn: '2026-11-21' };
+    await assertSucceeds(ref(staffDb()).update({ objections: [objection], updatedAt: 2 }));
+    await assertSucceeds(ref(staffDb()).update({
+      objections: [{ ...objection, response: 'Survey attached; boundary confirmed.', respondedOn: '2026-11-22', respondedBy: 'admin-1' }],
+      updatedAt: 3,
+    }));
+  });
+
+  it('155. OUTCOME FREEZE: once accepted, the recorded outcome cannot be rewritten', async () => {
+    const outcome = { winnerRegistrationId: 'reg-1', winnerName: 'Bidder One', winningAmount: 5200, auctionDate: '2026-12-05', conductorName: 'Manager', publishWinnerName: true };
+    await seedLot({ status: 'accepted', valuationBasis: VALUATION, notice: NOTICE, outcome });
+    await assertFails(ref(staffDb()).update({ outcome: { ...outcome, winningAmount: 1 }, updatedAt: 2 }));
+    await seedLot({ status: 'settled', valuationBasis: VALUATION, notice: NOTICE, outcome });
+    await assertFails(ref(staffDb()).update({ outcome: { ...outcome, winningAmount: 1 }, updatedAt: 2 }));
+  });
+
+  it('156. SETTLEMENT: treasury tx ids are append-only — a posted id can never be swapped', async () => {
+    const outcome = { winnerRegistrationId: 'reg-1', winnerName: 'Bidder One', winningAmount: 5200, auctionDate: '2026-12-05', conductorName: 'Manager', publishWinnerName: true };
+    await seedLot({ status: 'accepted', valuationBasis: VALUATION, notice: NOTICE, outcome });
+    const withDeposit = { depositAmount: 2000, depositTxId: 'tx-dep-1', balanceTxId: '' };
+    await assertSucceeds(ref(staffDb()).update({ settlement: withDeposit, updatedAt: 2 }));
+    await assertFails(ref(staffDb()).update({ settlement: { ...withDeposit, depositTxId: 'tx-other' }, updatedAt: 3 }));
+    await assertSucceeds(ref(staffDb()).update({
+      status: 'settled',
+      settlement: { ...withDeposit, balanceTxId: 'tx-bal-1' },
+      updatedAt: 4,
+    }));
+  });
+
+  it('157. The lot class is immutable once created — the sanction gate cannot be dodged by reclassing', async () => {
+    await seedLot({ lotClass: 'immovable-sale', status: 'approved', valuationBasis: VALUATION });
+    await assertFails(ref(staffDb()).update({ lotClass: 'movables', updatedAt: 2 }));
+  });
+
+  it('158. DELETE is denied to everyone — a failed or disputed lot stays on record', async () => {
+    await seedLot();
+    await assertFails(ref(staffDb()).delete());
+    await assertFails(ref(devoteeDb()).delete());
+  });
+});

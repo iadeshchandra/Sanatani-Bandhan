@@ -856,6 +856,9 @@ service cloud.firestore {
     function reqData() {
       return request.resource.data;
     }
+    function resData() {
+      return resource.data;
+    }
     function loggedUidIs(x) {
       return isLoggedIn() && uidIs(x);
     }
@@ -1527,6 +1530,64 @@ service cloud.firestore {
         || (loggedUidIs(tkOldGet('uid', '')) && dipClaimConsumeOk());
       allow delete: if isLoggedIn() && dipWithdrawOk();
     }
+
+    // AUCTION A1 (2026-11-23) — Nilam auction & allotment lots. The
+    // lot doc is the defensible record of a hall/public auction and is
+    // staff-read only (bidder phones and ID references live on it; the
+    // public sees the Transparency-Board result card, never the lot).
+    // Writes follow the desk gate (SuperAdmin / Trustee / Manager /
+    // Accountant). The valuation gate keeps a lot from leaving draft
+    // without a basis; the sanction gate is enforced here for the
+    // classes that demand it; settlement tx ids are append-only; the
+    // notice freezes once published and the outcome once accepted;
+    // registrations / objections / affixtures never shrink and
+    // registrations are capped at 100 (the bounded-array decision).
+    function lotCreateOk() {
+      let d = reqData();
+      return d.status == 'draft'
+        && d.lotClass in ['rights-lease', 'movables', 'immovable-sale']
+        && d.title is string && d.title.size() > 0 && d.title.size() <= 120
+        && d.reservePrice is number && d.reservePrice >= 0
+        && d.registrations is list && d.registrations.size() == 0
+        && reqKeys().hasOnly(['workspaceId', 'source', 'lotClass', 'title', 'description', 'mediaRefs', 'reservePrice', 'valuationBasis', 'sanction', 'leaseTermYears', 'status', 'history', 'notice', 'affixtures', 'objections', 'registrations', 'outcome', 'settlement', 'failReason', 'createdAt', 'updatedAt']);
+    }
+    function lotUpdateOk() {
+      let os = resData().status;
+      let ns = reqData().status;
+      let d = reqData();
+      let o = resData();
+      return wsImmutable()
+        && d.lotClass == o.lotClass
+        && d.title is string && d.title.size() > 0
+        && (ns == os
+          || (os == 'draft' && ns in ['approved', 'withdrawn'])
+          || (os == 'approved' && ns in ['noticed', 'withdrawn'])
+          || (os == 'noticed' && ns in ['open', 'withdrawn'])
+          || (os == 'open' && ns in ['accepted', 'failed', 'withdrawn'])
+          || (os == 'accepted' && ns in ['settled', 'failed']))
+        && (ns in ['draft', 'withdrawn']
+          || (d.valuationBasis is map && d.valuationBasis.get('figure', -1) >= 0))
+        && (!(ns in ['noticed', 'open', 'accepted', 'settled'])
+          || !((d.lotClass == 'immovable-sale' || (d.leaseTermYears is number && d.leaseTermYears > 5))
+            && !(d.sanction is map && d.sanction.get('authority', '') != '' && d.sanction.get('reference', '') != '')))
+        && (o.settlement.get('depositTxId', '') == ''
+          || d.settlement.get('depositTxId', '') == o.settlement.get('depositTxId', ''))
+        && (o.settlement.get('balanceTxId', '') == ''
+          || d.settlement.get('balanceTxId', '') == o.settlement.get('balanceTxId', ''))
+        && (!(os in ['accepted', 'settled']) || d.outcome == o.outcome)
+        && (!(os in ['noticed', 'open', 'accepted', 'settled']) || d.notice == o.notice)
+        && d.registrations.size() >= o.registrations.size()
+        && d.registrations.size() <= 100
+        && d.objections.size() >= o.objections.size()
+        && d.affixtures.size() >= o.affixtures.size();
+    }
+    match /auction_lots/{lotId} {
+      allow read: if isSuperAdmin() || hasRole(docWs(), R_ANY_STAFF()) || demoPublicRead(docWs());
+      allow create: if (demoWriteOk(newDocWs()) || hasRole(newDocWs(), R_BOARD()) || hasRole(newDocWs(), R_FINANCE())) && lotCreateOk();
+      allow update: if (demoWriteOk(newDocWs()) || hasRole(newDocWs(), R_BOARD()) || hasRole(newDocWs(), R_FINANCE())) && lotUpdateOk();
+      allow delete: if false;
+    }
+
 
     // EVENTS P1 — Utsav One team sharing. Until now the whole Utsav
     // committee plan lived in ONE device's localStorage; the War Room
