@@ -63,6 +63,17 @@ export interface ReleaseEntry {
 
 export const RELEASES: readonly ReleaseEntry[] = [
   {
+    version: 'v2026.11.23-53cdd52',
+    date: '2026-11-23',
+    sections: {
+      new: [
+        { text: { en: 'Two modes, one clear door: a Personal | Organisation switch now lives in the header in both modes. If you serve an organisation, it is always one tap away; if you do not, the same place invites you to grow — join an organisation, or enrol as Purohit or Jyotishi — instead of showing a locked door.', hi: 'दो मोड, एक स्पष्ट द्वार: अब दोनों मोड में शीर्षक में Personal | Organisation स्विच रहता है। यदि आप किसी संस्था से जुड़े हैं, तो वह हमेशा एक टैप दूर है; यदि नहीं, तो वही स्थान आपको आगे बढ़ने का निमंत्रण देता है — किसी संस्था से जुड़ें, या पुरोहित या ज्योतिषी के रूप में नामांकन करें — बंद द्वार दिखाने के बजाय।', bn: 'দুটি মোড, একটি স্পষ্ট দরজা: এখন দুটি মোডেই হেডারে Personal | Organisation সুইচ থাকে। আপনি কোনো প্রতিষ্ঠানের সঙ্গে যুক্ত থাকলে তা সবসময় এক ট্যাপ দূরে; না থাকলে সেই একই জায়গা আপনাকে এগিয়ে যাওয়ার আমন্ত্রণ জানায় — কোনো প্রতিষ্ঠানে যোগ দিন, অথবা পুরোহিত বা জ্যোতিষী হিসেবে নাম লেখান — বন্ধ দরজা দেখানোর বদলে।' } },
+        { text: { en: 'Quick Look: from your Personal space, "My Organisations" lets you peek at each organisation you serve — your role and its next festival — without switching modes, seeing only what your role permits. The full workspace is one tap further, whenever you want it.', hi: 'त्वरित झलक: अपने Personal स्थान से, "मेरी संस्थाएँ" आपको मोड बदले बिना हर संस्था की झलक देता है जिसमें आप सेवा करते हैं — आपकी भूमिका और उसका अगला उत्सव — केवल वही दिखता है जिसकी आपकी भूमिका अनुमति देती है। पूरा कार्यक्षेत्र जब चाहें, एक टैप आगे है।', bn: 'কুইক লুক: আপনার Personal জায়গা থেকে, "আমার প্রতিষ্ঠানসমূহ" মোড না বদলেই প্রতিটি প্রতিষ্ঠানের ঝলক দেয় যেখানে আপনি সেবা করেন — আপনার ভূমিকা ও তার পরের উৎসব — শুধু তাই দেখায় যা আপনার ভূমিকা অনুমতি দেয়। পুরো ওয়ার্কস্পেস যখন চাইবেন, এক ট্যাপ এগিয়ে।' } },
+      ],
+    },
+  },
+
+  {
     version: 'v2026.11.23-c3b4cf0',
     date: '2026-11-23',
     sections: {
