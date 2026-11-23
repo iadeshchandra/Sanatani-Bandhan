@@ -63,6 +63,17 @@ export interface ReleaseEntry {
 
 export const RELEASES: readonly ReleaseEntry[] = [
   {
+    version: 'v2026.11.23-c3b4cf0',
+    date: '2026-11-23',
+    sections: {
+      new: [
+        { text: { en: 'Every festival now has a live notice board: the committee can post gate notes, announcements and lost-and-found from the War Room, and devotees see them on the festival page as the day unfolds — a found item marked resolved closes with a warm "Reunited" note.', hi: 'हर उत्सव के पास अब एक लाइव सूचना-पट्ट है: समिति युद्ध-कक्ष से गेट-टिप्पणियाँ, घोषणाएँ और खोया-पाया पोस्ट कर सकती है, और भक्त उन्हें उत्सव-पृष्ठ पर दिन भर देखते हैं — मिली हुई वस्तु के हल होते ही एक स्नेहभरा "पुनर्मिलन" संदेश जुड़ता है।', bn: 'প্রতিটি উৎসবের এখন একটি লাইভ নোটিশ বোর্ড আছে: কমিটি ওয়ার রুম থেকে গেট-নোট, ঘোষণা ও হারানো-পাওয়া পোস্ট করতে পারে, আর ভক্তরা উৎসবের পৃষ্ঠায় সারাদিন তা দেখতে পান — পাওয়া জিনিস মিলে গেলে একটি উষ্ণ "পুনর্মিলন" বার্তায় তা শেষ হয়।' } },
+        { text: { en: 'Festivals with live notes show a small "Live board" marker on the public events page, so devotees know where to look before they set out.', hi: 'जिन उत्सवों पर लाइव टिप्पणियाँ हैं, उनके सार्वजनिक कार्यक्रम-पृष्ठ पर एक छोटा "लाइव बोर्ड" चिह्न दिखता है, ताकि भक्त निकलने से पहले जान सकें कि कहाँ देखना है।', bn: 'যেসব উৎসবে লাইভ নোট আছে, সেগুলির পাবলিক ইভেন্ট পৃষ্ঠায় একটি ছোট "লাইভ বোর্ড" চিহ্ন দেখায়, যাতে ভক্তরা বেরোনোর আগেই জানতে পারেন কোথায় দেখতে হবে।' } },
+      ],
+    },
+  },
+
+  {
     version: 'v2026.11.22-6512ee9',
     date: '2026-11-22',
     sections: {
