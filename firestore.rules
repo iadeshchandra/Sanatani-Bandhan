@@ -27,7 +27,7 @@ service cloud.firestore {
         (request.auth.token.roles is list &&
           request.auth.token.roles.hasAny(['SuperAdmin', 'SUPER_ADMIN'])) ||
         (exists(/databases/$(database)/documents/platform_admins/$(request.auth.uid)) &&
-          get(/databases/$(database)/documents/platform_admins/$(request.auth.uid)).data.get('active', true) != false)
+          docGet(/databases/$(database)/documents/platform_admins/$(request.auth.uid), 'active', true) != false)
       );
     }
 
@@ -41,7 +41,7 @@ service cloud.firestore {
       return request.auth == null ? null :
         (request.auth.token.tenantId != null ? request.auth.token.tenantId :
           (exists(/databases/$(database)/documents/users/$(request.auth.uid)) ?
-            get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('workspaceId', null) : null));
+            docGet(/databases/$(database)/documents/users/$(request.auth.uid), 'workspaceId', null) : null));
     }
 
     // Role check: single `role` claim, `roles[]` claim, or users-doc fallback.
@@ -50,7 +50,7 @@ service cloud.firestore {
         request.auth.token.role in roles ||
         (request.auth.token.roles is list && request.auth.token.roles.hasAny(roles)) ||
         (exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
-          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('role', null) in roles)
+          docGet(/databases/$(database)/documents/users/$(request.auth.uid), 'role', null) in roles)
       );
     }
 
@@ -76,7 +76,7 @@ service cloud.firestore {
     }
     function wsMemberRoleIn(tenantId, roles) {
       return isWsMember(tenantId)
-        && get(wsMemberPath(tenantId)).data.get('role', null) in roles;
+        && docGet(wsMemberPath(tenantId), 'role', null) in roles;
     }
     function isTenantMember(tenantId) {
       return isLoggedIn() && tenantId != null && (
@@ -171,14 +171,14 @@ service cloud.firestore {
     // status and the witness remain each clause's own.
     function festRsvpShapeOk() {
       return reqWorkspaceId() != ''
-        && request.resource.data.get('eventId', '') != ''
+        && tkNewGet('eventId', '') != ''
         && reqName().size() >= 2
         && reqName().size() <= 80
-        && request.resource.data.get('headcount', 0) >= 1
-        && request.resource.data.get('headcount', 0) <= 20
-        && (!('days' in request.resource.data)
-            || (request.resource.data.get('days', []) is list
-                && request.resource.data.get('days', []).size() <= 14))
+        && tkNewGet('headcount', 0) >= 1
+        && tkNewGet('headcount', 0) <= 20
+        && (!('days' in reqData())
+            || (tkNewGet('days', []) is list
+                && tkNewGet('days', []).size() <= 14))
         && request.resource.data.keys().hasOnly(
              ['eventId', 'workspaceId', 'uid', 'name', 'headcount', 'slotId', 'createdAt',
               'status', 'days', 'ticketId']);
@@ -264,12 +264,12 @@ service cloud.firestore {
     function festCounterOk(eventId, rp, uid, anchorKey) {
       let had = exists(rp);
       let has = existsAfter(rp);
-      let hcBefore = had ? festEffHc(get(rp).data) : 0;
-      let hcAfter = has ? festEffHc(getAfter(rp).data) : 0;
-      let slotBefore = had ? get(rp).data.get('slotId', '') : '';
-      let slotAfter = has ? getAfter(rp).data.get('slotId', '') : '';
-      let wasWl = had && get(rp).data.get('status', 'confirmed') == 'waitlisted';
-      let isWl = has && getAfter(rp).data.get('status', 'confirmed') == 'waitlisted';
+      let hcBefore = had ? festEffHc(docData(rp)) : 0;
+      let hcAfter = has ? festEffHc(tkAfterData(rp)) : 0;
+      let slotBefore = had ? docGet(rp, 'slotId', '') : '';
+      let slotAfter = has ? afterDocGet(rp, 'slotId', '') : '';
+      let wasWl = had && docGet(rp, 'status', 'confirmed') == 'waitlisted';
+      let isWl = has && afterDocGet(rp, 'status', 'confirmed') == 'waitlisted';
       return (anchorKey == '' || tkDeskSaleWitnessOk(eventId, uid))
         && (had || has)
         && diffKeys()
@@ -279,9 +279,9 @@ service cloud.firestore {
         && tkNewGet('rsvpHeadcount', 0) >= 0
         && tkNewGet('slotBooked', {}).diff(tkOldGet('slotBooked', {}))
              .affectedKeys().hasOnly([slotBefore, slotAfter])
-        && festSlotMoveOk(resource.data, request.resource.data, slotBefore, slotAfter, hcBefore, hcAfter)
-        && festSlotCapacityOk(resource.data, request.resource.data, slotAfter)
-        && festWaitlistOk(resource.data, request.resource.data, slotBefore, slotAfter, uid, wasWl, isWl);
+        && festSlotMoveOk(resource.data, reqData(), slotBefore, slotAfter, hcBefore, hcAfter)
+        && festSlotCapacityOk(resource.data, reqData(), slotAfter)
+        && festWaitlistOk(resource.data, reqData(), slotBefore, slotAfter, uid, wasWl, isWl);
     }
     function anchoredFestivalCounter(eventId) {
       return festCounterOk(eventId, festRsvpPath(eventId), request.auth.uid, '');
@@ -299,14 +299,14 @@ service cloud.firestore {
     // by the caller, owned by the desk identity the RSVP claims.
     function tkDeskSaleWitnessOk(eventId, auid) {
       let rp = /databases/$(database)/documents/festival_rsvps/$(eventId + '__' + auid);
-      let tid = existsAfter(rp) ? getAfter(rp).data.get('ticketId', '') : '';
+      let tid = existsAfter(rp) ? afterDocGet(rp, 'ticketId', '') : '';
       let tp = ticketPath(tid);
       let tk = tid != '' && existsAfter(tp) ? tkAfterData(tp)
-        : (tid != '' && exists(tp) ? get(tp).data : {});
+        : (tid != '' && exists(tp) ? docData(tp) : {});
       return auid.matches('desk_.+')
         && tk.size() > 0
         && tk.get('deskSale', false) == true
-        && tk.get('recordedBy', '') == request.auth.uid
+        && uidIs(tk.get('recordedBy', ''))
         && tkBuyerOf(tk) == auid
         && tkFestOf(tk) == eventId;
     }
@@ -385,17 +385,17 @@ service cloud.firestore {
       return lad[i].get('percent', 0);
     }
     function tkPlanRes() {
-      return get(/databases/$(database)/documents/festival_plans/$(resource.data.get('festivalId', ''))).data;
+      return docData(/databases/$(database)/documents/festival_plans/$(tkOldGet('festivalId', '')));
     }
     function tkStaffVenue() {
       return hasRole(docWs(), R_ANY_STAFF())
-        && resource.data.get('paymentState', '') == 'pay-at-venue';
+        && tkOldGet('paymentState', '') == 'pay-at-venue';
     }
     function tkBuyerGuard() {
-      return isLoggedIn() && uidIs(resource.data.get('buyerUid', ''));
+      return loggedUidIs(tkOldGet('buyerUid', ''));
     }
     function tkIsTransferTo() {
-      return uidIs(resource.data.get('transferToUid', ''));
+      return uidIs(tkOldGet('transferToUid', ''));
     }
     function ticketPath(ticketId) {
       return /databases/$(database)/documents/event_tickets/$(ticketId);
@@ -412,21 +412,21 @@ service cloud.firestore {
       let tp = ticketPath(tid);
       let had = exists(tp);
       let has = existsAfter(tp);
-      let qBefore = had ? tkEffQty(get(tp).data) : 0;
+      let qBefore = had ? tkEffQty(docData(tp)) : 0;
       let qAfter = has ? tkEffQty(tkAfterData(tp)) : 0;
       let tierId = has ? tkTierOf(tkAfterData(tp))
-        : (had ? tkTierOf(get(tp).data) : '');
+        : (had ? tkTierOf(docData(tp)) : '');
       let soldBefore = tkOldGet('tierSold', {});
       let soldAfter = tkNewGet('tierSold', {});
       return tid != ''
         && (had || has)
         && (has ? tkFestOf(tkAfterData(tp)) == eventId
-                : tkFestOf(get(tp).data) == eventId)
+                : tkFestOf(docData(tp)) == eventId)
         && diffKeys().hasOnly(['tierSold', 'tierAnchorTicketId', 'updatedAt'])
         && diffKeysOnly(soldAfter, soldBefore, [tierId])
         && soldAfter.get(tierId, 0) == soldBefore.get(tierId, 0) + (qAfter - qBefore)
         && soldAfter.get(tierId, 0) >= 0
-        && (!('tierCaps' in request.resource.data)
+        && (!('tierCaps' in reqData())
             || !(tierId in tkNewGet('tierCaps', {}))
             || soldAfter.get(tierId, 0) <= tkNewGet('tierCaps', {}).get(tierId, 0));
     }
@@ -527,10 +527,10 @@ service cloud.firestore {
     // releases the place.
     function tkBuyerCancelOk() {
       let plan = tkPlanRes();
-      let ev = get(/databases/$(database)/documents/festival_events/$(tkFestOf(resource.data))).data;
+      let ev = docData(/databases/$(database)/documents/festival_events/$(tkFestOf(resource.data)));
       let pct = tkRefundPct(plan, ev);
       let due = (tkTotalOf(resource.data) * pct) / 100;
-      let ns = tkStateOf(request.resource.data);
+      let ns = tkStateOf(reqData());
       return tkDiff(['paymentState', 'refundAmount', 'refundedAt', 'updatedAt'])
         && ((ns == 'refunded'
              && tkStateOf(resource.data) == 'paid-wallet'
@@ -546,10 +546,10 @@ service cloud.firestore {
       let plan = tkPlanRes();
       return tkTrStateOf(resource.data) == 'offered'
         && tkIsTransferTo()
-        && tkBuyerOf(request.resource.data) == request.auth.uid
+        && uidIs(tkBuyerOf(reqData()))
         && tkNewGet('transferFromUid', '') == tkBuyerOf(resource.data)
-        && !('transferToUid' in request.resource.data)
-        && !('transferState' in request.resource.data)
+        && !('transferToUid' in reqData())
+        && !('transferState' in reqData())
         && tkDiff(['buyerUid', 'buyerName', 'transferFromUid', 'transferredAt',
              'transferToUid', 'transferToName', 'transferState', 'offeredAt', 'rsvpId', 'updatedAt'])
         && request.time.toMillis() < tkPlanCfg(plan).get('startMs', 0);
@@ -557,7 +557,7 @@ service cloud.firestore {
     // Wallet debit for a pass purchase — the marketplace debit's
     // twin, anchored on the ticket (getAfter: same batch).
     function tkWalletDebitOk() {
-      let data = request.resource.data;
+      let data = reqData();
       let old = resource.data;
       let tid = data.get('lastDebitTicketId', '');
       let tp = ticketPath(tid);
@@ -566,7 +566,7 @@ service cloud.firestore {
       return diffKeysOnly(data, old, ['balance', 'totalSpent', 'updatedAt', 'lastDebitTicketId', 'currency'])
         && tid != '' && tid != old.get('lastDebitTicketId', '')
         && existsAfter(tp)
-        && tkBuyerOf(tk) == request.auth.uid
+        && uidIs(tkBuyerOf(tk))
         && tkStateOf(tk) == 'paid-wallet'
         && total > 0
         && data.get('balance', -1) == old.get('balance', 0) - total
@@ -575,7 +575,7 @@ service cloud.firestore {
     }
     // Wallet refund credit — anchored on the refunded ticket.
     function tkWalletRefundOk(uid) {
-      let data = request.resource.data;
+      let data = reqData();
       let old = resource.data;
       let tid = data.get('lastRefundTicketId', '');
       let tp = ticketPath(tid);
@@ -595,8 +595,8 @@ service cloud.firestore {
     // witnessed by the batch's own tier-anchor ticket.
     function anchoredDiscountUse(planId) {
       let oldTk = tkPlanCfg(resource.data);
-      let newTk = tkPlanCfg(request.resource.data);
-      let evAfter = getAfter(/databases/$(database)/documents/festival_events/$(planId)).data;
+      let newTk = tkPlanCfg(reqData());
+      let evAfter = tkAfterData(/databases/$(database)/documents/festival_events/$(planId));
       let tp = ticketPath(evAfter.get('tierAnchorTicketId', ''));
       let tk = tkAfterData(tp);
       let code = tk.get('discountCode', '');
@@ -604,7 +604,7 @@ service cloud.firestore {
       return code != ''
         && !exists(tp) && existsAfter(tp)
         && tkFestOf(tk) == planId
-        && tkBuyerOf(tk) == request.auth.uid
+        && uidIs(tkBuyerOf(tk))
         && tkDiff(['ticketing'])
         && diffKeysOnly(newTk, oldTk, ['discountUses'])
         && diffKeysOnly(newTk.get('discountUses', {}), oldTk.get('discountUses', {}), [code])
@@ -644,7 +644,7 @@ service cloud.firestore {
       let ep = dipPath(tkFestOf(d), tierId, request.auth.uid);
       return !dipIsDipTier(ev, tierId)
         || (exists(ep)
-            && get(ep).data.get('status', '') == 'selected'
+            && docGet(ep, 'status', '') == 'selected'
             && ev.get('dipDraws', {}).get(tierId, {}).get('claimByMs', 0)
                  >= request.time.toMillis());
     }
@@ -661,9 +661,9 @@ service cloud.firestore {
         && tkWsOf(plan) == tkWsOf(d);
     }
     function tkCreateOk() {
-      let d = request.resource.data;
-      let ev = get(/databases/$(database)/documents/festival_events/$(tkFestOf(d))).data;
-      let plan = get(/databases/$(database)/documents/festival_plans/$(tkFestOf(d))).data;
+      let d = reqData();
+      let ev = docData(/databases/$(database)/documents/festival_events/$(tkFestOf(d)));
+      let plan = docData(/databases/$(database)/documents/festival_plans/$(tkFestOf(d)));
       return uidIs(tkBuyerOf(d))
         && tkDocsAgreeOk(d, ev, plan)
         && d.keys().hasOnly(
@@ -688,14 +688,14 @@ service cloud.firestore {
     // outright (anchoredDiscountUse can only witness a real buyer;
     // codes stay a devotee-channel feature).
     function tkDeskCreateOk(ticketId) {
-      let d = request.resource.data;
-      let ev = get(/databases/$(database)/documents/festival_events/$(tkFestOf(d))).data;
-      let plan = get(/databases/$(database)/documents/festival_plans/$(tkFestOf(d))).data;
+      let d = reqData();
+      let ev = docData(/databases/$(database)/documents/festival_events/$(tkFestOf(d)));
+      let plan = docData(/databases/$(database)/documents/festival_plans/$(tkFestOf(d)));
       return hasRole(tkWsOf(d), R_ANY_STAFF())
         && tkDocsAgreeOk(d, ev, plan)
         && d.get('deskSale', false) == true
         && tkBuyerOf(d) == 'desk_' + ticketId
-        && d.get('recordedBy', '') == request.auth.uid
+        && uidIs(d.get('recordedBy', ''))
         && !('discountCode' in d)
         && d.keys().hasOnly(
              ['workspaceId', 'festivalId', 'tierId', 'tierName', 'buyerUid', 'buyerName',
@@ -719,10 +719,10 @@ service cloud.firestore {
     }
     // The refund ledger line's anchor (walletTransactions create).
     function tkRefundLedgerOk() {
-      let tk = getAfter(ticketPath(reqOrderId())).data;
+      let tk = tkAfterData(ticketPath(reqOrderId()));
       return reqOrderId() != ''
         && reqAmount() > 0
-        && tkBuyerOf(tk) == request.auth.uid
+        && uidIs(tkBuyerOf(tk))
         && tkStateOf(tk) == 'refunded'
         && tk.get('refundAmount', 0) == reqAmount();
     }
@@ -734,7 +734,7 @@ service cloud.firestore {
       let tk = tkAfterData(tp);
       return tid != ''
         && existsAfter(tp)
-        && tkBuyerOf(tk) == request.auth.uid
+        && uidIs(tkBuyerOf(tk))
         && tk.get('transferFromUid', '') == resUid()
         && tkFestOf(tk) == tkOldGet('eventId', '');
     }
@@ -839,6 +839,27 @@ service cloud.firestore {
     function uidIs(x) {
       return x == request.auth.uid;
     }
+
+    // Compiled-size diet, round 5 (2026-11-23): shared expression shapes
+    // for auction headroom. Each helper returns exactly the expression
+    // it replaces at every call site - no rule changes meaning;
+    // verified by inverse expansion against the previous file.
+    function docGet(p, k, dv) {
+      return get(p).data.get(k, dv);
+    }
+    function afterDocGet(p, k, dv) {
+      return getAfter(p).data.get(k, dv);
+    }
+    function docData(p) {
+      return get(p).data;
+    }
+    function reqData() {
+      return request.resource.data;
+    }
+    function loggedUidIs(x) {
+      return isLoggedIn() && uidIs(x);
+    }
+
     function reqGigDoc() {
       return get(/databases/$(database)/documents/gigs/$(tkNewGet('orderId', '')));
     }
@@ -1032,11 +1053,11 @@ service cloud.firestore {
     match /user_follows/{uid} {
       function followsShapeOk() {
         return reqKeys().hasOnly(['orgIds', 'festivalIds', 'updatedAt'])
-          && request.resource.data.get('orgIds', []) is list
-          && request.resource.data.get('orgIds', []).size() <= 200
-          && request.resource.data.get('festivalIds', []) is list
-          && request.resource.data.get('festivalIds', []).size() <= 200
-          && request.resource.data.get('updatedAt', 0) is number;
+          && tkNewGet('orgIds', []) is list
+          && tkNewGet('orgIds', []).size() <= 200
+          && tkNewGet('festivalIds', []) is list
+          && tkNewGet('festivalIds', []).size() <= 200
+          && tkNewGet('updatedAt', 0) is number;
       }
       allow read: if isSelf(uid);
       allow create: if isSelf(uid)
@@ -1096,7 +1117,7 @@ service cloud.firestore {
         && !reqKeys().hasAny(['adminPinHash', 'adminPin']);
       // Owner (Spark-native console) may change plan + limits-bypass fields only â never pins.
       allow update: if (isOwner()
-          && diffKeysOnly(request.resource.data, resource.data, ['planId', 'limitsBypassed', 'updatedAt']))
+          && tkDiff(['planId', 'limitsBypassed', 'updatedAt']))
         || ((demoWriteOk(workspaceId) || hasRole(workspaceId, R_TRUSTEE()))
           && !diffKeys().hasAny(['adminPinHash', 'adminPin']));
       allow delete: if isSuperAdmin();
@@ -1215,7 +1236,7 @@ service cloud.firestore {
     }
 
     match /festival_events/{eventId} {
-      allow read: if resource.data.get('published', false) == true
+      allow read: if tkOldGet('published', false) == true
         || demoPublicRead(docWs()) || isTenantMember(docWs());
       allow create: if demoWriteOk(newDocWs())
         || hasRole(newDocWs(), R_BOARD());
@@ -1233,12 +1254,11 @@ service cloud.firestore {
 
     match /festival_rsvps/{rsvpId} {
       allow read: if isTenantMember(docWs())
-        || (isLoggedIn() && uidIs(resUid()));
-      allow create: if isLoggedIn()
-        && uidIs(reqUid())
+        || (loggedUidIs(resUid()));
+      allow create: if loggedUidIs(reqUid())
         && festRsvpShapeOk()
         // EVENTS P1: optional waitlist status.
-        && request.resource.data.get('status', 'confirmed') in ['confirmed', 'waitlisted']
+        && tkNewGet('status', 'confirmed') in ['confirmed', 'waitlisted']
         // EVENTS P0: the doc id is derived ({eventId}__{uid}) so the
         // festival_events counter rule can find THIS RSVP as its anchor.
         && rsvpId == request.resource.data.get('eventId', '') + '__' + request.auth.uid;
@@ -1254,21 +1274,21 @@ service cloud.firestore {
         && hasRole(reqWorkspaceId(), R_ANY_STAFF())
         && reqUid().matches('desk_.+')
         && festRsvpShapeOk()
-        && request.resource.data.get('status', 'confirmed') == 'confirmed'
+        && tkNewGet('status', 'confirmed') == 'confirmed'
         && rsvpId == request.resource.data.get('eventId', '') + '__' + reqUid()
-        && tkDeskSaleWitnessOk(request.resource.data.get('eventId', ''), reqUid());
-      allow update: if (isLoggedIn() && uidIs(resUid())
-          && diffKeysOnly(request.resource.data, resource.data, ['headcount', 'slotId', 'days', 'status'])
+        && tkDeskSaleWitnessOk(tkNewGet('eventId', ''), reqUid());
+      allow update: if (loggedUidIs(resUid())
+          && tkDiff(['headcount', 'slotId', 'days', 'status'])
           // EVENTS P1: the owner may move status ONLY waitlisted →
           // confirmed (claiming a freed place — the counters move in
           // the same transaction, anchored on the event doc). Giving
           // up a confirmed place happens by deleting the RSVP, never
           // by a status flip the counters cannot see.
-          && (request.resource.data.get('status', 'confirmed') == resource.data.get('status', 'confirmed')
-              || (resource.data.get('status', 'confirmed') == 'waitlisted'
+          && (tkNewGet('status', 'confirmed') == tkOldGet('status', 'confirmed')
+              || (tkOldGet('status', 'confirmed') == 'waitlisted'
                   && reqStatus() == 'confirmed')))
         || hasRole(docWs(), R_TRUSTEE());
-      allow delete: if (isLoggedIn() && uidIs(resUid()))
+      allow delete: if (loggedUidIs(resUid()))
         || hasRole(docWs(), R_TRUSTEE())
         // EVENTS E2: inside a transfer-accept transaction the
         // RECIPIENT deletes the giver's party record — witnessed by
@@ -1285,7 +1305,7 @@ service cloud.firestore {
     // a pass is cancelled or refunded, never erased.
     match /event_tickets/{ticketId} {
       allow read: if isLoggedIn()
-        && (uidIs(resource.data.get('buyerUid', ''))
+        && (uidIs(tkOldGet('buyerUid', ''))
           || tkIsTransferTo()
           || hasRole(docWs(), R_ANY_STAFF()));
       allow create: if isLoggedIn() && tkCreateOk();
@@ -1299,19 +1319,19 @@ service cloud.firestore {
       // Buyer offers a transfer (live passes only).
       allow update: if tkBuyerGuard()
         && tkStateOf(resource.data) in ['paid-wallet', 'pay-at-venue', 'comp']
-        && tkTrStateOf(request.resource.data) == 'offered'
+        && tkTrStateOf(reqData()) == 'offered'
         && tkNewGet('transferToUid', '') != ''
         && tkNewGet('transferToUid', '') != tkBuyerOf(resource.data)
         && tkDiff(['transferToUid', 'transferToName', 'transferState', 'offeredAt', 'updatedAt']);
       // Buyer withdraws an offer / dismisses a decline.
       allow update: if tkBuyerGuard()
         && tkTrStateOf(resource.data) in ['offered', 'declined']
-        && !('transferToUid' in request.resource.data)
+        && !('transferToUid' in reqData())
         && tkDiff(['transferToUid', 'transferToName', 'transferState', 'offeredAt', 'updatedAt']);
       // Recipient declines.
       allow update: if isLoggedIn() && tkIsTransferTo()
         && tkTrStateOf(resource.data) == 'offered'
-        && tkTrStateOf(request.resource.data) == 'declined'
+        && tkTrStateOf(reqData()) == 'declined'
         && tkDiff(['transferState', 'updatedAt']);
       // Recipient accepts (rebinds buyer + RSVP link, before the start).
       allow update: if isLoggedIn() && tkAcceptOk();
@@ -1323,13 +1343,13 @@ service cloud.firestore {
       // the treasury Expense posts through the app path).
       allow update: if tkStaffVenue()
         && tkOldGet('venueReceived', false) == true
-        && tkStateOf(request.resource.data) == 'refunded'
+        && tkStateOf(reqData()) == 'refunded'
         && tkNewGet('refundAmount', 0) == tkTotalOf(resource.data)
         && tkDiff(['paymentState', 'refundAmount', 'refundedAt', 'updatedAt']);
       // Staff desk-cancel of an UNRECEIVED venue pass.
       allow update: if tkStaffVenue()
         && tkOldGet('venueReceived', false) != true
-        && tkStateOf(request.resource.data) == 'cancelled'
+        && tkStateOf(reqData()) == 'cancelled'
         && tkDiff(['paymentState', 'updatedAt']);
       // Staff treasury stamp (the real tx id, after posting income).
       allow update: if hasRole(docWs(), R_ANY_STAFF())
@@ -1361,27 +1381,26 @@ service cloud.firestore {
     }
     function fbAttendedOk(fid) {
       return exists(festRsvpPath(fid))
-        && get(festRsvpPath(fid)).data.get('checkedIn', false) == true;
+        && docGet(festRsvpPath(fid), 'checkedIn', false) == true;
     }
     function fbTextOk() {
       return tkNewGet('text', '') is string && tkNewGet('text', '').size() <= 600;
     }
     function fbDayOk() {
-      return !('attendedDay' in request.resource.data)
+      return !('attendedDay' in reqData())
         || (tkNewGet('attendedDay', '') is string && tkNewGet('attendedDay', '').size() <= 10);
     }
     match /event_feedback/{feedbackId} {
-      allow read: if (isLoggedIn() && uidIs(resAuthorUid()))
+      allow read: if (loggedUidIs(resAuthorUid()))
         || hasRole(docWs(), R_STAFF());
-      allow create: if isLoggedIn()
-        && uidIs(tkNewGet('authorUid', ''))
+      allow create: if loggedUidIs(tkNewGet('authorUid', ''))
         && feedbackId == tkNewGet('festivalId', '') + '__' + request.auth.uid
         && newDocWs() != null && newDocWs() != ''
         && tkNewGet('festivalId', '') != ''
         && tkNewGet('authorName', '').size() >= 2
         && tkNewGet('authorName', '').size() <= 80
         && tkNewGet('state', '') == 'visible'
-        && !('orgResponse' in request.resource.data)
+        && !('orgResponse' in reqData())
         && reqKeys().hasAll(['workspaceId', 'festivalId', 'authorUid', 'authorName',
              'aspects', 'overall', 'text', 'wouldReturn', 'createdAt', 'updatedAt', 'state'])
         && reqKeys().hasOnly(['workspaceId', 'festivalId', 'authorUid', 'authorName',
@@ -1393,20 +1412,18 @@ service cloud.firestore {
         && tkNewGet('wouldReturn', false) is bool
         && fbDayOk()
         && fbAttendedOk(tkNewGet('festivalId', ''));
-      allow update: if (isLoggedIn() && uidIs(resAuthorUid())
+      allow update: if (loggedUidIs(resAuthorUid())
           && tkOldGet('state', '') == 'visible'
-          && diffKeysOnly(request.resource.data, resource.data,
-               ['aspects', 'overall', 'text', 'wouldReturn', 'attendedDay', 'updatedAt'])
+          && tkDiff(['aspects', 'overall', 'text', 'wouldReturn', 'attendedDay', 'updatedAt'])
           && fbAspectsOk(tkNewGet('aspects', {}))
           && fbRatingOk(tkNewGet('overall', 0))
           && fbTextOk()
           && tkNewGet('wouldReturn', false) is bool
           && fbDayOk())
         || (hasRole(docWs(), R_STAFF())
-          && diffKeysOnly(request.resource.data, resource.data,
-               ['state', 'orgResponse', 'updatedAt'])
+          && tkDiff(['state', 'orgResponse', 'updatedAt'])
           && tkNewGet('state', '') in ['visible', 'hidden']
-          && (!('orgResponse' in request.resource.data)
+          && (!('orgResponse' in reqData())
               || (tkNewGet('orgResponse', {}).keys().hasOnly(['text', 'at', 'byName'])
                   && tkNewGet('orgResponse', {}).get('text', '') is string
                   && tkNewGet('orgResponse', {}).get('text', '').size() <= 600)));
@@ -1419,9 +1436,9 @@ service cloud.firestore {
     // tkReleaseOpen pattern — the window lives on the public
     // event doc; the per-booking cap on the plan's stamped maps).
     function dipEntryCreateOk(entryId) {
-      let d = request.resource.data;
-      let ev = get(/databases/$(database)/documents/festival_events/$(tkNewGet('festivalId', ''))).data;
-      let plan = get(/databases/$(database)/documents/festival_plans/$(tkNewGet('festivalId', ''))).data;
+      let d = reqData();
+      let ev = docData(/databases/$(database)/documents/festival_events/$(tkNewGet('festivalId', '')));
+      let plan = docData(/databases/$(database)/documents/festival_plans/$(tkNewGet('festivalId', '')));
       let opens = ev.get('dipOpensAtMs', {}).get(tkNewGet('tierId', ''), 0);
       let closes = ev.get('dipClosesAtMs', {}).get(tkNewGet('tierId', ''), 0);
       return uidIs(tkNewGet('uid', ''))
@@ -1469,14 +1486,14 @@ service cloud.firestore {
     // idiom), and that ticket must be the entry owner's own,
     // for this festival and tier, in a live money state.
     function dipClaimConsumeOk() {
-      let evAfter = getAfter(/databases/$(database)/documents/festival_events/$(tkOldGet('festivalId', ''))).data;
+      let evAfter = tkAfterData(/databases/$(database)/documents/festival_events/$(tkOldGet('festivalId', '')));
       let tp = ticketPath(evAfter.get('tierAnchorTicketId', ''));
       let tk = existsAfter(tp) ? tkAfterData(tp) : {};
       return tkOldGet('status', '') == 'selected'
         && tkNewGet('status', '') == 'claimed'
         && tkDiff(['status', 'updatedAt'])
         && tk.size() > 0
-        && tkBuyerOf(tk) == request.auth.uid
+        && uidIs(tkBuyerOf(tk))
         && tkFestOf(tk) == tkOldGet('festivalId', '')
         && tkTierOf(tk) == tkOldGet('tierId', '')
         && tkStateOf(tk) in ['paid-wallet', 'pay-at-venue', 'comp'];
@@ -1485,7 +1502,7 @@ service cloud.firestore {
     // the entry still stands 'entered' and the stamped window
     // has not closed. After that the entry is the draw's record.
     function dipWithdrawOk() {
-      let ev = get(/databases/$(database)/documents/festival_events/$(tkOldGet('festivalId', ''))).data;
+      let ev = docData(/databases/$(database)/documents/festival_events/$(tkOldGet('festivalId', '')));
       let closes = ev.get('dipClosesAtMs', {}).get(tkOldGet('tierId', ''), 0);
       return uidIs(tkOldGet('uid', ''))
         && tkOldGet('status', '') == 'entered'
@@ -1503,11 +1520,11 @@ service cloud.firestore {
     // that the record is the audit, and staff delete is denied.
     match /event_dip_entries/{entryId} {
       allow read: if isSuperAdmin()
-        || (isLoggedIn() && uidIs(resource.data.get('uid', '')))
+        || (loggedUidIs(tkOldGet('uid', '')))
         || hasRole(docWs(), R_ANY_STAFF());
       allow create: if isLoggedIn() && dipEntryCreateOk(entryId);
       allow update: if dipStaffUpdateOk()
-        || (isLoggedIn() && uidIs(tkOldGet('uid', '')) && dipClaimConsumeOk());
+        || (loggedUidIs(tkOldGet('uid', '')) && dipClaimConsumeOk());
       allow delete: if isLoggedIn() && dipWithdrawOk();
     }
 
@@ -1608,8 +1625,7 @@ service cloud.firestore {
     // Verification applications â owner-reviewed, never client-writable beyond apply.
     match /verificationApplications/{appId} {
       allow read: if isSuperAdmin() || isOwner();
-      allow create: if isLoggedIn()
-        && uidIs(tkNewGet('applicantUid', ''))
+      allow create: if loggedUidIs(tkNewGet('applicantUid', ''))
         && reqStatus() == 'pending';
       allow update: if isOwner();
       allow delete: if false;
@@ -1618,8 +1634,7 @@ service cloud.firestore {
     // Moderation reports â reporter can file, only owner sees and acts.
     match /moderationReports/{reportId} {
       allow read: if isSuperAdmin() || isOwner();
-      allow create: if isLoggedIn()
-        && uidIs(tkNewGet('reporterUid', ''));
+      allow create: if loggedUidIs(tkNewGet('reporterUid', ''));
       allow update: if isOwner();
       allow delete: if false;
     }
@@ -1646,7 +1661,7 @@ service cloud.firestore {
       allow update: if isLoggedIn()
         && (uidIs(tkOldGet('targetUid', ''))
           || uidIs(tkOldGet('ownerUid', '')))
-        && diffKeysOnly(request.resource.data, resource.data, ['status'])
+        && tkDiff(['status'])
         && reqStatus() == 'sent';
       allow create, delete: if false; // scheduler writes via Admin SDK only
     }
@@ -1660,7 +1675,7 @@ service cloud.firestore {
     // Payment claims: any authenticated member files their own claim; only the
     match /paymentClaims/{claimId} {
       allow read: if isSuperAdmin() || isOwner()
-        || (isLoggedIn() && uidIs(tkOldGet('applicantUid', '')))
+        || (loggedUidIs(tkOldGet('applicantUid', '')))
         // QUEUED #54 (owner-approved companion): the org's own finance
         // roles may read claims filed for their workspace, so Settings →
         // Billing history can list the org's claims (query
@@ -1669,8 +1684,7 @@ service cloud.firestore {
         // impossible; claims with workspaceId 'personal' fail closed
         // (hasRole('personal', …) is false) and remain applicant-only.
         || (isLoggedIn() && hasRole(tkOldGet('workspaceId', ''), R_FINANCE()));
-      allow create: if isLoggedIn()
-        && uidIs(tkNewGet('applicantUid', ''))
+      allow create: if loggedUidIs(tkNewGet('applicantUid', ''))
         && reqStatus() == 'pending';
       allow update: if isOwner();
       allow delete: if false;
@@ -1760,7 +1774,7 @@ service cloud.firestore {
     match /approvalRequests/{requestId} {
       allow read: if demoPublicRead(docWs())
         || hasRole(docWs(), R_OVERSIGHT())
-        || (isLoggedIn() && uidIs(tkOldGet('requestedBy', '')));
+        || (loggedUidIs(tkOldGet('requestedBy', '')));
       allow create: if isTenantMember(newDocWs())
         && uidIs(tkNewGet('requestedBy', ''))
         && reqStatus() == 'PENDING';
@@ -1784,8 +1798,7 @@ service cloud.firestore {
             .hasOnly(['appliedAt', 'applyError'])
           && wsImmutable())
         // Maker cancel — own request, still pending.
-        || (isLoggedIn()
-          && uidIs(tkOldGet('requestedBy', ''))
+        || (loggedUidIs(tkOldGet('requestedBy', ''))
           && resStatus() == 'PENDING'
           && reqStatus() == 'CANCELLED'
           && diffKeys()
@@ -1797,11 +1810,10 @@ service cloud.firestore {
     // ---- Messaging ----
     match /messages/{messageId} {
       allow read: if isSuperAdmin() || isOwner()
-        || (isLoggedIn() && uidIs(tkOldGet('targetUid', '')));
+        || (loggedUidIs(tkOldGet('targetUid', '')));
       allow create: if isOwner();
-      allow update: if isLoggedIn()
-        && uidIs(tkOldGet('targetUid', ''))
-        && diffKeysOnly(request.resource.data, resource.data, ['read', 'readAt']);
+      allow update: if loggedUidIs(tkOldGet('targetUid', ''))
+        && tkDiff(['read', 'readAt']);
       allow delete: if false;
     }
 
@@ -1880,14 +1892,12 @@ service cloud.firestore {
     // Payouts: providers request via their own doc (future), owner decides.
     match /payouts/{payoutId} {
       allow read: if isSuperAdmin() || isOwner()
-        || (isLoggedIn() && uidIs(resProviderUid()));
+        || (loggedUidIs(resProviderUid()));
       allow create: if isOwner()
-        || (isLoggedIn()
-          && uidIs(reqProviderUid())
+        || (loggedUidIs(reqProviderUid())
           && reqStatus() == 'requested');
       allow update: if isOwner()
-        || (isLoggedIn()
-          && uidIs(resProviderUid())
+        || (loggedUidIs(resProviderUid())
           && reqStatus() == 'requested');
       allow delete: if false;
     }
@@ -1914,12 +1924,10 @@ service cloud.firestore {
     // Payment methods: public read so billing pages can render them;
     match /marketplaceGigs/{gigId} {
       allow read: if true;
-      allow create: if isLoggedIn()
-        && uidIs(reqProviderUid())
+      allow create: if loggedUidIs(reqProviderUid())
         && tkNewGet('active', true) == true;
       allow update: if isOwner()
-        || (isLoggedIn()
-          && uidIs(resProviderUid())
+        || (loggedUidIs(resProviderUid())
           && uidIs(reqProviderUid())
           // SECURITY P1: the provider's own edits may not move the
           // rating aggregates -- those change only via the anchored
@@ -1934,7 +1942,7 @@ service cloud.firestore {
         // rating. The gigRatings doc (auditable, one per order) is the
         // source of truth.
         || (isLoggedIn()
-          && diffKeysOnly(request.resource.data, resource.data, ['avgRating', 'ratingCount', 'updatedAt', 'lastRatedOrderId'])
+          && tkDiff(['avgRating', 'ratingCount', 'updatedAt', 'lastRatedOrderId'])
           && reqProviderUid() == resProviderUid()
           && tkNewGet('avgRating', 0) >= 1
           && tkNewGet('avgRating', 0) <= 5
@@ -1946,14 +1954,13 @@ service cloud.firestore {
     // on a completed order; immutable after (no update/delete).
     match /gigRatings/{orderId} {
       allow read: if true;
-      allow create: if isLoggedIn()
-        && uidIs(tkNewGet('clientUid', ''))
+      allow create: if loggedUidIs(tkNewGet('clientUid', ''))
         && reqRating() >= 1
         && reqRating() <= 5
         && reqKeys().hasOnly(
           ['gigId', 'orderId', 'clientUid', 'providerUid', 'rating', 'review', 'createdAt'])
-        && get(/databases/$(database)/documents/marketplaceOrders/$(orderId)).data.status == 'completed'
-        && get(/databases/$(database)/documents/marketplaceOrders/$(orderId)).data.clientUid == request.auth.uid;
+        && docData(/databases/$(database)/documents/marketplaceOrders/$(orderId)).status == 'completed'
+        && uidIs(docData(/databases/$(database)/documents/marketplaceOrders/$(orderId)).clientUid);
       allow update, delete: if false;
     }
     // Orders: client creates (clientUid must match); provider + client read
@@ -1962,8 +1969,7 @@ service cloud.firestore {
         || (isLoggedIn() && (
           uidIs(resClientUid())
           || uidIs(resProviderUid())));
-      allow create: if isLoggedIn()
-        && uidIs(tkNewGet('clientUid', ''))
+      allow create: if loggedUidIs(tkNewGet('clientUid', ''))
         && reqStatus() == 'pending_payment';
       allow update: if isOwner()
         || (isLoggedIn()
@@ -2011,14 +2017,14 @@ service cloud.firestore {
             && reqStatus() == 'paid'
             && tkOldGet('rail', '') == 'rail1'
             && tkOldGet('payWithWallet', false) == false
-            && diffKeysOnly(request.resource.data, resource.data, ['status', 'paidAt', 'paymentNote', 'updatedAt']))
+            && tkDiff(['status', 'paidAt', 'paymentNote', 'updatedAt']))
           // PHASE 3 â dispute freeze: an order party moves an ACTIVE order to
           || (isLoggedIn()
             && (uidIs(resProviderUid())
               || uidIs(resClientUid()))
             && resStatus() in ORDER_ACTIVE()
             && reqStatus() == 'commission_held'
-            && tkNewGet('commissionHold', {}).get('frozenByUid', '') == request.auth.uid)
+            && uidIs(tkNewGet('commissionHold', {}).get('frozenByUid', '')))
           // openDispute(): an order party flags an ACTIVE order 'disputed'.
           // The dispute record itself lives in marketplaceDisputes (ruled
           // separately); on the order only status + updatedAt may change here.
@@ -2027,22 +2033,22 @@ service cloud.firestore {
               || uidIs(resClientUid()))
             && resStatus() in ORDER_ACTIVE()
             && reqStatus() == 'disputed'
-            && diffKeysOnly(request.resource.data, resource.data, KEYS_STATUS_ONLY()))));
+            && tkDiff(KEYS_STATUS_ONLY()))));
       allow delete: if false;
     }
     // Commission freeze requests (Phase 3): dispute on a COMPLETED order,
     match /commissionFreezeRequests/{orderId} {
       allow read: if isOwner() || isSuperAdmin()
         || (isLoggedIn() && (
-          get(/databases/$(database)/documents/marketplaceOrders/$(orderId)).data.get('providerUid', '') == request.auth.uid
-          || get(/databases/$(database)/documents/marketplaceOrders/$(orderId)).data.get('clientUid', '') == request.auth.uid));
+          uidIs(docGet(/databases/$(database)/documents/marketplaceOrders/$(orderId), 'providerUid', ''))
+          || uidIs(docGet(/databases/$(database)/documents/marketplaceOrders/$(orderId), 'clientUid', ''))));
       allow create: if isLoggedIn()
         && reqOrderId() == orderId
         && uidIs(tkNewGet('requestedBy', ''))
         && reqStatus() == 'requested'
-        && get(/databases/$(database)/documents/marketplaceOrders/$(orderId)).data.get('status', '') == 'completed'
-        && (get(/databases/$(database)/documents/marketplaceOrders/$(orderId)).data.get('providerUid', '') == request.auth.uid
-          || get(/databases/$(database)/documents/marketplaceOrders/$(orderId)).data.get('clientUid', '') == request.auth.uid);
+        && docGet(/databases/$(database)/documents/marketplaceOrders/$(orderId), 'status', '') == 'completed'
+        && (uidIs(docGet(/databases/$(database)/documents/marketplaceOrders/$(orderId), 'providerUid', ''))
+          || uidIs(docGet(/databases/$(database)/documents/marketplaceOrders/$(orderId), 'clientUid', '')));
       allow update: if isOwner();
       allow delete: if false;
     }
@@ -2060,8 +2066,7 @@ service cloud.firestore {
           uidIs(tkOldGet('raisedByUid', ''))
           || uidIs(resProviderUid())
           || uidIs(resClientUid())));
-      allow create: if isLoggedIn()
-        && uidIs(tkNewGet('raisedByUid', ''))
+      allow create: if loggedUidIs(tkNewGet('raisedByUid', ''))
         && reqStatus() == 'open';
       allow update: if isOwner();
       allow delete: if false;
@@ -2076,9 +2081,8 @@ service cloud.firestore {
     // ---- Marketplace anti-bypass + provider payments ----
     match /providerPaymentMethods/{mId} {
       allow read: if isOwner() || isSuperAdmin()
-        || (isLoggedIn() && uidIs(resProviderUid()));
-      allow create: if isLoggedIn()
-        && uidIs(reqProviderUid())
+        || (loggedUidIs(resProviderUid()));
+      allow create: if loggedUidIs(reqProviderUid())
         && reqStatus() in ['pending', 'platform_assigned'];
       allow update: if isOwner();
       allow delete: if false;
@@ -2086,9 +2090,8 @@ service cloud.firestore {
     // Provider â owner inquiries: provider creates + reads own; owner manages.
     match /providerInquiries/{inqId} {
       allow read: if isOwner() || isSuperAdmin()
-        || (isLoggedIn() && uidIs(resProviderUid()));
-      allow create: if isLoggedIn()
-        && uidIs(reqProviderUid())
+        || (loggedUidIs(resProviderUid()));
+      allow create: if loggedUidIs(reqProviderUid())
         && reqStatus() == 'open';
       allow update: if isOwner();
       allow delete: if false;
@@ -2096,8 +2099,7 @@ service cloud.firestore {
     // Bypass flags: the sender's own client creates the flag when a message
     match /bypassFlags/{flagId} {
       allow read: if isOwner() || isSuperAdmin();
-      allow create: if isLoggedIn()
-        && uidIs(tkNewGet('senderUid', ''))
+      allow create: if loggedUidIs(tkNewGet('senderUid', ''))
         && reqStatus() == 'pending';
       allow update: if isOwner();
       allow delete: if false;
@@ -2110,43 +2112,43 @@ service cloud.firestore {
     // Provider strikes: owner-only writes; provider reads own (transparency).
     match /providerStrikes/{strikeId} {
       allow read: if isOwner() || isSuperAdmin()
-        || (isLoggedIn() && uidIs(resProviderUid()));
+        || (loggedUidIs(resProviderUid()));
       allow create, update: if isOwner();
       allow delete: if false;
     }
     // ---- Rail-2: platform dues (Layer 6) ----
     match /platformDues/{dueId} {
       allow read: if isOwner() || isSuperAdmin()
-        || (isLoggedIn() && uidIs(resProviderUid()));
+        || (loggedUidIs(resProviderUid()));
       allow create: if isLoggedIn()
         && reqStatus() == 'pending'
         && reqProviderUid() ==
-           get(/databases/$(database)/documents/marketplaceOrders/$(reqOrderId())).data.get('providerUid', '')
-        && get(/databases/$(database)/documents/marketplaceOrders/$(reqOrderId())).data.get('rail', '') == 'rail2';
+           docGet(/databases/$(database)/documents/marketplaceOrders/$(reqOrderId()), 'providerUid', '')
+        && docGet(/databases/$(database)/documents/marketplaceOrders/$(reqOrderId()), 'rail', '') == 'rail2';
       allow update: if isOwner();
       allow delete: if false;
     }
     // Provider marketplace profile (dues suspension flags): owner writes,
     match /marketplaceProviders/{providerUid} {
       allow read: if isOwner() || isSuperAdmin()
-        || (isLoggedIn() && uidIs(providerUid));
+        || (loggedUidIs(providerUid));
       allow create, update: if isOwner();
       allow delete: if false;
     }
 
     // ---- Platform wallet + escrow top-up system ----
     function walletDebitOk() {
-      let data = request.resource.data;
+      let data = reqData();
       let old = resource.data;
       let orderId = data.get('lastDebitOrderId', '');
       let opath = /databases/$(database)/documents/marketplaceOrders/$(orderId);
-      let gross = get(opath).data.get('amountGross', 0);
+      let gross = docGet(opath, 'amountGross', 0);
       return diffKeysOnly(data, old, ['balance', 'totalSpent', 'updatedAt', 'lastDebitOrderId', 'currency'])
         && orderId != '' && orderId != old.get('lastDebitOrderId', '')
         && exists(opath)
-        && get(opath).data.get('clientUid', '') == request.auth.uid
-        && get(opath).data.get('payWithWallet', false) == true
-        && get(opath).data.get('status', '') == 'pending_payment'
+        && uidIs(docGet(opath, 'clientUid', ''))
+        && docGet(opath, 'payWithWallet', false) == true
+        && docGet(opath, 'status', '') == 'pending_payment'
         && gross > 0
         && data.get('balance', -1) == old.get('balance', 0) - gross
         && data.get('balance', -1) >= 0
@@ -2160,17 +2162,17 @@ service cloud.firestore {
     // so the transaction's own requestâ'paid' flip is invisible here; the
     // request leg is validated by the p2pRequests match below.
     function p2pSettlementDebitOk(uid) {
-      let data = request.resource.data;
+      let data = reqData();
       let old = resource.data;
       let requestId = data.get('lastDebitP2PRequestId', '');
       let rpath = /databases/$(database)/documents/p2pRequests/$(requestId);
-      let amount = get(rpath).data.get('amount', 0);
+      let amount = docGet(rpath, 'amount', 0);
       return diffKeysOnly(data, old, ['balance', 'totalSpent', 'updatedAt', 'lastDebitP2PRequestId', 'currency'])
         && requestId != '' && requestId != old.get('lastDebitP2PRequestId', '')
         && exists(rpath)
-        && get(rpath).data.get('senderId', '') == request.auth.uid
-        && get(rpath).data.get('senderId', '') == uid
-        && get(rpath).data.get('status', '') == 'accepted'
+        && uidIs(docGet(rpath, 'senderId', ''))
+        && docGet(rpath, 'senderId', '') == uid
+        && docGet(rpath, 'status', '') == 'accepted'
         && amount > 0
         && data.get('balance', -1) == old.get('balance', 0) - amount
         && data.get('balance', -1) >= 0
@@ -2182,11 +2184,11 @@ service cloud.firestore {
     // amount, currency pinned, one credit per request
     // (lastCreditP2PRequestId). Mirrors p2pSettlementDebitOk.
     function p2pSettlementCreditOk(uid) {
-      let data = request.resource.data;
+      let data = reqData();
       let old = resource.data;
       let requestId = data.get('lastCreditP2PRequestId', '');
       let rpath = /databases/$(database)/documents/p2pRequests/$(requestId);
-      let rdata = get(rpath).data;
+      let rdata = docData(rpath);
       let amount = rdata.get('amount', 0);
       return diffKeysOnly(data, old, 
           ['uid', 'balance', 'currency', 'totalToppedUp', 'totalSpent',
@@ -2207,10 +2209,10 @@ service cloud.firestore {
     // Create-path for the P2P receiver credit: the wallet doc may not
     // exist yet when the first settlement arrives.
     function p2pSettlementCreditCreateOk(uid) {
-      let data = request.resource.data;
+      let data = reqData();
       let requestId = data.get('lastCreditP2PRequestId', '');
       let rpath = /databases/$(database)/documents/p2pRequests/$(requestId);
-      let rdata = get(rpath).data;
+      let rdata = docData(rpath);
       let amount = rdata.get('amount', 0);
       return requestId != ''
         && exists(rpath)
@@ -2225,18 +2227,18 @@ service cloud.firestore {
         && data.get('totalSpent', -1) == 0;
     }
     function walletCreditOk(uid) {
-      let data = request.resource.data;
+      let data = reqData();
       let old = resource.data;
       let orderId = data.get('lastCreditOrderId', '');
       let opath = /databases/$(database)/documents/marketplaceOrders/$(orderId);
-      let net = get(opath).data.get('providerNet', 0);
+      let net = docGet(opath, 'providerNet', 0);
       return diffKeysOnly(data, old, ['balance', 'totalReceived', 'totalToppedUp', 'totalSpent', 'updatedAt', 'lastCreditOrderId', 'currency', 'uid'])
         && orderId != '' && orderId != old.get('lastCreditOrderId', '')
         && exists(opath)
-        && get(opath).data.get('providerUid', '') == uid
-        && (get(opath).data.get('clientUid', '') == request.auth.uid
-          || get(opath).data.get('providerUid', '') == request.auth.uid)
-        && get(opath).data.get('status', '') in ORDER_ACTIVE()
+        && docGet(opath, 'providerUid', '') == uid
+        && (uidIs(docGet(opath, 'clientUid', ''))
+          || uidIs(docGet(opath, 'providerUid', '')))
+        && docGet(opath, 'status', '') in ORDER_ACTIVE()
         && net > 0
         && data.get('balance', -1) == old.get('balance', 0) + net
         && data.get('totalReceived', -1) == old.get('totalReceived', 0) + net
@@ -2245,11 +2247,11 @@ service cloud.firestore {
     }
     // PHASE 3 â provider commission debit, order-anchored.
     function commissionHoldOk(uid) {
-      let data = request.resource.data;
+      let data = reqData();
       let old = resource.data;
       let orderId = data.get('lastCommissionOrderId', '');
       let opath = /databases/$(database)/documents/marketplaceOrders/$(orderId);
-      let order = get(opath).data;
+      let order = docData(opath);
       let cap = order.get('commissionAmount', 0);
       let debit = old.get('balance', 0) - data.get('balance', 0);
       return diffKeysOnly(data, old, ['balance', 'totalSpent', 'updatedAt', 'lastCommissionOrderId', 'currency'])
@@ -2265,7 +2267,7 @@ service cloud.firestore {
     }
     // PHASE 3 â Pratham Seva counter advancement, order-anchored.
     function sevaProfileCompletionOk() {
-      let data = request.resource.data;
+      let data = reqData();
       let old = resource.data;
       let orderId = data.get('lastCommissionOrderId', '');
       let opath = /databases/$(database)/documents/marketplaceOrders/$(orderId);
@@ -2277,8 +2279,8 @@ service cloud.firestore {
         && (freeNew == freeOld || (freeOld > 0 && freeNew == freeOld - 1))
         && orderId != '' && orderId != old.get('lastCommissionOrderId', '')
         && exists(opath)
-        && get(opath).data.get('providerUid', '') == request.auth.uid
-        && get(opath).data.get('status', '') in ORDER_ACTIVE();
+        && uidIs(docGet(opath, 'providerUid', ''))
+        && docGet(opath, 'status', '') in ORDER_ACTIVE();
     }
     // SECURITY P1 -- anchored rating steps (Finding 1). A rating
     // aggregate may move ONLY as the second half of a real rating: the
@@ -2297,11 +2299,11 @@ service cloud.firestore {
       let oldSum = tkOldGet('avgRating', 0) * oldCount;
       return rid != '' && rid != tkOldGet('lastRatedOrderId', '')
         && existsAfter(rpath)
-        && getAfter(rpath).data.get('gigId', '') == gigId
-        && getAfter(rpath).data.get('clientUid', '') == request.auth.uid
+        && afterDocGet(rpath, 'gigId', '') == gigId
+        && uidIs(afterDocGet(rpath, 'clientUid', ''))
         && newCount == oldCount + 1
-        && newSum >= oldSum + getAfter(rpath).data.get('rating', 0) - (0.06 * newCount + 0.1)
-        && newSum <= oldSum + getAfter(rpath).data.get('rating', 0) + (0.06 * newCount + 0.1);
+        && newSum >= oldSum + afterDocGet(rpath, 'rating', 0) - (0.06 * newCount + 0.1)
+        && newSum <= oldSum + afterDocGet(rpath, 'rating', 0) + (0.06 * newCount + 0.1);
     }
     function p1PurohitRatingOk(purohitId) {
       let rid = tkNewGet('lastReviewId', '');
@@ -2312,12 +2314,12 @@ service cloud.firestore {
       let oldSum = tkOldGet('ratingAggregate', 0) * oldCount;
       return rid != '' && rid != tkOldGet('lastReviewId', '')
         && existsAfter(rpath)
-        && getAfter(rpath).data.get('reviewerUid', '') == request.auth.uid
-        && getAfter(rpath).data.get('reviewerKind', '') == 'devotee'
-        && get(/databases/$(database)/documents/gigs/$(getAfter(rpath).data.get('gigId', ''))).data.get('assignedPurohitId', '') == purohitId
+        && uidIs(afterDocGet(rpath, 'reviewerUid', ''))
+        && afterDocGet(rpath, 'reviewerKind', '') == 'devotee'
+        && docGet(/databases/$(database)/documents/gigs/$(afterDocGet(rpath, 'gigId', '')), 'assignedPurohitId', '') == purohitId
         && newCount == oldCount + 1
-        && newSum >= oldSum + getAfter(rpath).data.get('rating', 0) - (0.06 * newCount + 0.1)
-        && newSum <= oldSum + getAfter(rpath).data.get('rating', 0) + (0.06 * newCount + 0.1);
+        && newSum >= oldSum + afterDocGet(rpath, 'rating', 0) - (0.06 * newCount + 0.1)
+        && newSum <= oldSum + afterDocGet(rpath, 'rating', 0) + (0.06 * newCount + 0.1);
     }
     function p1JyotishRatingOk(jyotishId) {
       let rid = tkNewGet('lastReviewId', '');
@@ -2328,12 +2330,12 @@ service cloud.firestore {
       let oldSum = tkOldGet('ratingAggregate', 0) * oldCount;
       return rid != '' && rid != tkOldGet('lastReviewId', '')
         && existsAfter(rpath)
-        && getAfter(rpath).data.get('reviewerUid', '') == request.auth.uid
-        && getAfter(rpath).data.get('reviewerKind', '') == 'devotee'
-        && get(/databases/$(database)/documents/jyotishConsultations/$(getAfter(rpath).data.get('consultationId', ''))).data.get('assignedJyotishId', '') == jyotishId
+        && uidIs(afterDocGet(rpath, 'reviewerUid', ''))
+        && afterDocGet(rpath, 'reviewerKind', '') == 'devotee'
+        && docGet(/databases/$(database)/documents/jyotishConsultations/$(afterDocGet(rpath, 'consultationId', '')), 'assignedJyotishId', '') == jyotishId
         && newCount == oldCount + 1
-        && newSum >= oldSum + getAfter(rpath).data.get('rating', 0) - (0.06 * newCount + 0.1)
-        && newSum <= oldSum + getAfter(rpath).data.get('rating', 0) + (0.06 * newCount + 0.1);
+        && newSum >= oldSum + afterDocGet(rpath, 'rating', 0) - (0.06 * newCount + 0.1)
+        && newSum <= oldSum + afterDocGet(rpath, 'rating', 0) + (0.06 * newCount + 0.1);
     }
     // JY-FIX-B (JY-04) -- anchored endorsement step: endorsementCount
     // may rise ONLY by exactly +1, naming (in lastEndorsementId) a NEW
@@ -2416,11 +2418,11 @@ service cloud.firestore {
     function p1CompletedGigOk() {
       let gid = tkNewGet('lastCompletedGigId', '');
       let gpath = /databases/$(database)/documents/gigs/$(gid);
-      return request.resource.data.get('completedGigs', 0) == resource.data.get('completedGigs', 0) + 1
+      return tkNewGet('completedGigs', 0) == tkOldGet('completedGigs', 0) + 1
         && gid != '' && gid != tkOldGet('lastCompletedGigId', '')
         && exists(gpath)
-        && get(gpath).data.get('assignedPurohitUid', '') == request.auth.uid
-        && get(gpath).data.get('status', '') in ORDER_DONE();
+        && uidIs(docGet(gpath, 'assignedPurohitUid', ''))
+        && docGet(gpath, 'status', '') in ORDER_DONE();
     }
     function p1CompletedConsultationOk() {
       let cid = tkNewGet('lastCompletedConsultationId', '');
@@ -2428,21 +2430,21 @@ service cloud.firestore {
       return tkNewGet('completedConsultations', 0) == tkOldGet('completedConsultations', 0) + 1
         && cid != '' && cid != tkOldGet('lastCompletedConsultationId', '')
         && exists(cpath)
-        && get(cpath).data.get('assignedJyotishUid', '') == request.auth.uid
-        && get(cpath).data.get('status', '') in ORDER_DONE();
+        && uidIs(docGet(cpath, 'assignedJyotishUid', ''))
+        && docGet(cpath, 'status', '') in ORDER_DONE();
     }
     // Create-path for provider credit: the wallet doc may not exist yet when
     function walletCreditCreateOk(uid) {
-      let data = request.resource.data;
+      let data = reqData();
       let orderId = data.get('lastCreditOrderId', '');
       let opath = /databases/$(database)/documents/marketplaceOrders/$(orderId);
-      let net = get(opath).data.get('providerNet', 0);
+      let net = docGet(opath, 'providerNet', 0);
       return orderId != ''
         && exists(opath)
-        && get(opath).data.get('providerUid', '') == uid
-        && (get(opath).data.get('clientUid', '') == request.auth.uid
-          || get(opath).data.get('providerUid', '') == request.auth.uid)
-        && get(opath).data.get('status', '') in ORDER_ACTIVE()
+        && docGet(opath, 'providerUid', '') == uid
+        && (uidIs(docGet(opath, 'clientUid', ''))
+          || uidIs(docGet(opath, 'providerUid', '')))
+        && docGet(opath, 'status', '') in ORDER_ACTIVE()
         && net > 0
         && data.get('balance', -1) == net
         && data.get('totalReceived', -1) == net
@@ -2451,79 +2453,76 @@ service cloud.firestore {
     }
     match /wallets/{uid} {
       allow read: if isOwner() || isSuperAdmin()
-        || (isLoggedIn() && uidIs(uid));
+        || (loggedUidIs(uid));
       allow create: if isOwner()
-        || (isLoggedIn() && uidIs(uid)
-          && request.resource.data.get('balance', -1) == 0
-          && request.resource.data.get('totalToppedUp', -1) == 0
-          && request.resource.data.get('totalSpent', -1) == 0)
+        || (loggedUidIs(uid)
+          && tkNewGet('balance', -1) == 0
+          && tkNewGet('totalToppedUp', -1) == 0
+          && tkNewGet('totalSpent', -1) == 0)
         || (isLoggedIn() && walletCreditCreateOk(uid))
         || (isLoggedIn() && p2pSettlementCreditCreateOk(uid))
         || (isLoggedIn() && referralWalletCreditCreateOk(uid));
       allow update: if isOwner()
-        || (isLoggedIn() && uidIs(uid) && walletDebitOk())
-        || (isLoggedIn() && uidIs(uid) && p2pSettlementDebitOk(uid))
-        || (isLoggedIn() && uidIs(uid) && commissionHoldOk(uid))
+        || (loggedUidIs(uid) && walletDebitOk())
+        || (loggedUidIs(uid) && p2pSettlementDebitOk(uid))
+        || (loggedUidIs(uid) && commissionHoldOk(uid))
         || (isLoggedIn() && walletCreditOk(uid))
         || (isLoggedIn() && p2pSettlementCreditOk(uid))
         || (isLoggedIn() && referralWalletCreditOk(uid))
         // EVENTS E2: seva-pass purchase debit + refund credit,
         // each anchored on its ticket (same batch, getAfter).
-        || (isLoggedIn() && uidIs(uid) && tkWalletDebitOk())
-        || (isLoggedIn() && uidIs(uid) && tkWalletRefundOk(uid));
+        || (loggedUidIs(uid) && tkWalletDebitOk())
+        || (loggedUidIs(uid) && tkWalletRefundOk(uid));
       allow delete: if false;
     }
     // Wallet transactions: append-only ledger. Clients record their own
     match /walletTransactions/{txnId} {
       allow read: if isOwner() || isSuperAdmin()
-        || (isLoggedIn() && uidIs(resUid()));
+        || (loggedUidIs(resUid()));
       allow create: if isOwner()
-        || (isLoggedIn()
-          && uidIs(reqUid())
-          && request.resource.data.get('type', '') in ['spend', 'topup_request']
+        || (loggedUidIs(reqUid())
+          && tkNewGet('type', '') in ['spend', 'topup_request']
           && reqAmount() > 0)
         || (isLoggedIn()
-          && request.resource.data.get('type', '') in ['receive', 'commission']
+          && tkNewGet('type', '') in ['receive', 'commission']
           && reqOrderId() != ''
-          && (get(/databases/$(database)/documents/marketplaceOrders/$(reqOrderId())).data.get('clientUid', '') == request.auth.uid
-            || get(/databases/$(database)/documents/marketplaceOrders/$(reqOrderId())).data.get('providerUid', '') == request.auth.uid))
+          && (uidIs(docGet(/databases/$(database)/documents/marketplaceOrders/$(reqOrderId()), 'clientUid', ''))
+            || uidIs(docGet(/databases/$(database)/documents/marketplaceOrders/$(reqOrderId()), 'providerUid', ''))))
         // Seva Pro Phase 4: referral guidance credit, anchored to the validated credit doc.
         || (isLoggedIn()
-          && request.resource.data.get('type', '') == 'referral_credit'
+          && tkNewGet('type', '') == 'referral_credit'
           && reqUid() != ''
-          && request.resource.data.get('creditId', '') != ''
+          && tkNewGet('creditId', '') != ''
           && reqAmount() > 0
-          && exists(/databases/$(database)/documents/referralCredits/$(request.resource.data.get('creditId', '')))
-          && get(/databases/$(database)/documents/referralCredits/$(request.resource.data.get('creditId', ''))).data.get('referrerUid', '') == reqUid()
-          && get(/databases/$(database)/documents/referralCredits/$(request.resource.data.get('creditId', ''))).data.get('status', '') == 'SETTLED'
-          && get(/databases/$(database)/documents/referralCredits/$(request.resource.data.get('creditId', ''))).data.get('creditAmount', 0) == reqAmount())
+          && exists(/databases/$(database)/documents/referralCredits/$(tkNewGet('creditId', '')))
+          && docGet(/databases/$(database)/documents/referralCredits/$(tkNewGet('creditId', '')), 'referrerUid', '') == reqUid()
+          && docGet(/databases/$(database)/documents/referralCredits/$(tkNewGet('creditId', '')), 'status', '') == 'SETTLED'
+          && docGet(/databases/$(database)/documents/referralCredits/$(tkNewGet('creditId', '')), 'creditAmount', 0) == reqAmount())
         // P2P settlement receiver receipt: the sender's transaction writes
         // the receiver's audit-trail doc. Anchored to the live p2pRequests
         // doc — sender-bound, receiver-bound, exact amount, still accepted.
         || (isLoggedIn()
-          && request.resource.data.get('type', '') == 'p2p_receive'
-          && request.resource.data.get('requestId', '') != ''
+          && tkNewGet('type', '') == 'p2p_receive'
+          && tkNewGet('requestId', '') != ''
           && reqAmount() > 0
           && reqUid() != request.auth.uid
-          && get(/databases/$(database)/documents/p2pRequests/$(request.resource.data.get('requestId', ''))).data.get('senderId', '') == request.auth.uid
-          && get(/databases/$(database)/documents/p2pRequests/$(request.resource.data.get('requestId', ''))).data.get('receiverId', '') == reqUid()
-          && get(/databases/$(database)/documents/p2pRequests/$(request.resource.data.get('requestId', ''))).data.get('amount', 0) == reqAmount()
-          && get(/databases/$(database)/documents/p2pRequests/$(request.resource.data.get('requestId', ''))).data.get('currency', '') == request.resource.data.get('currency', '')
-          && get(/databases/$(database)/documents/p2pRequests/$(request.resource.data.get('requestId', ''))).data.get('status', '') == 'accepted')
+          && uidIs(docGet(/databases/$(database)/documents/p2pRequests/$(tkNewGet('requestId', '')), 'senderId', ''))
+          && docGet(/databases/$(database)/documents/p2pRequests/$(tkNewGet('requestId', '')), 'receiverId', '') == reqUid()
+          && docGet(/databases/$(database)/documents/p2pRequests/$(tkNewGet('requestId', '')), 'amount', 0) == reqAmount()
+          && docGet(/databases/$(database)/documents/p2pRequests/$(tkNewGet('requestId', '')), 'currency', '') == tkNewGet('currency', '')
+          && docGet(/databases/$(database)/documents/p2pRequests/$(tkNewGet('requestId', '')), 'status', '') == 'accepted')
         // EVENTS E2: the refund ledger line of a seva-pass cancel —
         // anchored to the refunded ticket (tkRefundLedgerOk).
-        || (isLoggedIn()
-          && uidIs(reqUid())
-          && request.resource.data.get('type', '') == 'refund'
+        || (loggedUidIs(reqUid())
+          && tkNewGet('type', '') == 'refund'
           && tkRefundLedgerOk());
       allow update, delete: if false;
     }
     // Top-up claims: user files (pending only); owner approves â credits
     match /topupClaims/{claimId} {
       allow read: if isOwner() || isSuperAdmin()
-        || (isLoggedIn() && uidIs(resUid()));
-      allow create: if isLoggedIn()
-        && uidIs(reqUid())
+        || (loggedUidIs(resUid()));
+      allow create: if loggedUidIs(reqUid())
         && reqStatus() == 'pending'
         && reqAmount() > 0
         && tkNewGet('currency', '') in ['BDT', 'INR', 'USD'];
@@ -2537,8 +2536,7 @@ service cloud.firestore {
           uidIs(tkOldGet('paidByUid', ''))
           || uidIs(resClientUid())
           || uidIs(resProviderUid())));
-      allow create: if isLoggedIn()
-        && uidIs(tkNewGet('paidByUid', ''))
+      allow create: if loggedUidIs(tkNewGet('paidByUid', ''))
         && reqStatus() == 'pending'
         && reqAmount() > 0
         && reqOrderId() != '';
@@ -2553,9 +2551,9 @@ service cloud.firestore {
         && uidIs(tkNewGet('recordedBy', ''))
         && tkNewGet('amount', -1) >= 0
         && tkNewGet('amount', -1) <=
-             get(/databases/$(database)/documents/marketplaceOrders/$(orderId)).data.get('commissionAmount', -1)
-        && (get(/databases/$(database)/documents/marketplaceOrders/$(orderId)).data.get('providerUid', '') == request.auth.uid
-          || get(/databases/$(database)/documents/marketplaceOrders/$(orderId)).data.get('clientUid', '') == request.auth.uid);
+             docGet(/databases/$(database)/documents/marketplaceOrders/$(orderId), 'commissionAmount', -1)
+        && (uidIs(docGet(/databases/$(database)/documents/marketplaceOrders/$(orderId), 'providerUid', ''))
+          || uidIs(docGet(/databases/$(database)/documents/marketplaceOrders/$(orderId), 'clientUid', '')));
       allow update: if isOwner();
       allow delete: if false;
     }
@@ -2563,34 +2561,33 @@ service cloud.firestore {
     // Crisis events â Tier 1 SOS (sender cancel, coordinator ack/resolve, response fan-out).
     match /crisis_events/{eventId} {
       function parent() {
-        return get(/databases/$(database)/documents/crisis_events/$(eventId)).data;
+        return docData(/databases/$(database)/documents/crisis_events/$(eventId));
       }
       function isCrisisCoord(ws) {
         return isLoggedIn() && ws != null
           && exists(/databases/$(database)/documents/crisisCoordinators/$(ws + '_' + request.auth.uid));
       }
       allow read: if demoPublicRead(docWs()) || isTenantMember(docWs())
-        || (isLoggedIn() && uidIs(tkOldGet('senderUid', '')))
+        || (loggedUidIs(tkOldGet('senderUid', '')))
         // Notified responder: someone in this event's `notified` subcollection
         // (family circle / nearby Sanatani / coordinator pinged by fan-out).
         // ACTIVE-ONLY: the moment the SOS resolves, their read access ends —
         // the responder map can never render a resolved victim's location.
         || (isLoggedIn() && resStatus() == 'active'
           && exists(/databases/$(database)/documents/crisis_events/$(eventId)/notified/$(request.auth.uid)));
-      allow create: if isLoggedIn()
-        && uidIs(tkNewGet('senderUid', ''))
+      allow create: if loggedUidIs(tkNewGet('senderUid', ''))
         && (demoWriteOk(newDocWs()) || isTenantMember(newDocWs()) || newDocWs() == null);
       allow update: if (demoWriteOk(docWs())
           || hasRole(docWs(), R_TRUSTEE())
           // Sender: "I'm safe" â cancel own SOS.
-          || (isLoggedIn() && uidIs(tkOldGet('senderUid', ''))
+          || (loggedUidIs(tkOldGet('senderUid', ''))
             && diffKeys()
               .hasOnly(['status', 'resolvedAt', 'outcomeNote', 'updatedAt'])
             && reqStatus() in ['cancelled', 'resolved'])
           // Sender: attach the voice-note vault URL after the audio upload
           // finishes (uploadVoiceNote / flushVoiceOutbox). Field-pinned to
           // the pointer alone — no other sender field may change here.
-          || (isLoggedIn() && uidIs(tkOldGet('senderUid', ''))
+          || (loggedUidIs(tkOldGet('senderUid', ''))
             && diffKeys()
               .hasOnly(['voiceNoteUrl', 'updatedAt']))
           // Coordinator edge: ack (-> acknowledged) and resolve (-> resolved).
@@ -2618,7 +2615,7 @@ service cloud.firestore {
       allow delete: if hasRole(docWs(), R_TRUSTEE());
       match /responses/{uid} {
         allow read: if isTenantMember(parent().get('workspaceId', null))
-          || (isLoggedIn() && parent().get('senderUid', '') == request.auth.uid);
+          || (loggedUidIs(parent().get('senderUid', '')));
         allow create, update: if isSelf(uid)
           && reqUid() == uid
           && reqStatus() in ['coming', 'arrived'];
@@ -2628,7 +2625,7 @@ service cloud.firestore {
       // (fanOutToNearby); a responder's own client may also self-register.
       match /notified/{uid} {
         allow read: if isTenantMember(parent().get('workspaceId', null))
-          || (isLoggedIn() && parent().get('senderUid', '') == request.auth.uid);
+          || (loggedUidIs(parent().get('senderUid', '')));
         allow create: if isLoggedIn()
           && reqUid() == uid
           && reqKeys()
@@ -2640,7 +2637,7 @@ service cloud.firestore {
             // Sender fan-out: the sender's client writes one lightweight
             // ping doc per nearby uid so the active-only responder-read
             // carve-out above can grant them access.
-            || parent().get('senderUid', '') == request.auth.uid
+            || uidIs(parent().get('senderUid', ''))
           );
         allow update, delete: if false;
       }
@@ -2679,10 +2676,10 @@ service cloud.firestore {
     // rewrite any org's polls, and every signed-in user could read
     // every poll including the full votedUsers map.
     function pollWs(pollId) {
-      return get(/databases/$(database)/documents/polls/$(pollId)).data.get('workspaceId', null);
+      return docGet(/databases/$(database)/documents/polls/$(pollId), 'workspaceId', null);
     }
     function pollAudience(pollId) {
-      return get(/databases/$(database)/documents/polls/$(pollId)).data.get('targetAudience', 'ALL_MEMBERS');
+      return docGet(/databases/$(database)/documents/polls/$(pollId), 'targetAudience', 'ALL_MEMBERS');
     }
     function pollCommittee(ws) {
       return hasRole(ws, R_BOARD());
@@ -2695,17 +2692,17 @@ service cloud.firestore {
       return data.get('totalVotes', data.get('votedUsers', {}).size());
     }
     function pollKindOf(pollId) {
-      return get(/databases/$(database)/documents/polls/$(pollId)).data.get('kind', 'choice');
+      return docGet(/databases/$(database)/documents/polls/$(pollId), 'kind', 'choice');
     }
     // POLLS NEXT-LEVEL P1: was the poll launched as a NAMED ballot?
     // The field is create-only (no update path may touch it), so the
     // secrecy choice is frozen at launch — exactly like kind and
     // resultVisibility above.
     function pollBallotNamed(pollId) {
-      return get(/databases/$(database)/documents/polls/$(pollId)).data.get('ballot', 'secret') == 'named';
+      return docGet(/databases/$(database)/documents/polls/$(pollId), 'ballot', 'secret') == 'named';
     }
     function pollBallotOk(pollId) {
-      let pdata = get(/databases/$(database)/documents/polls/$(pollId)).data;
+      let pdata = docData(/databases/$(database)/documents/polls/$(pollId));
       let kind = pdata.get('kind', 'choice');
       return (isTenantMember(pdata.get('workspaceId', null)) || demoWriteOk(pdata.get('workspaceId', null)))
         && pdata.get('status', '') == 'ACTIVE'
@@ -2741,12 +2738,12 @@ service cloud.firestore {
       return !exists(vp) && existsAfter(vp)
         && resStatus() == 'ACTIVE'
         && reqStatus() == 'ACTIVE'
-        && (getAfter(vp).data.get('optionId', '') in oldOpts.keys())
+        && (afterDocGet(vp, 'optionId', '') in oldOpts.keys())
         && newOpts.diff(oldOpts).addedKeys().size() == 0
         && newOpts.diff(oldOpts).removedKeys().size() == 0
-        && newOpts.diff(oldOpts).changedKeys().hasOnly([getAfter(vp).data.get('optionId', '')])
-        && newOpts.get(getAfter(vp).data.get('optionId', ''), {}).get('votes', 0)
-             == oldOpts.get(getAfter(vp).data.get('optionId', ''), {}).get('votes', 0) + 1
+        && newOpts.diff(oldOpts).changedKeys().hasOnly([afterDocGet(vp, 'optionId', '')])
+        && newOpts.get(afterDocGet(vp, 'optionId', ''), {}).get('votes', 0)
+             == oldOpts.get(afterDocGet(vp, 'optionId', ''), {}).get('votes', 0) + 1
         && tkNewGet('totalVotes', 0) == pollBaseTotal(resource.data) + 1
         && diffKeys()
              .hasOnly(['options', 'totalVotes', 'updatedAt']);
@@ -2770,20 +2767,20 @@ service cloud.firestore {
         && resStatus() == 'ACTIVE'
         && reqStatus() == 'ACTIVE'
         && tkOldGet('kind', 'choice') == 'multi'
-        && getAfter(vp).data.get('optionIds', []) is list
-        && getAfter(vp).data.get('optionIds', []).size() >= 1
-        && getAfter(vp).data.get('optionIds', []).size() <= 5
+        && afterDocGet(vp, 'optionIds', []) is list
+        && afterDocGet(vp, 'optionIds', []).size() >= 1
+        && afterDocGet(vp, 'optionIds', []).size() <= 5
         && newOpts.diff(oldOpts).addedKeys().size() == 0
         && newOpts.diff(oldOpts).removedKeys().size() == 0
-        && newOpts.diff(oldOpts).changedKeys().size() == getAfter(vp).data.get('optionIds', []).size()
-        && newOpts.diff(oldOpts).changedKeys().hasOnly(getAfter(vp).data.get('optionIds', []))
-        && (getAfter(vp).data.get('optionIds', []).size() < 1 || pollMultiDeltaOk(oldOpts, newOpts, getAfter(vp).data.get('optionIds', [])[0]))
-        && (getAfter(vp).data.get('optionIds', []).size() < 2 || pollMultiDeltaOk(oldOpts, newOpts, getAfter(vp).data.get('optionIds', [])[1]))
-        && (getAfter(vp).data.get('optionIds', []).size() < 3 || pollMultiDeltaOk(oldOpts, newOpts, getAfter(vp).data.get('optionIds', [])[2]))
-        && (getAfter(vp).data.get('optionIds', []).size() < 4 || pollMultiDeltaOk(oldOpts, newOpts, getAfter(vp).data.get('optionIds', [])[3]))
-        && (getAfter(vp).data.get('optionIds', []).size() < 5 || pollMultiDeltaOk(oldOpts, newOpts, getAfter(vp).data.get('optionIds', [])[4]))
+        && newOpts.diff(oldOpts).changedKeys().size() == afterDocGet(vp, 'optionIds', []).size()
+        && newOpts.diff(oldOpts).changedKeys().hasOnly(afterDocGet(vp, 'optionIds', []))
+        && (afterDocGet(vp, 'optionIds', []).size() < 1 || pollMultiDeltaOk(oldOpts, newOpts, afterDocGet(vp, 'optionIds', [])[0]))
+        && (afterDocGet(vp, 'optionIds', []).size() < 2 || pollMultiDeltaOk(oldOpts, newOpts, afterDocGet(vp, 'optionIds', [])[1]))
+        && (afterDocGet(vp, 'optionIds', []).size() < 3 || pollMultiDeltaOk(oldOpts, newOpts, afterDocGet(vp, 'optionIds', [])[2]))
+        && (afterDocGet(vp, 'optionIds', []).size() < 4 || pollMultiDeltaOk(oldOpts, newOpts, afterDocGet(vp, 'optionIds', [])[3]))
+        && (afterDocGet(vp, 'optionIds', []).size() < 5 || pollMultiDeltaOk(oldOpts, newOpts, afterDocGet(vp, 'optionIds', [])[4]))
         && tkNewGet('totalVotes', 0) == pollBaseTotal(resource.data) + 1
-        && diffKeysOnly(request.resource.data, resource.data, ['options', 'totalVotes', 'updatedAt']);
+        && tkDiff(['options', 'totalVotes', 'updatedAt']);
     }
     // EVENTS P1 — free-text anchor: a text ballot moves ONLY the
     // turnout counter; the options map must stay identical (a text
@@ -2794,12 +2791,12 @@ service cloud.firestore {
         && resStatus() == 'ACTIVE'
         && reqStatus() == 'ACTIVE'
         && tkOldGet('kind', 'choice') == 'text'
-        && getAfter(vp).data.get('text', '') is string
-        && getAfter(vp).data.get('text', '').size() >= 1
-        && getAfter(vp).data.get('text', '').size() <= 280
+        && afterDocGet(vp, 'text', '') is string
+        && afterDocGet(vp, 'text', '').size() >= 1
+        && afterDocGet(vp, 'text', '').size() <= 280
         && reqOptions() == tkOldGet('options', {})
         && tkNewGet('totalVotes', 0) == pollBaseTotal(resource.data) + 1
-        && diffKeysOnly(request.resource.data, resource.data, ['totalVotes', 'updatedAt']);
+        && tkDiff(['totalVotes', 'updatedAt']);
     }
     // EVENTS P1 — edit-before-first-vote: the committee (guarded by
     // the caller, like pollManageOk) may repair a launched poll ONLY
@@ -2906,7 +2903,7 @@ service cloud.firestore {
       // are named votes by design: the committee may read the ballots
       // (the deliberate, logged reveal in the desk).
       match /votes/{voterUid} {
-        allow read: if isLoggedIn() && (voterUid == request.auth.uid
+        allow read: if isLoggedIn() && (uidIs(voterUid)
           || isSuperAdmin()
           || (pollAudience(pollId) == 'MANAGERS' && pollCommittee(pollWs(pollId)))
           // POLLS NEXT-LEVEL P1: a poll launched as a NAMED ballot —
@@ -2956,12 +2953,10 @@ service cloud.firestore {
         && tkNewGet('supporterCount', 0)
              == tkOldGet('supporterCount', 0) + (up ? 1 : -1)
         && tkNewGet('supporterCount', 0) >= 0
-        && diffKeysOnly(request.resource.data, resource.data,
-             ['supporterCount', 'updatedAt']);
+        && tkDiff(['supporterCount', 'updatedAt']);
     }
     function suggVisible(suggId) {
-      return get(/databases/$(database)/documents/suggestions/$(suggId)).data
-        .get('hidden', false) == false;
+      return docGet(/databases/$(database)/documents/suggestions/$(suggId), 'hidden', false) == false;
     }
     // The deskId shape, shared by create and the author-edit path
     // (a suggestion may concern no desk at all — deskId null).
@@ -2985,9 +2980,8 @@ service cloud.firestore {
       // queries from signed-out clients must filter hidden == false.
       allow read: if tkOldGet('hidden', false) == false
         || isSuperAdmin()
-        || (isLoggedIn() && tkOldGet('authorId', '') == request.auth.uid);
-      allow create: if isLoggedIn()
-        && tkNewGet('authorId', '') == request.auth.uid
+        || (loggedUidIs(tkOldGet('authorId', '')));
+      allow create: if loggedUidIs(tkNewGet('authorId', ''))
         && tkNewGet('status', '') == 'received'
         && tkNewGet('supporterCount', -1) == 0
         && tkNewGet('hidden', true) == false
@@ -3008,20 +3002,17 @@ service cloud.firestore {
               'language', 'status', 'statusHistory', 'officialReplies',
               'supporterCount', 'hidden', 'createdAt', 'updatedAt',
               'shippedVersion', 'duplicateOf']);
-      allow update: if (isLoggedIn()
-            && tkOldGet('authorId', '') == request.auth.uid
+      allow update: if (loggedUidIs(tkOldGet('authorId', ''))
             && tkOldGet('status', '') == 'received'
             && tkNewGet('status', '') == 'received'
-            && diffKeysOnly(request.resource.data, resource.data,
-                 ['title', 'body', 'deskId', 'kind', 'updatedAt'])
+            && tkDiff(['title', 'body', 'deskId', 'kind', 'updatedAt'])
             && tkNewGet('kind', '') in SUGG_KINDS()
             && suggTitleBodyOk()
             && suggDeskIdOk())
         || (isLoggedIn() && suggAnchorOk(suggId, true))
         || (isLoggedIn() && suggAnchorOk(suggId, false))
         || (isSuperAdmin()
-            && diffKeysOnly(request.resource.data, resource.data,
-                 ['status', 'statusHistory', 'officialReplies', 'hidden',
+            && tkDiff(['status', 'statusHistory', 'officialReplies', 'hidden',
                   'duplicateOf', 'shippedVersion', 'updatedAt'])
             && tkNewGet('status', '') in SUGG_STATUSES()
             && tkNewGet('officialReplies', []).size() <= 50
@@ -3029,7 +3020,7 @@ service cloud.firestore {
       // Polls pattern: a suggestion with supporters is archive —
       // its author deletes only while nobody has supported it.
       allow delete: if isSuperAdmin()
-        || (isLoggedIn() && tkOldGet('authorId', '') == request.auth.uid
+        || (loggedUidIs(tkOldGet('authorId', ''))
             && tkOldGet('supporterCount', 0) == 0);
 
       // One doc per supporter (the ballot box): existence = support.
@@ -3037,12 +3028,12 @@ service cloud.firestore {
       // move the parent's supporterCount, in the same batch.
       match /supporters/{supporterUid} {
         allow read: if isSuperAdmin()
-          || (isLoggedIn() && supporterUid == request.auth.uid);
-        allow create: if isLoggedIn() && supporterUid == request.auth.uid
+          || (loggedUidIs(supporterUid));
+        allow create: if loggedUidIs(supporterUid)
           && suggVisible(suggId)
           && reqKeys().hasOnly(['supportedAt']);
         allow update: if false;
-        allow delete: if isLoggedIn() && supporterUid == request.auth.uid;
+        allow delete: if loggedUidIs(supporterUid);
       }
     }
 
@@ -3118,7 +3109,7 @@ service cloud.firestore {
         && tkNewGet('votesInFavor', 0) == tkOldGet('votesInFavor', 0)
         && tkNewGet('votesAgainst', 0) == tkOldGet('votesAgainst', 0)
         && tkNewGet('boardSize', 0) == tkOldGet('boardSize', 0)
-        && resOutcomeOk(request.resource.data)
+        && resOutcomeOk(reqData())
         && ((resExpiresAtTs() != null
               && request.time >= resExpiresAtTs())
             || (tkOldGet('boardSize', 0) > 0
@@ -3186,7 +3177,7 @@ service cloud.firestore {
         (tkNewGet('type', '') == 'org' &&
           tkNewGet('participants', null) is list &&
           tkNewGet('participants', []).size() == 2 &&
-          isOrgTrustee(chatOrgId(request.resource.data)))));
+          isOrgTrustee(chatOrgId(reqData())))));
       allow update: if isSuperAdmin() || (isLoggedIn() && (
         (tkOldGet('participants', null) is list && request.auth.uid in tkOldGet('participants', []) &&
           !diffKeys().hasAny(['participants'])) ||
@@ -3195,14 +3186,14 @@ service cloud.firestore {
       allow delete: if false;
       match /messages/{messageId} {
         allow read: if isSuperAdmin() || (isLoggedIn() && (
-          (get(/databases/$(database)/documents/chats/$(chatId)).data.get('participants', null) is list &&
-            request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.get('participants', [])) ||
-          isChatOrgTrustee(get(/databases/$(database)/documents/chats/$(chatId)).data)));
+          (docGet(/databases/$(database)/documents/chats/$(chatId), 'participants', null) is list &&
+            request.auth.uid in docGet(/databases/$(database)/documents/chats/$(chatId), 'participants', [])) ||
+          isChatOrgTrustee(docData(/databases/$(database)/documents/chats/$(chatId)))));
         allow create: if isSuperAdmin() || (isLoggedIn() && (
-          (get(/databases/$(database)/documents/chats/$(chatId)).data.get('participants', null) is list &&
-            request.auth.uid in get(/databases/$(database)/documents/chats/$(chatId)).data.get('participants', []) &&
-            tkNewGet('senderId', '') == request.auth.uid) ||
-          isChatOrgTrustee(get(/databases/$(database)/documents/chats/$(chatId)).data)));
+          (docGet(/databases/$(database)/documents/chats/$(chatId), 'participants', null) is list &&
+            request.auth.uid in docGet(/databases/$(database)/documents/chats/$(chatId), 'participants', []) &&
+            uidIs(tkNewGet('senderId', ''))) ||
+          isChatOrgTrustee(docData(/databases/$(database)/documents/chats/$(chatId)))));
         allow update, delete: if false;
       }
     }
@@ -3277,7 +3268,7 @@ service cloud.firestore {
       allow update: if isLoggedIn()
         && bumpUpOk('reportCount');
       allow delete: if isSuperAdmin()
-        || (isLoggedIn() && uidIs(tkOldGet('sharedBy', '')));
+        || (loggedUidIs(tkOldGet('sharedBy', '')));
     }
 
     // Sangam Stories — 24h disappearing moments. Ephemeral by design.
@@ -3288,8 +3279,7 @@ service cloud.firestore {
     // deletes long-expired docs.
     match /sangamStories/{storyId} {
       allow read: if isLoggedIn();
-      allow create: if isLoggedIn()
-        && uidIs(reqAuthorUid())
+      allow create: if loggedUidIs(reqAuthorUid())
         && reqAuthorName() is string
         && reqAuthorName().size() >= 1
         && reqAuthorName().size() <= 60
@@ -3305,14 +3295,14 @@ service cloud.firestore {
       allow update: if isLoggedIn()
         && bumpUpOk('reportCount');
       allow delete: if isSuperAdmin()
-        || (isLoggedIn() && uidIs(resAuthorUid()));
+        || (loggedUidIs(resAuthorUid()));
 
       // View tracking: authors see a COUNT; viewer identities are private.
       // Write own uid only; read author-only.
       match /viewers/{uid} {
         allow read: if isSuperAdmin()
-          || (isLoggedIn() && get(/databases/$(database)/documents/sangamStories/$(storyId)).data.get('authorUid', '') == request.auth.uid);
-        allow write: if isLoggedIn() && uidIs(uid);
+          || (loggedUidIs(docGet(/databases/$(database)/documents/sangamStories/$(storyId), 'authorUid', '')));
+        allow write: if loggedUidIs(uid);
       }
     }
 
@@ -3352,15 +3342,14 @@ service cloud.firestore {
         || (bumpUpOk('reportCount'))
       );
       allow delete: if isSuperAdmin()
-        || (isLoggedIn() && uidIs(resAuthorUid()));
+        || (loggedUidIs(resAuthorUid()));
 
       // Comments: community conversation on a short.
       // read: any authenticated user. create: author-only, schema-pinned.
       // delete: comment author or superadmin. No edits.
       match /comments/{commentId} {
         allow read: if isLoggedIn();
-        allow create: if isLoggedIn()
-          && uidIs(reqAuthorUid())
+        allow create: if loggedUidIs(reqAuthorUid())
           && reqText() is string
           && reqText().size() >= 1
           && reqText().size() <= 300
@@ -3368,7 +3357,7 @@ service cloud.firestore {
             'authorUid', 'authorName', 'text', 'createdAt', 'serverCreatedAt'
           ]);
         allow delete: if isSuperAdmin()
-          || (isLoggedIn() && uidIs(resAuthorUid()));
+          || (loggedUidIs(resAuthorUid()));
       }
     }
 
@@ -3447,23 +3436,19 @@ service cloud.firestore {
         reqName().size() <= 60 &&
         tkNewGet('inviteCode', '') is string &&
         tkNewGet('inviteCode', '').size() == 8 &&
-        tkNewGet('createdBy', '') == request.auth.uid;
+        uidIs(tkNewGet('createdBy', ''));
 
       // Lane A (any member): thread-summary + presence fields only.
       // Lane B (admin): member management + rename + invite rotation.
       allow update: if isSuperAdmin() || (isLoggedIn() &&
         tkOldGet('memberIds', null) is list &&
         request.auth.uid in tkOldGet('memberIds', []) && (
-          diffKeysOnly(request.resource.data, resource.data, 
-            ['lastMessage', 'lastMessageAt', 'updatedAt', 'unreadCounts',
-             'lastReadAt', 'lastDeliveredAt', 'typing', 'archivedBy']
-          ) ||
+          tkDiff(['lastMessage', 'lastMessageAt', 'updatedAt', 'unreadCounts',
+             'lastReadAt', 'lastDeliveredAt', 'typing', 'archivedBy']) ||
           (request.auth.uid in tkOldGet('adminIds', []) &&
-            diffKeysOnly(request.resource.data, resource.data, 
-              ['lastMessage', 'lastMessageAt', 'updatedAt', 'unreadCounts',
+            tkDiff(['lastMessage', 'lastMessageAt', 'updatedAt', 'unreadCounts',
                'lastReadAt', 'lastDeliveredAt', 'typing', 'archivedBy',
-               'name', 'description', 'memberIds', 'adminIds', 'memberInfo', 'inviteCode']
-            ) &&
+               'name', 'description', 'memberIds', 'adminIds', 'memberInfo', 'inviteCode']) &&
             tkNewGet('memberIds', null) is list &&
             tkNewGet('adminIds', null) is list &&
             tkNewGet('createdBy', '') == tkOldGet('createdBy', ''))
@@ -3478,39 +3463,38 @@ service cloud.firestore {
 
       match /messages/{messageId} {
         allow read: if isSuperAdmin() || (isLoggedIn() &&
-          get(/databases/$(database)/documents/chatGroups/$(groupId)).data.get('memberIds', null) is list &&
-          request.auth.uid in get(/databases/$(database)/documents/chatGroups/$(groupId)).data.get('memberIds', []));
+          docGet(/databases/$(database)/documents/chatGroups/$(groupId), 'memberIds', null) is list &&
+          request.auth.uid in docGet(/databases/$(database)/documents/chatGroups/$(groupId), 'memberIds', []));
         allow create: if isSuperAdmin() || (isLoggedIn() &&
-          get(/databases/$(database)/documents/chatGroups/$(groupId)).data.get('memberIds', null) is list &&
-          request.auth.uid in get(/databases/$(database)/documents/chatGroups/$(groupId)).data.get('memberIds', []) &&
-          tkNewGet('senderId', '') == request.auth.uid &&
+          docGet(/databases/$(database)/documents/chatGroups/$(groupId), 'memberIds', null) is list &&
+          request.auth.uid in docGet(/databases/$(database)/documents/chatGroups/$(groupId), 'memberIds', []) &&
+          uidIs(tkNewGet('senderId', '')) &&
           (tkNewGet('kind', '') != 'system' ||
             tkNewGet('systemKind', '') in
               ['created', 'joined', 'left', 'added', 'removed', 'renamed', 'promoted']));
         // Unsend: own message, within 5 minutes. No edits, ever.
-        allow delete: if isSuperAdmin() || (isLoggedIn() &&
-          tkOldGet('senderId', '') == request.auth.uid &&
+        allow delete: if isSuperAdmin() || (loggedUidIs(tkOldGet('senderId', '')) &&
           request.time.toMillis() - tkOldGet('createdAt', 0) < 5 * 60 * 1000);
         allow update: if false;
       }
 
       match /members/{uid} {
         allow read: if isSuperAdmin() || (isLoggedIn() &&
-          get(/databases/$(database)/documents/chatGroups/$(groupId)).data.get('memberIds', null) is list &&
-          request.auth.uid in get(/databases/$(database)/documents/chatGroups/$(groupId)).data.get('memberIds', []));
+          docGet(/databases/$(database)/documents/chatGroups/$(groupId), 'memberIds', null) is list &&
+          request.auth.uid in docGet(/databases/$(database)/documents/chatGroups/$(groupId), 'memberIds', []));
         // Create: self-join via code (uid == auth.uid) or admin adding.
         allow create: if isSuperAdmin() || (isLoggedIn() &&
           reqUid() == uid &&
-          (uid == request.auth.uid ||
-            request.auth.uid in get(/databases/$(database)/documents/chatGroups/$(groupId)).data.get('adminIds', [])));
+          (uidIs(uid) ||
+            request.auth.uid in docGet(/databases/$(database)/documents/chatGroups/$(groupId), 'adminIds', [])));
         // Role change: admin only, role field only.
         allow update: if isSuperAdmin() || (isLoggedIn() &&
-          request.auth.uid in get(/databases/$(database)/documents/chatGroups/$(groupId)).data.get('adminIds', []) &&
-          diffKeysOnly(request.resource.data, resource.data, ['role']));
+          request.auth.uid in docGet(/databases/$(database)/documents/chatGroups/$(groupId), 'adminIds', []) &&
+          tkDiff(['role']));
         // Delete: self (leaving) or admin (removing).
         allow delete: if isSuperAdmin() || (isLoggedIn() &&
-          (uid == request.auth.uid ||
-            request.auth.uid in get(/databases/$(database)/documents/chatGroups/$(groupId)).data.get('adminIds', [])));
+          (uidIs(uid) ||
+            request.auth.uid in docGet(/databases/$(database)/documents/chatGroups/$(groupId), 'adminIds', [])));
       }
     }
 
@@ -3527,19 +3511,17 @@ service cloud.firestore {
     // --- purohits/{purohitId}: public read (marketplace); owner + admin write.
     match /purohits/{purohitId} {
       allow read: if true;
-      allow create: if isLoggedIn()
-        && uidIs(reqUid())
+      allow create: if loggedUidIs(reqUid())
         && reqVerificationTier() == 'REGISTERED'
         && tkNewGet('ratingAggregate', 0) == 0
         && reqRatingCount() == 0
-        && request.resource.data.get('completedGigs', 0) == 0
+        && tkNewGet('completedGigs', 0) == 0
         // PUROHIT-PARITY: a profile is also born with ZERO anchored
         // endorsements — the claim branch reads this field, so it must
         // not be self-granted at birth (mirrors jyotishProfiles).
         && request.resource.data.get('endorsementCount', 0) == 0;
       allow update: if isSuperAdmin()
-        || (isLoggedIn()
-          && uidIs(resUid())
+        || (loggedUidIs(resUid())
           && uidIs(reqUid())
           && tkNewGet('id', '') == tkOldGet('id', '')
           && reqVerificationTier() == tkOldGet('verificationTier', '')
@@ -3555,7 +3537,7 @@ service cloud.firestore {
           // anchored to a gig the owner just completed.
           && tkNewGet('ratingAggregate', 0) == tkOldGet('ratingAggregate', 0)
           && reqRatingCount() == tkOldGet('ratingCount', 0)
-          && (request.resource.data.get('completedGigs', 0) == resource.data.get('completedGigs', 0)
+          && (tkNewGet('completedGigs', 0) == tkOldGet('completedGigs', 0)
             || p1CompletedGigOk()))
         // SECURITY P1 -- anchored rating step (see p1PurohitRatingOk).
         // The old branch let ANY signed-in user set ratingAggregate /
@@ -3583,8 +3565,7 @@ service cloud.firestore {
         // the anchored count (rules cannot count a collection); an
         // affected purohit's claim stays denied until their next
         // (anchored) endorsement or a GodMode manual tier set.
-        || (isLoggedIn()
-          && uidIs(resUid())
+        || (loggedUidIs(resUid())
           && diffKeys()
             .hasOnly(['verificationTier', 'updatedAt'])
           && purohitTierClaimOk())
@@ -3599,20 +3580,18 @@ service cloud.firestore {
       allow write: if isSuperAdmin()
         || (isLoggedIn()
           && exists(/databases/$(database)/documents/purohits/$(purohitId))
-          && get(/databases/$(database)/documents/purohits/$(purohitId)).data.get('uid', '') == request.auth.uid);
+          && uidIs(docGet(/databases/$(database)/documents/purohits/$(purohitId), 'uid', '')));
     }
 
     // Solo Sanatani â Universal Sanatani ID spine (sanataniProfiles/{uid})
     match /sanataniProfiles/{uid} {
       allow read: if true;
-      allow create: if isLoggedIn()
-        && uidIs(uid)
+      allow create: if loggedUidIs(uid)
         && uidIs(reqUid())
         && reqVerificationTier() == 'REGISTERED'
         && tkNewGet('roles', {}) == {};
       allow update: if isSuperAdmin()
-        || (isLoggedIn()
-          && uidIs(uid)
+        || (loggedUidIs(uid)
           && uidIs(resUid())
           && uidIs(reqUid())
           && tkNewGet('id', '') == tkOldGet('id', '')
@@ -3633,7 +3612,7 @@ service cloud.firestore {
           && newPid != oldRoles.get('purohitId', '')
           && diffKeysOnly(newRoles, oldRoles, ['purohitId'])
           && exists(/databases/$(database)/documents/purohits/$(newPid))
-          && get(/databases/$(database)/documents/purohits/$(newPid)).data.get('uid', '') == request.auth.uid;
+          && uidIs(docGet(/databases/$(database)/documents/purohits/$(newPid), 'uid', ''));
       }
 
       // A jyotishId may be attached only when the referenced
@@ -3645,13 +3624,13 @@ service cloud.firestore {
           && newJid != oldRoles.get('jyotishId', '')
           && diffKeysOnly(newRoles, oldRoles, ['jyotishId'])
           && exists(/databases/$(database)/documents/jyotishProfiles/$(newJid))
-          && get(/databases/$(database)/documents/jyotishProfiles/$(newJid)).data.get('uid', '') == request.auth.uid;
+          && uidIs(docGet(/databases/$(database)/documents/jyotishProfiles/$(newJid), 'uid', ''));
       }
     }
 
     // Solo Sanatani â private profile fields (gotra and future sensitive
     match /sanataniProfiles/{uid}/private/self {
-      allow read, write: if isLoggedIn() && uidIs(uid);
+      allow read, write: if loggedUidIs(uid);
     }
 
 // ------------------------- Section A: program config ----------------------
@@ -3670,8 +3649,7 @@ service cloud.firestore {
     // id field name differs, passed as idField. Token-identical
     // expansion at both call sites.
     function applicationCreateOk(idField) {
-      return isLoggedIn()
-        && uidIs(reqUid())
+      return loggedUidIs(reqUid())
         && tkNewGet(idField, '') != ''
         && reqStatus() == 'PENDING'
         && tkNewGet('tier', '') == ''
@@ -3682,7 +3660,7 @@ service cloud.firestore {
     }
     match /purohitApplications/{appId} {
       allow read: if isSuperAdmin()
-        || (isLoggedIn() && uidIs(resUid()));
+        || (loggedUidIs(resUid()));
       allow create: if applicationCreateOk('purohitId');
       allow update: if isSuperAdmin();
       allow delete: if false;
@@ -3727,8 +3705,7 @@ service cloud.firestore {
     }
     match /gigs/{gigId} {
       allow read: if true;
-      allow create: if isLoggedIn()
-        && uidIs(tkNewGet('devoteeUid', ''))
+      allow create: if loggedUidIs(tkNewGet('devoteeUid', ''))
         && reqStatus() == 'OPEN'
         && gigReferralAnchorOk();
       allow update: if isSuperAdmin()
@@ -3757,14 +3734,13 @@ service cloud.firestore {
     function reviewPartyOk() {
       let gigPath = /databases/$(database)/documents/gigs/$(tkNewGet('gigId', ''));
       return exists(gigPath)
-        && get(gigPath).data.get('status', '') in ORDER_DONE()
-        && (get(gigPath).data.get('devoteeUid', '') == request.auth.uid
-          || get(gigPath).data.get('assignedPurohitUid', '') == request.auth.uid);
+        && docGet(gigPath, 'status', '') in ORDER_DONE()
+        && (uidIs(docGet(gigPath, 'devoteeUid', ''))
+          || uidIs(docGet(gigPath, 'assignedPurohitUid', '')));
     }
     match /reviews/{reviewId} {
       allow read: if true;
-      allow create: if isLoggedIn()
-        && uidIs(tkNewGet('reviewerUid', ''))
+      allow create: if loggedUidIs(tkNewGet('reviewerUid', ''))
         && tkNewGet('gigId', '') != ''
         && reqRating() >= 1
         && reqRating() <= 5
@@ -3786,9 +3762,8 @@ service cloud.firestore {
           && tkNewGet('purohitUid', '') != ''
           && reqStatus() == 'PENDING');
       allow update: if isSuperAdmin()
-        || (isLoggedIn()
-          && uidIs(tkOldGet('purohitUid', ''))
-          && diffKeysOnly(request.resource.data, resource.data, KEYS_STATUS_ONLY())
+        || (loggedUidIs(tkOldGet('purohitUid', ''))
+          && tkDiff(KEYS_STATUS_ONLY())
           && reqStatus() in DECISION_STATES());
       allow delete: if false;
     }
@@ -3804,7 +3779,7 @@ service cloud.firestore {
     }
     function jyotishProfileOwnedByCaller(jid) {
       return exists(/databases/$(database)/documents/jyotishProfiles/$(jid))
-        && get(/databases/$(database)/documents/jyotishProfiles/$(jid)).data.get('uid', '') == request.auth.uid;
+        && uidIs(docGet(/databases/$(database)/documents/jyotishProfiles/$(jid), 'uid', ''));
     }
 
     // --- jyotishProfiles/{jyotishId}: public read (marketplace); owner +
@@ -3813,8 +3788,7 @@ service cloud.firestore {
       // JY-02: the public profile doc is born WITHOUT contact fields —
       // phone/email live only in the owner-only private/self subdoc
       // below (mirrors sanataniProfiles/{uid}/private/self).
-      allow create: if isLoggedIn()
-        && uidIs(reqUid())
+      allow create: if loggedUidIs(reqUid())
         && reqVerificationTier() == 'REGISTERED'
         && tkNewGet('ratingAggregate', 0) == 0
         && reqRatingCount() == 0
@@ -3825,8 +3799,7 @@ service cloud.firestore {
         && request.resource.data.get('endorsementCount', 0) == 0
         && !reqKeys().hasAny(['phone', 'email']);
       allow update: if isSuperAdmin()
-        || (isLoggedIn()
-          && uidIs(resUid())
+        || (loggedUidIs(resUid())
           // uid / id / tier / rating aggregates pinned by diff: none may
           // be added, removed or changed on this branch (the factored
           // form of the five field-equalities this branch used before).
@@ -3867,8 +3840,7 @@ service cloud.firestore {
         // silently for every jyotishi. The owner may now write ONLY
         // verificationTier (+ updatedAt), and only to a step the doc's
         // own anchored fields have earned (jyotishTierClaimOk).
-        || (isLoggedIn()
-          && uidIs(resUid())
+        || (loggedUidIs(resUid())
           && diffKeys()
             .hasOnly(['verificationTier', 'updatedAt'])
           && jyotishTierClaimOk())
@@ -3893,7 +3865,7 @@ service cloud.firestore {
 // ----------------- Section C: jyotishApplications (REPLACES) --------------
     match /jyotishApplications/{appId} {
       allow read: if isSuperAdmin()
-        || (isLoggedIn() && uidIs(resUid()));
+        || (loggedUidIs(resUid()));
       allow create: if applicationCreateOk('jyotishId');
       allow delete: if false;
       allow update: if isSuperAdmin();
@@ -3911,8 +3883,8 @@ service cloud.firestore {
       let cpath = /databases/$(database)/documents/jyotishConsultations/$(cid);
       return isLoggedIn()
         && exists(cpath)
-        && (get(cpath).data.get('devoteeUid', '') == request.auth.uid
-          || get(cpath).data.get('assignedJyotishUid', '') == request.auth.uid);
+        && (uidIs(docGet(cpath, 'devoteeUid', ''))
+          || uidIs(docGet(cpath, 'assignedJyotishUid', '')));
     }
     function consultationTransitionOk() {
       return bookingTransitionOk();
@@ -3931,15 +3903,14 @@ service cloud.firestore {
     function callerHasJyotishProfile() {
       let spath = /databases/$(database)/documents/sanataniProfiles/$(request.auth.uid);
       return exists(spath)
-        && get(spath).data.get('roles', {}).get('jyotishId', '') != '';
+        && docGet(spath, 'roles', {}).get('jyotishId', '') != '';
     }
     match /jyotishConsultations/{consultationId} {
       // JY-02: party-scoped read — the doc carries birth date/time/place,
       // partner birth details, devotee phone and private notes. The open
       // board reads the PII-free jyotishTenders projection instead.
       allow read: if isSuperAdmin() || isConsultationParty();
-      allow create: if isLoggedIn()
-        && uidIs(tkNewGet('devoteeUid', ''))
+      allow create: if loggedUidIs(tkNewGet('devoteeUid', ''))
         && reqStatus() == 'OPEN'
         && consultationReferralAnchorOk();
       allow update: if isSuperAdmin()
@@ -3976,7 +3947,7 @@ service cloud.firestore {
         allow create: if isRemedyParty()
           && uidIs(tkNewGet('jyotishUid', ''))
           && tkNewGet('consultationId', '') == consultationId
-          && tkNewGet('devoteeUid', '') == get(/databases/$(database)/documents/jyotishConsultations/$(consultationId)).data.get('devoteeUid', '')
+          && tkNewGet('devoteeUid', '') == docGet(/databases/$(database)/documents/jyotishConsultations/$(consultationId), 'devoteeUid', '')
           && tkNewGet('ritualName', '') != ''
           && tkNewGet('remedyText', '') != ''
           && reqStatus() == 'PENDING';
@@ -3984,7 +3955,7 @@ service cloud.firestore {
           || (isRemedyParty()
             && resStatus() == 'PENDING'
             && reqStatus() in ['BOOKED', 'DISMISSED']
-            && diffKeysOnly(request.resource.data, resource.data, ['status', 'bookedGigId']));
+            && tkDiff(['status', 'bookedGigId']));
         allow delete: if false;
       }
     }
@@ -4007,18 +3978,17 @@ service cloud.firestore {
     }
     function tenderAcceptedByCaller(consultationId) {
       let cpath = /databases/$(database)/documents/jyotishConsultations/$(consultationId);
-      return get(cpath).data.get('assignedJyotishUid', '') == request.auth.uid
-        && get(cpath).data.get('status', '') != 'OPEN';
+      return uidIs(docGet(cpath, 'assignedJyotishUid', ''))
+        && docGet(cpath, 'status', '') != 'OPEN';
     }
     match /jyotishTenders/{consultationId} {
       allow read: if isSuperAdmin()
         || (isLoggedIn() && resStatus() == 'OPEN' && callerHasJyotishProfile());
-      allow create: if isLoggedIn()
-        && uidIs(tkNewGet('devoteeUid', ''))
+      allow create: if loggedUidIs(tkNewGet('devoteeUid', ''))
         && tenderShapeOk();
       allow update: if false;
       allow delete: if isSuperAdmin()
-        || (isLoggedIn() && uidIs(tkOldGet('devoteeUid', '')))
+        || (loggedUidIs(tkOldGet('devoteeUid', '')))
         || (isLoggedIn() && tenderAcceptedByCaller(consultationId));
     }
 
@@ -4038,14 +4008,13 @@ service cloud.firestore {
     function consultationReviewPartyOk() {
       let cpath = /databases/$(database)/documents/jyotishConsultations/$(tkNewGet('consultationId', ''));
       return exists(cpath)
-        && get(cpath).data.get('status', '') in ORDER_DONE()
-        && (get(cpath).data.get('devoteeUid', '') == request.auth.uid
-          || get(cpath).data.get('assignedJyotishUid', '') == request.auth.uid);
+        && docGet(cpath, 'status', '') in ORDER_DONE()
+        && (uidIs(docGet(cpath, 'devoteeUid', ''))
+          || uidIs(docGet(cpath, 'assignedJyotishUid', '')));
     }
     match /jyotishReviews/{reviewId} {
       allow read: if true;
-      allow create: if isLoggedIn()
-        && uidIs(tkNewGet('reviewerUid', ''))
+      allow create: if loggedUidIs(tkNewGet('reviewerUid', ''))
         && tkNewGet('consultationId', '') != ''
         && reqRating() >= 1
         && reqRating() <= 5
@@ -4076,9 +4045,8 @@ service cloud.firestore {
           && tkNewGet('jyotishUid', '') != ''
           && reqStatus() == 'PENDING');
       allow update: if isSuperAdmin()
-        || (isLoggedIn()
-          && uidIs(tkOldGet('jyotishUid', ''))
-          && diffKeysOnly(request.resource.data, resource.data, KEYS_STATUS_ONLY())
+        || (loggedUidIs(tkOldGet('jyotishUid', ''))
+          && tkDiff(KEYS_STATUS_ONLY())
           && reqStatus() in DECISION_STATES());
       allow delete: if false;
     }
@@ -4089,12 +4057,12 @@ service cloud.firestore {
     // --- referredBy anchoring on gig create (jyotish -> purohit) ---
     function remedyAnchorOk() {
       return exists(/databases/$(database)/documents/jyotishConsultations/$(reqReferredBy().get('consultationId', ''))/remedies/$(reqReferredBy().get('remedyId', '')))
-        && get(/databases/$(database)/documents/jyotishConsultations/$(reqReferredBy().get('consultationId', ''))/remedies/$(reqReferredBy().get('remedyId', ''))).data.get('devoteeUid', '') == request.auth.uid
-        && get(/databases/$(database)/documents/jyotishConsultations/$(reqReferredBy().get('consultationId', ''))/remedies/$(reqReferredBy().get('remedyId', ''))).data.get('jyotishUid', '') == reqReferredBy().get('referrerUid', '')
-        && get(/databases/$(database)/documents/jyotishConsultations/$(reqReferredBy().get('consultationId', ''))/remedies/$(reqReferredBy().get('remedyId', ''))).data.get('status', '') == 'PENDING';
+        && uidIs(docGet(/databases/$(database)/documents/jyotishConsultations/$(reqReferredBy().get('consultationId', ''))/remedies/$(reqReferredBy().get('remedyId', '')), 'devoteeUid', ''))
+        && docGet(/databases/$(database)/documents/jyotishConsultations/$(reqReferredBy().get('consultationId', ''))/remedies/$(reqReferredBy().get('remedyId', '')), 'jyotishUid', '') == reqReferredBy().get('referrerUid', '')
+        && docGet(/databases/$(database)/documents/jyotishConsultations/$(reqReferredBy().get('consultationId', ''))/remedies/$(reqReferredBy().get('remedyId', '')), 'status', '') == 'PENDING';
     }
     function gigReferralAnchorOk() {
-      return !('referredBy' in request.resource.data)
+      return !('referredBy' in reqData())
         || (reqReferredBy().get('direction', '') == 'jyotish-to-purohit'
           && reqReferredBy().get('referrerUid', '') != ''
           && reqReferredBy().get('remedyId', '') != ''
@@ -4106,13 +4074,13 @@ service cloud.firestore {
     // --- referredBy anchoring on consultation create (purohit -> jyotish) ---
     function referralAnchorOk() {
       return exists(/databases/$(database)/documents/jyotishReferrals/$(reqReferredBy().get('referralId', '')))
-        && get(/databases/$(database)/documents/jyotishReferrals/$(reqReferredBy().get('referralId', ''))).data.get('fromKind', '') == 'purohit'
-        && get(/databases/$(database)/documents/jyotishReferrals/$(reqReferredBy().get('referralId', ''))).data.get('toKind', '') == 'jyotish'
-        && get(/databases/$(database)/documents/jyotishReferrals/$(reqReferredBy().get('referralId', ''))).data.get('fromUid', '') == reqReferredBy().get('referrerUid', '')
-        && get(/databases/$(database)/documents/jyotishReferrals/$(reqReferredBy().get('referralId', ''))).data.get('devoteeUid', '') == request.auth.uid;
+        && docGet(/databases/$(database)/documents/jyotishReferrals/$(reqReferredBy().get('referralId', '')), 'fromKind', '') == 'purohit'
+        && docGet(/databases/$(database)/documents/jyotishReferrals/$(reqReferredBy().get('referralId', '')), 'toKind', '') == 'jyotish'
+        && docGet(/databases/$(database)/documents/jyotishReferrals/$(reqReferredBy().get('referralId', '')), 'fromUid', '') == reqReferredBy().get('referrerUid', '')
+        && uidIs(docGet(/databases/$(database)/documents/jyotishReferrals/$(reqReferredBy().get('referralId', '')), 'devoteeUid', ''));
     }
     function consultationReferralAnchorOk() {
-      return !('referredBy' in request.resource.data)
+      return !('referredBy' in reqData())
         || (reqReferredBy().get('direction', '') == 'purohit-to-jyotish'
           && reqReferredBy().get('referrerUid', '') != ''
           && reqReferredBy().get('referralId', '') != ''
@@ -4123,14 +4091,14 @@ service cloud.firestore {
     function attributionGigOk() {
       return reqOrderType() == 'gig'
         && exists(/databases/$(database)/documents/gigs/$(reqOrderId()))
-        && reqGigDoc().data.get('devoteeUid', '') == request.auth.uid
+        && uidIs(reqGigDoc().data.get('devoteeUid', ''))
         && reqGigDoc().data.get('referredBy', {}).get('referrerUid', '') == tkNewGet('referrerUid', '')
         && reqGigDoc().data.get('referredBy', {}).get('direction', '') == tkNewGet('direction', '');
     }
     function attributionConsultationOk() {
       return reqOrderType() == 'consultation'
         && exists(/databases/$(database)/documents/jyotishConsultations/$(reqOrderId()))
-        && reqConsultDoc().data.get('devoteeUid', '') == request.auth.uid
+        && uidIs(reqConsultDoc().data.get('devoteeUid', ''))
         && reqConsultDoc().data.get('referredBy', {}).get('referrerUid', '') == tkNewGet('referrerUid', '')
         && reqConsultDoc().data.get('referredBy', {}).get('direction', '') == tkNewGet('direction', '');
     }
@@ -4146,11 +4114,11 @@ service cloud.firestore {
     // Only an order party may move the attribution (prevents griefing the
     function attributionPartyOk() {
       return (reqOrderType() == 'gig'
-          && (reqGigDoc().data.get('devoteeUid', '') == request.auth.uid
-            || reqGigDoc().data.get('assignedPurohitUid', '') == request.auth.uid))
+          && (uidIs(reqGigDoc().data.get('devoteeUid', ''))
+            || uidIs(reqGigDoc().data.get('assignedPurohitUid', ''))))
         || (reqOrderType() == 'consultation'
-          && (reqConsultDoc().data.get('devoteeUid', '') == request.auth.uid
-            || reqConsultDoc().data.get('assignedJyotishUid', '') == request.auth.uid));
+          && (uidIs(reqConsultDoc().data.get('devoteeUid', ''))
+            || uidIs(reqConsultDoc().data.get('assignedJyotishUid', ''))));
     }
 
     // --- referralCredits/rc_{orderId} ---
@@ -4158,8 +4126,8 @@ service cloud.firestore {
       return reqOrderType() == 'gig'
         && exists(/databases/$(database)/documents/gigs/$(reqOrderId()))
         && reqGigDoc().data.get('status', '') == 'DAKSHINA_RELEASED'
-        && (reqGigDoc().data.get('devoteeUid', '') == request.auth.uid
-          || reqGigDoc().data.get('assignedPurohitUid', '') == request.auth.uid)
+        && (uidIs(reqGigDoc().data.get('devoteeUid', ''))
+          || uidIs(reqGigDoc().data.get('assignedPurohitUid', '')))
         && reqGigDoc().data.get('referredBy', {}).get('referrerUid', '') == tkNewGet('referrerUid', '')
         && reqGigDoc().data.get('referredBy', {}).get('direction', '') == tkNewGet('direction', '');
     }
@@ -4167,8 +4135,8 @@ service cloud.firestore {
       return reqOrderType() == 'consultation'
         && exists(/databases/$(database)/documents/jyotishConsultations/$(reqOrderId()))
         && reqConsultDoc().data.get('status', '') == 'DAKSHINA_RELEASED'
-        && (reqConsultDoc().data.get('devoteeUid', '') == request.auth.uid
-          || reqConsultDoc().data.get('assignedJyotishUid', '') == request.auth.uid)
+        && (uidIs(reqConsultDoc().data.get('devoteeUid', ''))
+          || uidIs(reqConsultDoc().data.get('assignedJyotishUid', '')))
         && reqConsultDoc().data.get('referredBy', {}).get('referrerUid', '') == tkNewGet('referrerUid', '')
         && reqConsultDoc().data.get('referredBy', {}).get('direction', '') == tkNewGet('direction', '');
     }
@@ -4206,11 +4174,11 @@ service cloud.firestore {
     }
     function creditOrderParty() {
       return (tkOldGet('orderType', '') == 'gig'
-          && (get(/databases/$(database)/documents/gigs/$(tkOldGet('orderId', ''))).data.get('devoteeUid', '') == request.auth.uid
-            || get(/databases/$(database)/documents/gigs/$(tkOldGet('orderId', ''))).data.get('assignedPurohitUid', '') == request.auth.uid))
+          && (uidIs(docGet(/databases/$(database)/documents/gigs/$(tkOldGet('orderId', '')), 'devoteeUid', ''))
+            || uidIs(docGet(/databases/$(database)/documents/gigs/$(tkOldGet('orderId', '')), 'assignedPurohitUid', ''))))
         || (tkOldGet('orderType', '') == 'consultation'
-          && (get(/databases/$(database)/documents/jyotishConsultations/$(tkOldGet('orderId', ''))).data.get('devoteeUid', '') == request.auth.uid
-            || get(/databases/$(database)/documents/jyotishConsultations/$(tkOldGet('orderId', ''))).data.get('assignedJyotishUid', '') == request.auth.uid));
+          && (uidIs(docGet(/databases/$(database)/documents/jyotishConsultations/$(tkOldGet('orderId', '')), 'devoteeUid', ''))
+            || uidIs(docGet(/databases/$(database)/documents/jyotishConsultations/$(tkOldGet('orderId', '')), 'assignedJyotishUid', ''))));
     }
 
     // --- wallet credit anchored to a validated referral credit doc ---
@@ -4224,7 +4192,7 @@ service cloud.firestore {
         && tkNewGet('totalReceived', -1) == tkOldGet('totalReceived', 0) + reqCreditDoc().data.get('creditAmount', 0)
         && tkNewGet('totalToppedUp', -1) == tkOldGet('totalToppedUp', 0)
         && tkNewGet('totalSpent', -1) == tkOldGet('totalSpent', 0)
-        && diffKeysOnly(request.resource.data, resource.data, ['balance', 'totalReceived', 'totalToppedUp', 'totalSpent', 'updatedAt', 'lastReferralCreditId', 'currency', 'uid']);
+        && tkDiff(['balance', 'totalReceived', 'totalToppedUp', 'totalSpent', 'updatedAt', 'lastReferralCreditId', 'currency', 'uid']);
     }
     function referralWalletCreditOk(uid) {
       return referralCreditDocOk(uid);
@@ -4246,8 +4214,7 @@ service cloud.firestore {
     // --- jyotishReferrals: cross-referrals jyotish â purohit. Public read
     match /jyotishReferrals/{referralId} {
       allow read: if true;
-      allow create: if isLoggedIn()
-        && uidIs(tkNewGet('fromUid', ''))
+      allow create: if loggedUidIs(tkNewGet('fromUid', ''))
         && tkNewGet('toRoleId', '') != ''
         && tkNewGet('toTier', '') != ''
         && tkNewGet('toTier', '') != 'REGISTERED'
@@ -4273,7 +4240,7 @@ service cloud.firestore {
         || (isLoggedIn()
           && resStatus() == 'OPEN'
           && reqStatus() in ['SETTLED', 'SKIPPED_NO_VALUE']
-          && diffKeysOnly(request.resource.data, resource.data, ['status', 'settledAt', 'creditId'])
+          && tkDiff(['status', 'settledAt', 'creditId'])
           && attributionTerminalOk()
           && attributionPartyOk());
       allow delete: if false;
@@ -4285,7 +4252,7 @@ service cloud.firestore {
     // rule is order-anchored (mirrors referralAttributions): no forged thanks.
     match /referralClaims/{orderId} {
       allow read: if isSuperAdmin()
-        || (isLoggedIn() && uidIs(tkOldGet('sharerUid', '')));
+        || (loggedUidIs(tkOldGet('sharerUid', '')));
       allow create: if isLoggedIn()
         && reqOrderId() == orderId
         && uidIs(tkNewGet('bookerUid', ''))
@@ -4297,15 +4264,15 @@ service cloud.firestore {
         && reqKeys().hasOnly(
           ['orderId', 'sharerUid', 'sharerSanId', 'bookerUid', 'providerName', 'createdAt'])
         && exists(/databases/$(database)/documents/marketplaceOrders/$(orderId))
-        && get(/databases/$(database)/documents/marketplaceOrders/$(orderId)).data.get('clientUid', '') == request.auth.uid
-        && get(/databases/$(database)/documents/marketplaceOrders/$(orderId)).data.get('referredBy', '') == tkNewGet('sharerSanId', '');
+        && uidIs(docGet(/databases/$(database)/documents/marketplaceOrders/$(orderId), 'clientUid', ''))
+        && docGet(/databases/$(database)/documents/marketplaceOrders/$(orderId), 'referredBy', '') == tkNewGet('sharerSanId', '');
       allow update, delete: if false;
     }
 
     // --- referralCredits/{creditId}: settled guidance credits.
     match /referralCredits/{creditId} {
       allow read: if isSuperAdmin()
-        || (isLoggedIn() && uidIs(tkOldGet('referrerUid', '')))
+        || (loggedUidIs(tkOldGet('referrerUid', '')))
         || (isLoggedIn() && creditOrderParty());
       allow create: if isLoggedIn()
         && creditId == 'rc_' + reqOrderId()
@@ -4317,7 +4284,7 @@ service cloud.firestore {
       allow update: if isSuperAdmin()
         && resStatus() == 'SETTLED'
         && reqStatus() == 'REVERSED'
-        && diffKeysOnly(request.resource.data, resource.data, ['status', 'reversedAt', 'reversalReason']);
+        && tkDiff(['status', 'reversedAt', 'reversalReason']);
       allow delete: if false;
     }
 
@@ -4335,12 +4302,12 @@ service cloud.firestore {
         || (kind == 'org' && (tier == '' || tier == null))
         || (kind == 'purohit' && roleId != '' && roleId != null
           && exists(/databases/$(database)/documents/purohits/$(roleId))
-          && get(/databases/$(database)/documents/purohits/$(roleId)).data.get('uid', '') == request.auth.uid
-          && tier == get(/databases/$(database)/documents/purohits/$(roleId)).data.get('verificationTier', ''))
+          && uidIs(docGet(/databases/$(database)/documents/purohits/$(roleId), 'uid', ''))
+          && tier == docGet(/databases/$(database)/documents/purohits/$(roleId), 'verificationTier', ''))
         || (kind == 'jyotish' && roleId != '' && roleId != null
           && exists(/databases/$(database)/documents/jyotishProfiles/$(roleId))
-          && get(/databases/$(database)/documents/jyotishProfiles/$(roleId)).data.get('uid', '') == request.auth.uid
-          && tier == get(/databases/$(database)/documents/jyotishProfiles/$(roleId)).data.get('verificationTier', ''));
+          && uidIs(docGet(/databases/$(database)/documents/jyotishProfiles/$(roleId), 'uid', ''))
+          && tier == docGet(/databases/$(database)/documents/jyotishProfiles/$(roleId), 'verificationTier', ''));
     }
 
     // Seva Bazar service_card: the editorial bar, enforced server-side.
@@ -4378,8 +4345,7 @@ service cloud.firestore {
     // service_card (Seva Bazar): provider-only, editorial bar enforced.
     match /sangamPosts/{postId} {
       allow read: if true;
-      allow create: if isLoggedIn()
-        && uidIs(reqAuthorUid())
+      allow create: if loggedUidIs(reqAuthorUid())
         && reqKeys().hasOnly(
           ['authorUid', 'authorName', 'authorSanId', 'authorKind', 'authorRoleId', 'authorTier',
            'orgId', 'orgName', 'isOfficialPagePost', 'kind', 'text', 'imageUrl', 'shlokaRef',
@@ -4398,8 +4364,8 @@ service cloud.firestore {
         && sangamPagePostOk()
         && serviceCardOk();
       allow update: if isSuperAdmin()
-        || (isLoggedIn() && uidIs(resAuthorUid())
-          && diffKeysOnly(request.resource.data, resource.data, ['text', 'imageUrl', 'updatedAt'])
+        || (loggedUidIs(resAuthorUid())
+          && tkDiff(['text', 'imageUrl', 'updatedAt'])
           && reqAuthorUid() == resAuthorUid())
         // Step 4 (comment multi-device sync): any signed-in user may nudge
         // commentCount by exactly ±1 (never below 0) and touch nothing else.
@@ -4413,7 +4379,7 @@ service cloud.firestore {
         || (isLoggedIn()
           && bumpToggleOk('shareCount'));
       allow delete: if isSuperAdmin()
-        || (isLoggedIn() && uidIs(resAuthorUid()));
+        || (loggedUidIs(resAuthorUid()));
     }
 
     // --- sangamPosts/{postId}/ashirvad/{uid}: one Ashirvad per user (toggle).
@@ -4433,29 +4399,26 @@ service cloud.firestore {
     // --- sangamComments: public read; signed-in create (author pinned,
     match /sangamComments/{commentId} {
       allow read: if true;
-      allow create: if isLoggedIn()
-        && uidIs(reqAuthorUid())
+      allow create: if loggedUidIs(reqAuthorUid())
         && tkNewGet('postId', '') != ''
         && reqKeys().hasOnly(
           ['postId', 'authorUid', 'authorName', 'authorSanId', 'authorKind', 'authorTier', 'text', 'createdAt'])
         && reqText() != ''
         && sangamAuthorTierOk();
       allow update, delete: if isSuperAdmin()
-        || (isLoggedIn() && uidIs(resAuthorUid()));
+        || (loggedUidIs(resAuthorUid()));
     }
 
     // --- sangamCircles: public read; signed-in create; creator/admin update.
     match /sangamCircles/{circleId} {
       allow read: if true;
-      allow create: if isLoggedIn()
-        && uidIs(tkNewGet('creatorUid', ''))
+      allow create: if loggedUidIs(tkNewGet('creatorUid', ''))
         && reqName() != ''
         && reqKeys().hasOnly(
           ['name', 'topic', 'description', 'creatorUid', 'creatorName', 'memberCount', 'createdAt']);
       allow update: if isSuperAdmin()
-        || (isLoggedIn() && uidIs(tkOldGet('creatorUid', ''))
-          && diffKeysOnly(request.resource.data, resource.data, 
-            ['name', 'topic', 'description', 'updatedAt']))
+        || (loggedUidIs(tkOldGet('creatorUid', ''))
+          && tkDiff(['name', 'topic', 'description', 'updatedAt']))
         // Member count path (owner-approved 2026-10-20): any signed-in
         // user may nudge memberCount by exactly +-1 (never below 0) and
         // touch nothing else -- mirrors the sangamPosts pattern.
@@ -4474,8 +4437,7 @@ service cloud.firestore {
     // --- sangamEvents: public read; signed-in create (org events need
     match /sangamEvents/{eventId} {
       allow read: if true;
-      allow create: if isLoggedIn()
-        && uidIs(tkNewGet('creatorUid', ''))
+      allow create: if loggedUidIs(tkNewGet('creatorUid', ''))
         && reqTitle() != ''
         && (reqOrgId() == ''
           || tkNewGet('orgId', null) == null
@@ -4492,8 +4454,8 @@ service cloud.firestore {
            // EVENTS P1: hall capacity + recurrence rule (lib/eventRecurrence).
            'capacity', 'recurrence']);
       allow update: if isSuperAdmin()
-        || (isLoggedIn() && uidIs(tkOldGet('creatorUid', ''))
-          && diffKeysOnly(request.resource.data, resource.data, 
+        || (loggedUidIs(tkOldGet('creatorUid', ''))
+          && diffKeysOnly(reqData(), resource.data, 
             ['title', 'kind', 'description', 'venue', 'startsAt', 'endsAt', 'updatedAt',
              // EVENTS P1: the creator may set the hall size and the
              // recurrence rule; occurrences derive from the rule, so
@@ -4514,32 +4476,32 @@ service cloud.firestore {
         // capacity when one is set — a full event takes waitlist
         // joins, never a 101st 'going'.
         || (isLoggedIn()
-          && diffKeysOnly(request.resource.data, resource.data, ['rsvpCount'])
+          && tkDiff(['rsvpCount'])
           && tkNewGet('rsvpCount', -1) >= 0
           && ((reqRsvpCount() == tkOldGet('rsvpCount', 0) + 1
                 && !exists(/databases/$(database)/documents/sangamEvents/$(eventId)/rsvps/$(request.auth.uid))
                 && existsAfter(/databases/$(database)/documents/sangamEvents/$(eventId)/rsvps/$(request.auth.uid))
-                && getAfter(/databases/$(database)/documents/sangamEvents/$(eventId)/rsvps/$(request.auth.uid)).data.get('state', 'going') == 'going'
+                && afterDocGet(/databases/$(database)/documents/sangamEvents/$(eventId)/rsvps/$(request.auth.uid), 'state', 'going') == 'going'
                 && rsvpWithinCap())
               || (reqRsvpCount() == tkOldGet('rsvpCount', 0) - 1
                 && exists(/databases/$(database)/documents/sangamEvents/$(eventId)/rsvps/$(request.auth.uid))
                 && !existsAfter(/databases/$(database)/documents/sangamEvents/$(eventId)/rsvps/$(request.auth.uid))
-                && get(/databases/$(database)/documents/sangamEvents/$(eventId)/rsvps/$(request.auth.uid)).data.get('state', 'going') == 'going')
+                && docGet(/databases/$(database)/documents/sangamEvents/$(eventId)/rsvps/$(request.auth.uid), 'state', 'going') == 'going')
               || (reqRsvpCount() == tkOldGet('rsvpCount', 0) + 1
                 && exists(/databases/$(database)/documents/sangamEvents/$(eventId)/rsvps/$(request.auth.uid))
                 && existsAfter(/databases/$(database)/documents/sangamEvents/$(eventId)/rsvps/$(request.auth.uid))
-                && get(/databases/$(database)/documents/sangamEvents/$(eventId)/rsvps/$(request.auth.uid)).data.get('state', 'going') in ['interested', 'waitlisted']
-                && getAfter(/databases/$(database)/documents/sangamEvents/$(eventId)/rsvps/$(request.auth.uid)).data.get('state', '') == 'going'
+                && docGet(/databases/$(database)/documents/sangamEvents/$(eventId)/rsvps/$(request.auth.uid), 'state', 'going') in ['interested', 'waitlisted']
+                && afterDocGet(/databases/$(database)/documents/sangamEvents/$(eventId)/rsvps/$(request.auth.uid), 'state', '') == 'going'
                 && rsvpWithinCap())
               || (reqRsvpCount() == tkOldGet('rsvpCount', 0) - 1
                 && exists(/databases/$(database)/documents/sangamEvents/$(eventId)/rsvps/$(request.auth.uid))
                 && existsAfter(/databases/$(database)/documents/sangamEvents/$(eventId)/rsvps/$(request.auth.uid))
-                && get(/databases/$(database)/documents/sangamEvents/$(eventId)/rsvps/$(request.auth.uid)).data.get('state', 'going') == 'going'
-                && getAfter(/databases/$(database)/documents/sangamEvents/$(eventId)/rsvps/$(request.auth.uid)).data.get('state', '') in ['interested', 'waitlisted'])));
+                && docGet(/databases/$(database)/documents/sangamEvents/$(eventId)/rsvps/$(request.auth.uid), 'state', 'going') == 'going'
+                && afterDocGet(/databases/$(database)/documents/sangamEvents/$(eventId)/rsvps/$(request.auth.uid), 'state', '') in ['interested', 'waitlisted'])));
       // QUEUED FIX #1 (flagged): creators may delete their own events so
       // trustees can "unshare" an org event bridged to Sangam.
       allow delete: if isSuperAdmin()
-        || (isLoggedIn() && uidIs(tkOldGet('creatorUid', '')));
+        || (loggedUidIs(tkOldGet('creatorUid', '')));
     }
 
     // --- sangamEvents/{eventId}/rsvps/{uid}: RSVP (toggle).
@@ -4553,7 +4515,7 @@ service cloud.firestore {
       allow create: if isSelf(uid)
         && tkNewGet('state', 'going') in ['going', 'interested', 'waitlisted'];
       allow update: if isSelf(uid)
-        && diffKeysOnly(request.resource.data, resource.data, ['state', 'at'])
+        && tkDiff(['state', 'at'])
         && tkNewGet('state', '') in ['going', 'interested', 'waitlisted'];
       allow delete: if isSelf(uid);
     }
@@ -4561,20 +4523,18 @@ service cloud.firestore {
     // --- sangamFollows/{followerUid}_{targetType}_{targetId}: public read;
     match /sangamFollows/{followId} {
       allow read: if true;
-      allow create: if isLoggedIn()
-        && uidIs(tkNewGet('followerUid', ''))
+      allow create: if loggedUidIs(tkNewGet('followerUid', ''))
         && reqKeys().hasOnly(
           ['followerUid', 'targetType', 'targetId', 'targetName', 'createdAt']);
       allow update: if false;
-      allow delete: if isLoggedIn() && uidIs(tkOldGet('followerUid', ''));
+      allow delete: if loggedUidIs(tkOldGet('followerUid', ''));
     }
 
     // --- sangamReports: reporter create; reporter+admin read; admin triage.
     match /sangamReports/{reportId} {
       allow read: if isSuperAdmin() || isOwner()
-        || (isLoggedIn() && uidIs(tkOldGet('reporterUid', '')));
-      allow create: if isLoggedIn()
-        && uidIs(tkNewGet('reporterUid', ''))
+        || (loggedUidIs(tkOldGet('reporterUid', '')));
+      allow create: if loggedUidIs(tkNewGet('reporterUid', ''))
         && tkNewGet('targetId', '') != ''
         && reqKeys().hasOnly(
           ['reporterUid', 'reporterName', 'targetType', 'targetId', 'reason', 'details', 'status', 'createdAt'])
@@ -4684,7 +4644,7 @@ service cloud.firestore {
     function familyLinkCrossUpdateOk() {
       let me = request.auth.uid;
       let before = resource.data;
-      let after = request.resource.data;
+      let after = reqData();
       let topChanged = after.diff(before).affectedKeys();
       let scoped = topChanged.hasOnly(
           ['linkedUids', 'consents', 'incomingInvites', 'outgoingInvites'])
@@ -4751,14 +4711,12 @@ service cloud.firestore {
     // SAN-XXXXXX stays canonical — this is the friendly layer on top.
     match /vdaAliases/{aliasId} {
       allow read: if isLoggedIn();
-      allow create: if isLoggedIn()
-        && uidIs(reqUid())
+      allow create: if loggedUidIs(reqUid())
         && tkNewGet('alias', '') == aliasId
         && reqKeys().hasOnly(['alias', 'uid', 'sanId', 'createdAt']);
       // Releasing = delete; only the owning uid may release. No updates ever.
       allow update: if false;
-      allow delete: if isLoggedIn()
-        && uidIs(resUid());
+      allow delete: if loggedUidIs(resUid());
     }
 
     // --- followers/{orgId}/users/{uid}: public read (counts); owner write.
@@ -4773,10 +4731,9 @@ service cloud.firestore {
     // --- joinRequests/{orgId}_{uid}: deterministic id = one pending per
     match /joinRequests/{requestId} {
       allow read: if isSuperAdmin()
-        || (isLoggedIn() && uidIs(tkOldGet('userUid', '')))
+        || (loggedUidIs(tkOldGet('userUid', '')))
         || (isLoggedIn() && isOrgTrustee(tkOldGet('orgId', '')));
-      allow create: if isLoggedIn()
-        && uidIs(tkNewGet('userUid', ''))
+      allow create: if loggedUidIs(tkNewGet('userUid', ''))
         && reqOrgId() != ''
         && reqStatus() == 'PENDING';
       allow update: if isSuperAdmin()
@@ -4784,7 +4741,7 @@ service cloud.firestore {
           && diffKeys()
             .hasOnly(['status', 'decidedBy', 'decidedByName', 'decidedAt'])
           && reqStatus() in ['APPROVED', 'REJECTED'])
-        || (isLoggedIn() && uidIs(tkOldGet('userUid', ''))
+        || (loggedUidIs(tkOldGet('userUid', ''))
           && resStatus() == 'REJECTED'
           && reqStatus() == 'PENDING'
           && diffKeys()
@@ -4799,8 +4756,8 @@ service cloud.firestore {
         (request.auth.token.email != null
           && tkOldGet('invitedEmail', '') == request.auth.token.email) ||
         (exists(/databases/$(database)/documents/users/$(request.auth.uid))
-          && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('phone', '') != ''
-          && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.get('phone', '')
+          && docGet(/databases/$(database)/documents/users/$(request.auth.uid), 'phone', '') != ''
+          && docGet(/databases/$(database)/documents/users/$(request.auth.uid), 'phone', '')
             == tkOldGet('invitedPhone', ''))
       );
     }
@@ -4818,7 +4775,7 @@ service cloud.firestore {
         || (isLoggedIn() && inviteMatchesMe()
           && resStatus() == 'PENDING'
           && tkOldGet('expiresAt', 0) > request.time.toMillis()
-          && diffKeysOnly(request.resource.data, resource.data, ['status', 'decidedAt'])
+          && tkDiff(['status', 'decidedAt'])
           && reqStatus() in DECISION_STATES());
       allow delete: if false;
     }
@@ -4827,17 +4784,17 @@ service cloud.firestore {
     function inviteAcceptOk(inviteId, workspaceId, role) {
       let ipath = /databases/$(database)/documents/orgInvites/$(inviteId);
       return inviteId != '' && exists(ipath)
-        && get(ipath).data.get('status', '') == 'ACCEPTED'
-        && get(ipath).data.get('expiresAt', 0) > request.time.toMillis()
-        && get(ipath).data.get('orgId', '') == workspaceId
-        && get(ipath).data.get('role', '') == role
-        && (get(ipath).data.get('invitedUid', '') == request.auth.uid
+        && docGet(ipath, 'status', '') == 'ACCEPTED'
+        && docGet(ipath, 'expiresAt', 0) > request.time.toMillis()
+        && docGet(ipath, 'orgId', '') == workspaceId
+        && docGet(ipath, 'role', '') == role
+        && (uidIs(docGet(ipath, 'invitedUid', ''))
           || (request.auth.token.email != null
-            && get(ipath).data.get('invitedEmail', '') == request.auth.token.email));
+            && docGet(ipath, 'invitedEmail', '') == request.auth.token.email));
     }
     match /workspaceMembers/{memberId} {
       allow read: if isSuperAdmin()
-        || (isLoggedIn() && uidIs(resUid()))
+        || (loggedUidIs(resUid()))
         || (isLoggedIn() && isOrgTrustee(tkOldGet('workspaceId', '')));
       allow create: if isLoggedIn()
         && reqWorkspaceId() != ''
@@ -4857,7 +4814,7 @@ service cloud.firestore {
           // (c) Workspace creator self-provisions as the first Trustee.
           || (uidIs(reqUid())
             && reqRole() == 'Trustee'
-            && get(/databases/$(database)/documents/workspaces/$(request.resource.data.workspaceId)).data.createdBy == request.auth.uid)
+            && uidIs(docData(/databases/$(database)/documents/workspaces/$(request.resource.data.workspaceId)).createdBy))
         );
       allow update: if isSuperAdmin()
         || (isLoggedIn() && isOrgTrustee(tkOldGet('workspaceId', ''))
@@ -4947,8 +4904,7 @@ service cloud.firestore {
       allow read: if isLoggedIn()
         && (uidIs(tkOldGet('senderId', ''))
           || uidIs(tkOldGet('receiverId', '')));
-      allow create: if isLoggedIn()
-        && uidIs(tkNewGet('senderId', ''))
+      allow create: if loggedUidIs(tkNewGet('senderId', ''))
         && reqStatus() == 'pending';
       allow update: if isLoggedIn()
         && (uidIs(tkOldGet('senderId', ''))
@@ -5009,8 +4965,7 @@ match /fileVault/{fileId} {
           || uidIs(tkOldGet('ownerUid', ''))
           || (tkOldGet('visibility', '') == 'crisis'
             && isTenantMember(tkOldGet('tenantId', null))));
-      allow create: if isLoggedIn()
-        && uidIs(tkNewGet('ownerUid', ''))
+      allow create: if loggedUidIs(tkNewGet('ownerUid', ''))
         && reqKeys().hasOnly(['data', 'contentType', 'fileName',
           'size', 'hash', 'category', 'visibility', 'ownerUid', 'createdAt',
           'localOnly', 'chunkCount', 'tenantId'])
@@ -5032,8 +4987,7 @@ match /fileVault/{fileId} {
           // only a tiny metadata pointer, so `size` may exceed 1 MiB.
           || tkNewGet('localOnly', false) == true);
       allow update: if false;
-      allow delete: if isLoggedIn()
-        && uidIs(tkOldGet('ownerUid', ''));
+      allow delete: if loggedUidIs(tkOldGet('ownerUid', ''));
       // Chunks carry denormalized gating fields: authorized from the chunk doc alone.
       match /chunks/{n} {
         allow read: if isLoggedIn()
@@ -5041,16 +4995,14 @@ match /fileVault/{fileId} {
             || uidIs(tkOldGet('ownerUid', ''))
             || (tkOldGet('visibility', '') == 'crisis'
               && isTenantMember(tkOldGet('tenantId', null))));
-        allow create: if isLoggedIn()
-          && uidIs(tkNewGet('ownerUid', ''))
+        allow create: if loggedUidIs(tkNewGet('ownerUid', ''))
           && tkNewGet('visibility', '') in ['public', 'crisis']
           && tkNewGet('data', '').size() <= 512000
           && tkNewGet('i', -1) >= 0
           && reqKeys().hasOnly(
             ['i', 'data', 'ownerUid', 'visibility', 'tenantId']);
         allow update: if false;
-        allow delete: if isLoggedIn()
-          && uidIs(tkOldGet('ownerUid', ''));
+        allow delete: if loggedUidIs(tkOldGet('ownerUid', ''));
       }
     }
 
@@ -5065,8 +5017,7 @@ match /fileVault/{fileId} {
      * `regional.{region}.{termKey}` in the override doc.
      */
     match /translationSuggestions/{suggestionId} {
-      allow create: if isLoggedIn()
-        && uidIs(reqUid())
+      allow create: if loggedUidIs(reqUid())
         && reqStatus() == 'pending'
         && reqKeys().hasOnly(['lang', 'key', 'currentText',
           'suggestedText', 'uid', 'sanataniId', 'status', 'createdAt',
@@ -5182,7 +5133,7 @@ match /fileVault/{fileId} {
       // Any signed-in user may fold a scan into the counters. Counters only
       // move forward; identity and type are immutable after creation.
       allow update: if isLoggedIn()
-        && diffKeysOnly(request.resource.data, resource.data, [
+        && tkDiff([
           'totalScans', 'uniqueScanners', 'scannerHashes',
           'parsed', 'invalid', 'expired', 'completions', 'failures',
           'lastScannedAt', 'receiverId'
