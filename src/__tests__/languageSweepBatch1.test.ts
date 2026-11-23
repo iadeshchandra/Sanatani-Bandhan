@@ -141,7 +141,14 @@ describe('surfaces + vibe dict completeness (en/hi/bn authored)', () => {
     // quota line and its open-count note, the public "How booking
     // went" results block with its no-surge line, and the War Room
     // publish/withdraw chrome) in all 10 languages.
-    expect(keysOf(en).length).toBe(958);
+    // NEXT-LEVEL B1b adds 62 surfaces.events keys (the e-dip:
+    // dipPanelTitle…dipClaimClosed + fairDipLine — the War Room
+    // dip panel: window lines, freeze/run/promote chrome and the
+    // checkable-draw honesty note; the devotee dip panel: entry,
+    // standing, claim and waiting-list states in plain words;
+    // the tier picker's draw line and published aggregates; the
+    // fairness summary's dip line) in all 10 languages.
+    expect(keysOf(en).length).toBe(1020);
     for (const bucket of Object.keys(en)) {
       for (const leaf of Object.keys(en[bucket])) {
         for (const dict of [en, hi, bn]) {

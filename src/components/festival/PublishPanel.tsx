@@ -127,6 +127,9 @@ export const PublishPanel: React.FC<Props> = ({ wf, plan, patchPlan }) => {
       base.discountTerms = {};
       base.refundPolicy = [];
       base.ticketReleaseAtMs = 0;
+      // NEXT-LEVEL B1b — the dip windows clear with the rest.
+      base.dipOpensAtMs = {};
+      base.dipClosesAtMs = {};
       base.festivalCancelled = plan.ticketing.festivalCancelled === true;
     }
     return base;
@@ -356,15 +359,41 @@ const TicketingEditor: React.FC<{ wf: WarFestival; plan: WarRoomPlan; patchPlan?
   );
   const [feeBearer, setFeeBearer] = useState<'organiser' | 'buyer'>(existing?.feeBearer ?? 'organiser');
   const [releaseLocal, setReleaseLocal] = useState<string>(isoToLocalInput(existing?.releaseAt));
+  // NEXT-LEVEL B1b — per-tier e-dip windows, edited as local
+  // datetime strings keyed by tier id (the releaseLocal pattern,
+  // per tier) and folded into the tiers only at save, so a
+  // half-typed moment never reaches the stored config.
+  const [dipLocal, setDipLocal] = useState<Record<string, { opens: string; closes: string }>>(() => {
+    const m: Record<string, { opens: string; closes: string }> = {};
+    for (const t of existing?.tiers ?? []) {
+      if (t.dipOpensAt || t.dipClosesAt) {
+        m[t.id] = { opens: isoToLocalInput(t.dipOpensAt), closes: isoToLocalInput(t.dipClosesAt) };
+      }
+    }
+    return m;
+  });
   const [err, setErr] = useState('');
   const [saved, setSaved] = useState(false);
   const [confirmCancel, setConfirmCancel] = useState(false);
   const cancelled = existing?.festivalCancelled === true;
 
+  const foldDip = (list: TicketTier[]): TicketTier[] =>
+    list.map((t) => {
+      const d = dipLocal[t.id];
+      const next = { ...t };
+      const o = d ? localInputToIso(d.opens) : '';
+      const c = d ? localInputToIso(d.closes) : '';
+      if (o) next.dipOpensAt = o;
+      else delete next.dipOpensAt;
+      if (c) next.dipClosesAt = c;
+      else delete next.dipClosesAt;
+      return next;
+    });
+
   const save = () => {
     const releaseIso = localInputToIso(releaseLocal);
     const draft = {
-      tiers, discountCodes: codes, refundPolicy: ladder, feeBearer,
+      tiers: foldDip(tiers), discountCodes: codes, refundPolicy: ladder, feeBearer,
       ...(releaseIso ? { releaseAt: releaseIso } : {}),
     };
     const bad = validateTicketing(draft);
@@ -383,7 +412,7 @@ const TicketingEditor: React.FC<{ wf: WarFestival; plan: WarRoomPlan; patchPlan?
   const setCancelled = async (on: boolean) => {
     const releaseIso = localInputToIso(releaseLocal);
     const base = existing ?? deriveTicketingConfig(
-      { tiers, discountCodes: codes, refundPolicy: ladder, feeBearer, ...(releaseIso ? { releaseAt: releaseIso } : {}) },
+      { tiers: foldDip(tiers), discountCodes: codes, refundPolicy: ladder, feeBearer, ...(releaseIso ? { releaseAt: releaseIso } : {}) },
       {}, wf.dateISO, wf.endDateISO
     );
     const cfg = { ...base };
@@ -410,6 +439,7 @@ const TicketingEditor: React.FC<{ wf: WarFestival; plan: WarRoomPlan; patchPlan?
     'code-value': 'Check the code values — percent is 1–100, flat is above zero.',
     'ladder-shape': 'Refund rows need days 0–365 and percent 0–100.',
     'release-date': 'Check the passes-open moment — it does not read as a valid date and time.',
+    'dip-window': 'Check the e-dip window — a dip needs both an opening and a closing moment, the closing after the opening, on a pass (never an add-on).',
   };
   const num = (v: string) => Math.max(0, parseInt(v || '0', 10) || 0);
   const rowCls = 'flex flex-wrap items-center gap-1.5 text-sm bg-stone-50 rounded-xl px-3 py-2';
@@ -430,7 +460,8 @@ const TicketingEditor: React.FC<{ wf: WarFestival; plan: WarRoomPlan; patchPlan?
       {/* Tiers */}
       <div className="space-y-1.5 mb-2">
         {tiers.map((t, i) => (
-          <div key={t.id} className={rowCls}>
+          <React.Fragment key={t.id}>
+          <div className={rowCls}>
             <input className={`${inputCls} flex-1 min-w-[140px]`} value={t.name.en} aria-label="Pass name"
               placeholder="e.g. Cultural evening pass"
               onChange={(e) => setTiers(tiers.map((x, j) => (j === i ? name3(x, e.target.value) : x)))} />
@@ -467,6 +498,42 @@ const TicketingEditor: React.FC<{ wf: WarFestival; plan: WarRoomPlan; patchPlan?
             <button className="w-11 h-11 -m-1 text-stone-300 hover:text-red-600 font-bold" aria-label="Remove pass"
               onClick={() => setTiers(tiers.filter((_, j) => j !== i))}>✕</button>
           </div>
+          {/* NEXT-LEVEL B1b — the tier's e-dip window (optional):
+              when both moments are set, this pass's places are
+              allotted by a registered draw instead of a first-come
+              rush — devotees enter during the window, the
+              committee freezes and publishes the pool, draws
+              openly in the War Room's dip panel, and only the
+              selected may then book. Add-ons hold no places, so
+              they never carry a dip. */}
+          {t.kind !== 'addon' && (
+            <div className="rounded-xl bg-orange-50/70 border border-orange-100 px-3 py-2 ml-1">
+              <div className="flex flex-wrap items-center gap-1.5 text-sm">
+                <span className="text-[11px] font-bold text-orange-900">
+                  <T en="E-dip window (optional)" bn="ই-ডিপ উইন্ডো (ঐচ্ছিক)" hi="ई-डिप विंडो (वैकल्पिक)" />
+                </span>
+                <input type="datetime-local" className={`${inputCls} !w-56`} aria-label="Dip entries open"
+                  value={dipLocal[t.id]?.opens ?? ''}
+                  onChange={(e) => setDipLocal({ ...dipLocal, [t.id]: { opens: e.target.value, closes: dipLocal[t.id]?.closes ?? '' } })} />
+                <span className="text-stone-400 text-xs">→</span>
+                <input type="datetime-local" className={`${inputCls} !w-56`} aria-label="Dip entries close"
+                  value={dipLocal[t.id]?.closes ?? ''}
+                  onChange={(e) => setDipLocal({ ...dipLocal, [t.id]: { opens: dipLocal[t.id]?.opens ?? '', closes: e.target.value } })} />
+                {(dipLocal[t.id]?.opens || dipLocal[t.id]?.closes) && (
+                  <button className="text-[11px] font-bold text-stone-500 min-h-[44px] px-2"
+                    onClick={() => setDipLocal({ ...dipLocal, [t.id]: { opens: '', closes: '' } })}>
+                    <T en="Clear" bn="মুছুন" hi="हटाएं" />
+                  </button>
+                )}
+              </div>
+              <p className="text-[11px] text-stone-500 mt-1">
+                <T en="For a pass whose demand far outruns its places: between these moments devotees enter the dip (one entry per family party); direct booking of this pass closes, and after the draw only the selected parties book — at the same announced price."
+                  bn="যে পাসের চাহিদা আসনের চেয়ে অনেক বেশি, তার জন্য: এই সময়ের মধ্যে ভক্তরা ডিপে নাম লেখান (পরিবার-পার্টি প্রতি একটি এন্ট্রি); এই পাসের সরাসরি বুকিং বন্ধ থাকে, আর ড্রয়ের পর শুধু নির্বাচিত পার্টিরাই বুক করেন — একই ঘোষিত মূল্যে।"
+                  hi="जिस पास की मांग स्थानों से कहीं अधिक हो, उसके लिए: इन क्षणों के बीच भक्त डिप में नाम लिखते हैं (प्रति परिवार-पार्टी एक प्रविष्टि); इस पास की सीधी बुकिंग बंद रहती है, और ड्रॉ के बाद केवल चुनी पार्टियाँ ही बुक करती हैं — उसी घोषित मूल्य पर।" />
+              </p>
+            </div>
+          )}
+          </React.Fragment>
         ))}
       </div>
       <Btn variant="ghost" className="!px-3 mb-3"

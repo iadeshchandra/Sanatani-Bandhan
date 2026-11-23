@@ -69,6 +69,7 @@ import {
 import { FeedbackPanel } from './FeedbackPanel';
 import { departmentCoverage } from '../../lib/festivalSponsors';
 import { buildFairnessSummary } from '../../lib/festivalFairness';
+import { dipAggregates, loadDipEntriesForFestival } from '../../lib/eventDip';
 
 interface Props {
   wf: WarFestival;
@@ -256,11 +257,25 @@ export const DebriefCard: React.FC<Props> = ({ wf, plan, event, rsvps }) => {
   const publishFairness = async () => {
     setFairBusy(true);
     try {
+      // NEXT-LEVEL B1b — when a dip ran for any tier, the dip
+      // register's aggregates ride the summary (counts only —
+      // lib/eventDip.dipAggregates). A register that cannot be
+      // read omits the field rather than dressing silence as a
+      // held draw (the waitlistParties law, same shape).
+      let dipAgg: { entries: number; selected: number; claimed: number } | null = null;
+      if (event && Object.keys(event.dipOpensAtMs ?? {}).length > 0) {
+        try {
+          dipAgg = dipAggregates(await loadDipEntriesForFestival(db, plan.id));
+        } catch {
+          dipAgg = null;
+        }
+      }
       const summary = buildFairnessSummary({
         tierRows,
         waitlistParties: funnel.waitlistedParties,
         ticketReleaseAtMs: event?.ticketReleaseAtMs,
         nowIso: new Date().toISOString(),
+        dipAggregates: dipAgg,
       });
       await setDoc(doc(db, 'festival_events', plan.id), { fairnessSummary: summary }, { merge: true });
       setConfirmFair(false);

@@ -57,6 +57,7 @@ import type {
   TicketingConfig,
 } from './festival';
 import { applyFestivalRsvp, removeFestivalRsvp } from './festivalRsvp';
+import { dipEntryId, isDipTier } from './eventDip';
 
 /** Platform seva fee on a pass, percent of the discounted price. */
 export const TICKET_FEE_PCT = 5;
@@ -410,6 +411,15 @@ export function validateTicketing(editor: TicketingEditorShape): string | null {
       if (!/^\d{4}-\d{2}-\d{2}$/.test(tier.earlyBird.untilDate)) return 'tier-early-date';
       if (!Number.isFinite(tier.earlyBird.price) || tier.earlyBird.price < 0) return 'tier-early-price';
     }
+    // NEXT-LEVEL B1b — a dip window is both moments or neither,
+    // closing after it opens; add-ons never carry one (a dip
+    // allots places to household parties, an add-on holds none).
+    if (tier.dipOpensAt || tier.dipClosesAt) {
+      if (tier.kind === 'addon') return 'dip-window';
+      const opens = tier.dipOpensAt ? Date.parse(tier.dipOpensAt) : NaN;
+      const closes = tier.dipClosesAt ? Date.parse(tier.dipClosesAt) : NaN;
+      if (!Number.isFinite(opens) || !Number.isFinite(closes) || closes <= opens) return 'dip-window';
+    }
   }
   const codes = new Set<string>();
   for (const c of editor.discountCodes) {
@@ -452,6 +462,8 @@ export function publicTicketStamps(cfg: TicketingConfig): {
   discountTerms: NonNullable<FestivalEventDoc['discountTerms']>;
   festivalCancelled: boolean;
   ticketReleaseAtMs: number;
+  dipOpensAtMs: Record<string, number>;
+  dipClosesAtMs: Record<string, number>;
 } {
   const tierCaps: Record<string, number> = {};
   for (const tier of cfg.tiers) {
@@ -460,6 +472,24 @@ export function publicTicketStamps(cfg: TicketingConfig): {
   const discountTerms: NonNullable<FestivalEventDoc['discountTerms']> = {};
   for (const c of cfg.discountCodes) {
     discountTerms[codeKeyFor(c.code)] = { kind: c.kind, value: c.value };
+  }
+  // NEXT-LEVEL B1b — the e-dip windows, per tier, in the E8
+  // stamped-clock idiom. Both maps are ALWAYS written on a
+  // ticketing publish ({} when no tier dips), so a removed dip
+  // can never leave a stale window standing on the merge
+  // publish; a tier enters the maps only when BOTH moments
+  // parse and close after they open (validateTicketing holds
+  // the editor to the same law).
+  const dipOpensAtMs: Record<string, number> = {};
+  const dipClosesAtMs: Record<string, number> = {};
+  for (const tier of cfg.tiers) {
+    if (tier.kind === 'addon' || !tier.dipOpensAt || !tier.dipClosesAt) continue;
+    const opens = Date.parse(tier.dipOpensAt);
+    const closes = Date.parse(tier.dipClosesAt);
+    if (Number.isFinite(opens) && Number.isFinite(closes) && closes > opens) {
+      dipOpensAtMs[tier.id] = opens;
+      dipClosesAtMs[tier.id] = closes;
+    }
   }
   return {
     ticketTiers: cfg.tiers,
@@ -474,6 +504,8 @@ export function publicTicketStamps(cfg: TicketingConfig): {
     // future stamp behind on the merge publish, and the rules
     // read one shape only (absent on pre-E8 docs reads as 0 too).
     ticketReleaseAtMs: cfg.releaseAtMs && cfg.releaseAtMs > 0 ? cfg.releaseAtMs : 0,
+    dipOpensAtMs,
+    dipClosesAtMs,
   };
 }
 
@@ -576,6 +608,27 @@ export async function purchaseTicket(db: Firestore, input: PurchaseInput): Promi
   // written (firestore.rules refuses the ticket create too —
   // tkReleaseOpen — this is the honest, early error).
   if (!passesOpen(event, input.nowMs)) throw new Error('passes-not-open');
+  // NEXT-LEVEL B1b — the e-dip interlock, checked before anything
+  // is written: a dip tier sells ONLY to a party the draw
+  // selected, inside its claim window (firestore.rules witness
+  // the same standing — tkDipOk — and the purchase batch below
+  // consumes the claim, flipping the entry to 'claimed'). A
+  // missing entry doc reads back permission-denied under the
+  // rules, so a refusal here means "no standing" either way.
+  let dipEntryRef: ReturnType<typeof doc> | null = null;
+  if (isDipTier(event, tier.id)) {
+    const claimBy = event.dipDraws?.[tier.id]?.claimByMs || 0;
+    if (claimBy > 0 && input.nowMs > claimBy) throw new Error('dip-claim-closed');
+    dipEntryRef = doc(db, 'event_dip_entries', dipEntryId(event.id, tier.id, input.buyerUid));
+    let standing = '';
+    try {
+      const snap = await getDoc(dipEntryRef);
+      if (snap.exists()) standing = String((snap.data() as { status?: string }).status || '');
+    } catch {
+      standing = '';
+    }
+    if (standing !== 'selected') throw new Error('dip-not-selected');
+  }
   const isAttendance = tier.kind !== 'addon';
   const qty = isAttendance ? input.attendees.length : Math.max(1, Math.floor(input.qty || 1));
   const code = normalizeDiscountCode(input.discountCode || '');
@@ -669,6 +722,13 @@ export async function purchaseTicket(db: Firestore, input: PurchaseInput): Promi
       tierAnchorTicketId: ticket.id,
       updatedAt: serverTimestamp(),
     });
+    if (dipEntryRef) {
+      // NEXT-LEVEL B1b — the claim is consumed in the SAME batch
+      // (the desk-sale witness posture): the rules read this
+      // ticket's after-state off the event doc's anchor to let
+      // the entry flip selected → claimed (dipClaimConsumeOk).
+      batch.update(dipEntryRef, { status: 'claimed', updatedAt: input.nowMs });
+    }
     if (code) {
       // Anchored increment: the rules resolve the resulting plan
       // state and verify exactly this code rose by one, under its cap.

@@ -208,6 +208,44 @@ describe('buildFairnessSummary — aggregates only, by shape', () => {
       ['publishedAt', 'tiers', 'totalBooked', 'totalOffered'].sort()
     );
   });
+
+  // NEXT-LEVEL B1b — the e-dip aggregates ride the summary only
+  // when a dip actually ran: present with entries > 0, omitted
+  // for null (register unread) and for an empty register (an
+  // unread register is never dressed as a held draw). The dip
+  // shape itself is pinned: three counts, nothing else.
+  it('carries the dip aggregates when a dip ran — and only then', () => {
+    const withDip = buildFairnessSummary({
+      tierRows: [row({})],
+      waitlistParties: null,
+      ticketReleaseAtMs: undefined,
+      nowIso: '2026-01-05T10:00:00.000Z',
+      dipAggregates: { entries: 41, selected: 12, claimed: 9 },
+    });
+    expect(withDip.dip).toEqual({ entries: 41, selected: 12, claimed: 9 });
+    expect(Object.keys(withDip).sort()).toEqual(
+      ['dip', 'publishedAt', 'tiers', 'totalBooked', 'totalOffered'].sort()
+    );
+    expect(Object.keys(withDip.dip!).sort()).toEqual(['claimed', 'entries', 'selected'].sort());
+
+    const unread = buildFairnessSummary({
+      tierRows: [row({})],
+      waitlistParties: null,
+      ticketReleaseAtMs: undefined,
+      nowIso: '2026-01-05T10:00:00.000Z',
+      dipAggregates: null,
+    });
+    expect('dip' in unread).toBe(false);
+
+    const empty = buildFairnessSummary({
+      tierRows: [row({})],
+      waitlistParties: null,
+      ticketReleaseAtMs: undefined,
+      nowIso: '2026-01-05T10:00:00.000Z',
+      dipAggregates: { entries: 0, selected: 0, claimed: 0 },
+    });
+    expect('dip' in empty).toBe(false);
+  });
 });
 
 describe('fairnessResultsVisible — published AND concluded', () => {

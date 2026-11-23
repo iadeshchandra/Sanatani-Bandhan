@@ -371,3 +371,40 @@ describe('EVENTS E8 — the pass release gate', () => {
     expect(noGate.ticketReleaseAtMs).toBe(0);
   });
 });
+
+describe('NEXT-LEVEL B1b — the e-dip window stamps', () => {
+  const OPEN_ISO = '2026-01-03T09:00:00.000Z';
+  const CLOSE_ISO = '2026-01-04T21:00:00.000Z';
+  const dipTier = (patch: Partial<TicketTier> = {}): TicketTier =>
+    tier({ dipOpensAt: OPEN_ISO, dipClosesAt: CLOSE_ISO, ...patch });
+
+  it('the publish stamps carry the window per tier, as epoch ms', () => {
+    const stamps = publicTicketStamps(deriveTicketingConfig(
+      { tiers: [dipTier(), tier({ id: 't2' })], discountCodes: [], refundPolicy: [], feeBearer: 'organiser' },
+      {}, '2026-02-01', '2026-02-01'
+    ));
+    expect(stamps.dipOpensAtMs).toEqual({ t1: Date.parse(OPEN_ISO) });
+    expect(stamps.dipClosesAtMs).toEqual({ t1: Date.parse(CLOSE_ISO) });
+  });
+
+  it('both maps are always written — a removed dip leaves no stale window', () => {
+    const stamps = publicTicketStamps(deriveTicketingConfig(
+      { tiers: [tier()], discountCodes: [], refundPolicy: [], feeBearer: 'organiser' },
+      {}, '2026-02-01', '2026-02-01'
+    ));
+    expect(stamps.dipOpensAtMs).toEqual({});
+    expect(stamps.dipClosesAtMs).toEqual({});
+  });
+
+  it('validateTicketing: a dip needs both moments, closing after opening, never on an add-on', () => {
+    const base = { discountCodes: [], refundPolicy: [], feeBearer: 'organiser' as const };
+    expect(validateTicketing({ ...base, tiers: [dipTier()] })).toBeNull();
+    expect(validateTicketing({ ...base, tiers: [dipTier({ dipClosesAt: undefined })] })).toBe('dip-window');
+    expect(validateTicketing({ ...base, tiers: [dipTier({ dipOpensAt: undefined })] })).toBe('dip-window');
+    expect(validateTicketing({ ...base, tiers: [dipTier({ dipClosesAt: OPEN_ISO })] })).toBe('dip-window');
+    expect(validateTicketing({ ...base, tiers: [dipTier({ dipOpensAt: 'whenever' })] })).toBe('dip-window');
+    expect(validateTicketing({ ...base, tiers: [dipTier({ kind: 'addon' })] })).toBe('dip-window');
+    // A tier with no dip at all is untouched by the law.
+    expect(validateTicketing({ ...base, tiers: [tier()] })).toBeNull();
+  });
+});

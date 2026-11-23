@@ -450,6 +450,53 @@ export interface TicketTier {
   earlyBird?: { price: number; untilDate: string }; // yyyy-mm-dd
   /** Most passes in one booking (household cap). Default 6. */
   maxPerBooking?: number;
+  /**
+   * NEXT-LEVEL B1b — the e-dip window for this tier (ISO strings
+   * the editor edits): when BOTH are set, this tier's places are
+   * allotted by a registered draw instead of a first-come rush —
+   * devotees enter the dip between these moments, the committee
+   * freezes and publishes the pool, draws openly, and only the
+   * selected may then buy (direct purchase is closed meanwhile,
+   * client-side and in firestore.rules). The publish stamps them
+   * onto the event doc as per-tier epoch-ms maps (dipOpensAtMs /
+   * dipClosesAtMs on FestivalEventDoc). Attendance tiers only —
+   * an add-on never carries a dip.
+   */
+  dipOpensAt?: string;
+  dipClosesAt?: string;
+}
+
+/**
+ * NEXT-LEVEL B1b — one tier's e-dip record, stamped onto the
+ * published festival_events doc (FestivalEventDoc.dipDraws) by
+ * War Room staff through the doc's existing R_BOARD update path
+ * (no key-set pin — the liveBoard/fairnessSummary posture). The
+ * record is the draw's public commitment: the FREEZE fields
+ * (seed, poolHash, poolCount, frozenAtMs) are published BEFORE
+ * any winner exists; the draw fields land only when staff run
+ * the draw. Aggregates and the method only — no name or entry id
+ * can exist in this shape.
+ */
+export interface DipDrawRecord {
+  /** The public seed the committee drew openly (e.g. read out at
+   *  the committee meeting) — published with the freeze. */
+  seed: string;
+  /** SHA-256 fingerprint of the frozen pool: the entry doc ids,
+   *  sorted, joined — anyone can recompute it from the register. */
+  poolHash: string;
+  /** Parties (entries) in the frozen pool. */
+  poolCount: number;
+  /** Epoch ms the pool was frozen and published. */
+  frozenAtMs: number;
+  /** Epoch ms the draw ran — absent until it does. */
+  drawnAtMs?: number;
+  /** Places allotted by the draw, counted in PARTIES (one entry
+   *  is one household party). */
+  winnersCount?: number;
+  /** Selected parties may claim (buy) until this epoch ms —
+   *  per tier, stamped at draw time. After it, staff may lapse
+   *  an unclaimed place and promote the waitlist. */
+  claimByMs?: number;
 }
 
 export interface TicketDiscountCode {
@@ -580,6 +627,27 @@ export interface FestivalEventDoc {
    * purchase committed before this moment.
    */
   ticketReleaseAtMs?: number;
+  /**
+   * NEXT-LEVEL B1b — the e-dip windows, stamped at publish time
+   * from the tiers' dipOpensAt/dipClosesAt (public-safe: the
+   * window is announced, that is its purpose). Per-tier epoch-ms
+   * maps in the ticketReleaseAtMs idiom; a tier absent from the
+   * map is not a dip tier. The publish ALWAYS writes both maps
+   * on a ticketing publish ({} when no tier dips), so a removed
+   * dip can never leave a stale window standing. firestore.rules
+   * read the maps to open entry creation and to witness claims.
+   */
+  dipOpensAtMs?: Record<string, number>;
+  dipClosesAtMs?: Record<string, number>;
+  /**
+   * NEXT-LEVEL B1b — per-tier e-dip draw records (see
+   * DipDrawRecord): the freeze commitment and, once run, the
+   * draw's public facts. Written ONLY by War Room staff (the
+   * DipPanel) through this doc's R_BOARD update path — never by
+   * the publish, which leaves the field untouched. Absent = no
+   * dip has been frozen for any tier.
+   */
+  dipDraws?: Record<string, DipDrawRecord>;
   /**
    * EVENTS E4 — the debrief's public summary, stamped onto the doc
    * ONLY when a trustee deliberately publishes it from the War Room
@@ -722,6 +790,16 @@ export interface FestivalFairnessSummary {
   /** The E8 release moment (epoch ms) — present ONLY when a
    *  release calendar was used. */
   releaseAtMs?: number;
+  /**
+   * NEXT-LEVEL B1b — the e-dip aggregates, present ONLY when a
+   * dip ran for at least one tier of this festival: parties who
+   * entered, parties the draw allotted a place to (still holding
+   * it or already claimed), and parties who claimed theirs.
+   * Counts only — the same no-names discipline as every figure
+   * in this shape; built by lib/festivalFairness from the dip
+   * register as it stands when staff publish.
+   */
+  dip?: { entries: number; selected: number; claimed: number };
 }
 
 /**

@@ -119,6 +119,17 @@ export function buildFairnessSummary(input: {
   waitlistParties: number | null;
   ticketReleaseAtMs: number | undefined;
   nowIso: string;
+  /**
+   * NEXT-LEVEL B1b — the e-dip aggregates (lib/eventDip
+   * .dipAggregates over the festival's dip register as it
+   * stands), passed ONLY when a dip actually ran for some tier
+   * of this festival; null/omitted → no dip field, exactly as
+   * the release moment is omitted when no calendar was used.
+   * A dip whose register reads empty (entries 0) is likewise
+   * omitted — the summary never dresses an unread register as
+   * a held draw.
+   */
+  dipAggregates?: { entries: number; selected: number; claimed: number } | null;
 }): FestivalFairnessSummary {
   const tiers = input.tierRows.map((r) => ({
     tierId: r.tierId,
@@ -132,6 +143,7 @@ export function buildFairnessSummary(input: {
     tiers.length > 0 && tiers.every((r) => r.offered !== null)
       ? tiers.reduce((s, r) => s + (r.offered || 0), 0)
       : null;
+  const dip = input.dipAggregates;
   return {
     publishedAt: input.nowIso,
     tiers,
@@ -142,6 +154,15 @@ export function buildFairnessSummary(input: {
       : {}),
     ...(input.ticketReleaseAtMs && input.ticketReleaseAtMs > 0
       ? { releaseAtMs: Math.floor(input.ticketReleaseAtMs) }
+      : {}),
+    ...(dip && dip.entries > 0
+      ? {
+          dip: {
+            entries: Math.max(0, Math.floor(dip.entries)),
+            selected: Math.max(0, Math.floor(dip.selected)),
+            claimed: Math.max(0, Math.floor(dip.claimed)),
+          },
+        }
       : {}),
   };
 }

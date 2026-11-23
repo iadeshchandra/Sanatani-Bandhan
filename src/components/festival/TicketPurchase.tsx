@@ -16,7 +16,7 @@
  * date, never a countdown.
  */
 import React, { useEffect, useMemo, useState } from 'react';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, onSnapshot } from 'firebase/firestore';
 import { useLanguage } from '../../context/LanguageContext';
 import { db } from '../../lib/firebase';
 import { formatMoney } from '../../lib/money';
@@ -46,6 +46,15 @@ import {
   type EventTicket,
 } from '../../lib/eventTickets';
 import { quotasForEvent, tierQuota } from '../../lib/festivalFairness';
+import {
+  dipDrawOf,
+  dipEntryId,
+  dipWindowState,
+  enterDip,
+  isDipTier,
+  withdrawDipEntry,
+  type DipEntry,
+} from '../../lib/eventDip';
 
 const inputCls =
   'w-full rounded-xl border border-stone-200 bg-white px-3 py-2.5 text-sm text-stone-800 focus:outline-none focus:border-orange-500 focus:ring-2 focus:ring-orange-200 min-h-[44px]';
@@ -81,6 +90,10 @@ export const TicketPurchaseSection: React.FC<SectionProps> = ({ event, uid, buye
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [doneNote, setDoneNote] = useState('');
+  // NEXT-LEVEL B1b — a dip tier shows its dip panel, not the buy
+  // form; the form opens for it only when a selected party taps
+  // "Claim my place" (claimTierId names that tier).
+  const [claimTierId, setClaimTierId] = useState('');
 
   const tier: TicketTier | undefined = tiers.find((x) => x.id === tierId) ?? tiers[0];
   const isAddon = tier?.kind === 'addon';
@@ -161,6 +174,9 @@ export const TicketPurchaseSection: React.FC<SectionProps> = ({ event, uid, buye
       });
       setDoneNote(tr('ticketBookedNote'));
       setCode('');
+      // A claimed dip place returns the tier to its dip panel,
+      // which now reads the entry's 'claimed' standing.
+      if (claimTierId) setClaimTierId('');
     } catch (e) {
       const msg = e instanceof Error ? e.message : '';
       setError(
@@ -169,7 +185,9 @@ export const TicketPurchaseSection: React.FC<SectionProps> = ({ event, uid, buye
             : msg === 'currency-mismatch' ? tr('ticketCurrencyMismatch')
               : msg === 'sold-out' ? tr('ticketSoldOut')
                 : msg === 'passes-not-open' ? tr('releaseNotYet')
-                  : tr('ticketBuyFailed')
+                  : msg === 'dip-not-selected' ? tr('dipNotSelected')
+                    : msg === 'dip-claim-closed' ? tr('dipClaimClosed')
+                      : tr('ticketBuyFailed')
       );
     } finally {
       setBusy(false);
@@ -222,10 +240,17 @@ export const TicketPurchaseSection: React.FC<SectionProps> = ({ event, uid, buye
           const rem = tierRemaining(x, event.tierSold, x.id);
           const q = tierQuota(x, event.tierSold, event.tierCaps);
           const active = tier?.id === x.id;
+          // NEXT-LEVEL B1b — a dip tier is never "sold out" in
+          // the picker: its places move by draw, not by the
+          // counter, so the button stays tappable and its line
+          // speaks of the dip (after the draw, the published
+          // aggregates — pool and allotted counts, never a name).
+          const dip = isDipTier(event, x.id);
+          const draw = dip ? dipDrawOf(event, x.id) : undefined;
           return (
-            <button key={x.id} disabled={rem <= 0}
-              onClick={() => { setTierId(x.id); setError(''); }}
-              className={`w-full text-left rounded-2xl border px-3.5 py-3 min-h-[44px] transition ${active ? 'border-orange-500 bg-orange-50 ring-2 ring-orange-200' : 'border-stone-200 bg-white'} ${rem <= 0 ? 'opacity-50' : ''}`}>
+            <button key={x.id} disabled={!dip && rem <= 0}
+              onClick={() => { setTierId(x.id); setError(''); setClaimTierId(''); }}
+              className={`w-full text-left rounded-2xl border px-3.5 py-3 min-h-[44px] transition ${active ? 'border-orange-500 bg-orange-50 ring-2 ring-orange-200' : 'border-stone-200 bg-white'} ${!dip && rem <= 0 ? 'opacity-50' : ''}`}>
               <span className="flex items-baseline justify-between gap-2">
                 <span className="font-bold text-stone-800">{x.name[language === 'bn' ? 'bn' : language === 'hi' ? 'hi' : 'en'] || x.name.en}</span>
                 <span className="font-black text-orange-800">
@@ -235,13 +260,17 @@ export const TicketPurchaseSection: React.FC<SectionProps> = ({ event, uid, buye
               <span className="block text-[11px] text-stone-500 mt-0.5">
                 {x.kind === 'addon' ? tr('ticketAddonNote') : tr('ticketPassNote')}
                 {u.earlyBirdApplied && x.earlyBird ? ` · ${tr('ticketEarlyUntil')} ${x.earlyBird.untilDate}` : ''}
-                {q.capacity !== null
-                  ? q.soldOut
-                    ? ` · ${tr('quotaBookedOut')}`
-                    : ` · ${tr('quotaLeft').replace('{remaining}', String(q.remaining)).replace('{capacity}', String(q.capacity))}`
-                  : rem <= 0
-                    ? ` · ${tr('ticketSoldOut')}`
-                    : ''}
+                {dip
+                  ? draw?.drawnAtMs
+                    ? ` · ${tr('dipPublicResults').replace('{pool}', String(draw.poolCount)).replace('{winners}', String(draw.winnersCount ?? 0))}`
+                    : ` · ${tr('dipTierNote')}`
+                  : q.capacity !== null
+                    ? q.soldOut
+                      ? ` · ${tr('quotaBookedOut')}`
+                      : ` · ${tr('quotaLeft').replace('{remaining}', String(q.remaining)).replace('{capacity}', String(q.capacity))}`
+                    : rem <= 0
+                      ? ` · ${tr('ticketSoldOut')}`
+                      : ''}
               </span>
             </button>
           );
@@ -251,7 +280,25 @@ export const TicketPurchaseSection: React.FC<SectionProps> = ({ event, uid, buye
         <p className="text-[11px] text-stone-400 mb-3 -mt-1">{tr('quotaNote')}</p>
       )}
 
-      {tier && !soldOut && (
+      {/* NEXT-LEVEL B1b — a dip tier's panel stands where the
+          buy form would: entry, standing and claim live there.
+          The form itself opens for the tier only in claim mode. */}
+      {tier && isDipTier(event, tier.id) && claimTierId !== tier.id && (
+        <DipTierPanel
+          event={event}
+          tier={tier}
+          uid={uid}
+          buyerName={buyerName}
+          onNeedSignIn={onNeedSignIn}
+          onClaim={() => setClaimTierId(tier.id)}
+        />
+      )}
+      {tier && isDipTier(event, tier.id) && claimTierId === tier.id && soldOut && (
+        <p className="text-sm text-stone-600 bg-stone-50 border border-stone-200 rounded-xl px-3 py-2.5">
+          {tr('ticketSoldOut')}
+        </p>
+      )}
+      {tier && !soldOut && (!isDipTier(event, tier.id) || claimTierId === tier.id) && (
         <>
           {hasAttendancePass && !isAddon ? (
             <p className="text-sm text-stone-600 bg-stone-50 border border-stone-200 rounded-xl px-3 py-2.5">
@@ -398,6 +445,226 @@ export const TicketPurchaseSection: React.FC<SectionProps> = ({ event, uid, buye
         </>
       )}
     </section>
+  );
+};
+
+/* ── The e-dip panel for one tier (NEXT-LEVEL B1b) ───────────────
+ * The devotee's side of the draw, in the tier's own states:
+ * announced (the window's dates), open (enter — or the sign-in
+ * door), entered (your standing + withdraw while the window
+ * stands), closed awaiting the draw, and drawn (selected →
+ * claim into the ordinary purchase; waitlisted → your published
+ * position; lapsed/closed in plain words). After the draw the
+ * panel also carries the PUBLIC aggregates — pool count, places
+ * allotted, the method line — never another party's name or
+ * standing: a signed-in devotee sees only their OWN result. */
+
+const DipTierPanel: React.FC<{
+  event: FestivalEventDoc;
+  tier: TicketTier;
+  uid: string;
+  buyerName: string;
+  onNeedSignIn: () => void;
+  onClaim: () => void;
+}> = ({ event, tier, uid, buyerName, onNeedSignIn, onClaim }) => {
+  const { t } = useLanguage();
+  const tr: Tr = (k) => t(`surfaces.events.${k}`);
+  const [entry, setEntry] = useState<DipEntry | null>(null);
+  const [names, setNames] = useState<string[]>([buyerName || '']);
+  const [ages, setAges] = useState<string[]>(['']);
+  const [busy, setBusy] = useState(false);
+  const [note, setNote] = useState('');
+  const [error, setError] = useState('');
+
+  const cap = tier.maxPerBooking ?? DEFAULT_MAX_PER_BOOKING;
+  const nowMs = Date.now();
+  const winState = dipWindowState(event, tier.id, nowMs);
+  const draw = dipDrawOf(event, tier.id);
+  const drawn = !!draw?.drawnAtMs;
+  const fmt = (ms: number) =>
+    new Date(ms).toLocaleString('en-IN', {
+      day: 'numeric', month: 'short', year: 'numeric', hour: 'numeric', minute: '2-digit',
+    });
+
+  // My standing, live — the draw's flips (selected, promoted,
+  // lapsed) reach this panel the moment staff make them.
+  useEffect(() => {
+    if (!uid) {
+      setEntry(null);
+      return;
+    }
+    const un = onSnapshot(
+      doc(db, 'event_dip_entries', dipEntryId(event.id, tier.id, uid)),
+      (s) => setEntry(s.exists() ? { ...(s.data() as Omit<DipEntry, 'id'>), id: s.id } : null),
+      () => setEntry(null)
+    );
+    return un;
+  }, [event.id, tier.id, uid]);
+
+  const setCount = (n: number) => {
+    const next = Math.min(cap, Math.max(1, n));
+    setNames((prev) => {
+      const arr = [...prev];
+      while (arr.length < next) arr.push('');
+      return arr.slice(0, next);
+    });
+    setAges((prev) => {
+      const arr = [...prev];
+      while (arr.length < next) arr.push('');
+      return arr.slice(0, next);
+    });
+  };
+
+  const doEnter = async () => {
+    setError('');
+    const attendees = names.map((n, i) => ({
+      name: n.trim(),
+      ...(ages[i]?.trim() ? { age: Math.max(0, parseInt(ages[i], 10) || 0) } : {}),
+    }));
+    if (attendees.some((a) => a.name.length < 2)) {
+      setError(tr('ticketNamesRequired'));
+      return;
+    }
+    setBusy(true);
+    try {
+      await enterDip(db, {
+        event,
+        tierId: tier.id,
+        uid,
+        buyerName: buyerName || attendees[0]?.name || '',
+        attendees,
+        nowMs: Date.now(),
+      });
+    } catch {
+      setError(tr('dipEnterFailed'));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const doWithdraw = async () => {
+    if (!entry) return;
+    setBusy(true);
+    setError('');
+    try {
+      await withdrawDipEntry(db, entry.id);
+      setNote(tr('dipWithdrawnNote'));
+    } catch {
+      setError(tr('dipEnterFailed'));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <div className="rounded-2xl border border-orange-200 bg-orange-50/50 px-3.5 py-3">
+      <div className="font-black text-stone-800">{tr('dipEnterTitle')}</div>
+
+      {drawn && draw && (
+        <p className="text-xs text-stone-500 mt-1">
+          {tr('dipPublicResults')
+            .replace('{pool}', String(draw.poolCount))
+            .replace('{winners}', String(draw.winnersCount ?? 0))}
+          {' · '}
+          {tr('dipMethodLine')}
+        </p>
+      )}
+
+      {note && (
+        <div className="text-sm font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-xl px-3 py-2 mt-2">{note}</div>
+      )}
+      {error && (
+        <div className="text-sm font-bold text-red-700 bg-red-50 border border-red-200 rounded-xl px-3 py-2 mt-2">{error}</div>
+      )}
+
+      {drawn ? (
+        <div className="mt-2">
+          {entry?.status === 'selected' && (
+            draw.claimByMs && nowMs > draw.claimByMs ? (
+              <p className="text-sm text-stone-600 leading-relaxed">{tr('dipClaimPassedNote')}</p>
+            ) : (
+              <>
+                <p className="text-sm text-stone-700 leading-relaxed">
+                  {tr('dipSelectedNote').replace('{date}', draw.claimByMs ? fmt(draw.claimByMs) : '')}
+                </p>
+                <button className={`${btnCls} w-full mt-2`} onClick={onClaim}>
+                  {tr('dipClaimBtn')}
+                </button>
+              </>
+            )
+          )}
+          {entry?.status === 'waitlisted' && (
+            <p className="text-sm text-stone-700 leading-relaxed">
+              {tr('dipWaitlistedNote').replace('{position}', String(entry.dipPosition ?? ''))}
+            </p>
+          )}
+          {entry?.status === 'claimed' && (
+            <p className="text-sm font-bold text-emerald-700">{tr('dipClaimedNote')}</p>
+          )}
+          {entry?.status === 'lapsed' && (
+            <p className="text-sm text-stone-600 leading-relaxed">{tr('dipLapsedNote')}</p>
+          )}
+          {!entry && (
+            <p className="text-sm text-stone-600 leading-relaxed">{tr('dipDrawnClosedNote')}</p>
+          )}
+        </div>
+      ) : winState === 'upcoming' ? (
+        <p className="text-sm text-stone-600 leading-relaxed mt-1">
+          {tr('dipAnnounced')
+            .replace('{opens}', fmt(event.dipOpensAtMs?.[tier.id] || 0))
+            .replace('{closes}', fmt(event.dipClosesAtMs?.[tier.id] || 0))}
+        </p>
+      ) : winState === 'closed' ? (
+        <p className="text-sm text-stone-600 leading-relaxed mt-1">{tr('dipClosedNote')}</p>
+      ) : winState === 'open' ? (
+        <div className="mt-2">
+          {!uid ? (
+            <>
+              <p className="text-sm text-stone-600 leading-relaxed">{tr('dipSignInNote')}</p>
+              <button className={`${btnCls} w-full mt-2`} onClick={onNeedSignIn}>
+                {tr('dipSignInBtn')}
+              </button>
+            </>
+          ) : entry ? (
+            <>
+              <p className="text-sm font-bold text-emerald-800">
+                {tr('dipEnteredNote').replace('{count}', String(entry.heads))}
+              </p>
+              <button className={`${ghostCls} mt-2`} disabled={busy} onClick={doWithdraw}>
+                {tr('dipWithdrawBtn')}
+              </button>
+            </>
+          ) : (
+            <>
+              <p className="text-xs text-stone-500 leading-relaxed">{tr('dipEnterNote')}</p>
+              <div className="flex items-center justify-between mt-2 mb-1.5">
+                <span className="text-xs font-bold text-stone-600">{tr('ticketWhoComing')}</span>
+                <span className="flex items-center gap-2">
+                  <button className="w-11 h-11 rounded-xl border border-stone-300 font-black" aria-label="Fewer"
+                    onClick={() => setCount(names.length - 1)} disabled={names.length <= 1}>−</button>
+                  <span className="font-black w-6 text-center">{names.length}</span>
+                  <button className="w-11 h-11 rounded-xl border border-stone-300 font-black" aria-label="More"
+                    onClick={() => setCount(names.length + 1)} disabled={names.length >= cap}>+</button>
+                </span>
+              </div>
+              <div className="space-y-1.5">
+                {names.map((n, i) => (
+                  <div key={i} className="flex gap-1.5">
+                    <input className={inputCls} value={n} placeholder={`${tr('ticketAttendeeName')} ${i + 1}`}
+                      onChange={(e) => setNames(names.map((x, j) => (j === i ? e.target.value : x)))} />
+                    <input className={`${inputCls} !w-24`} value={ages[i] ?? ''} inputMode="numeric" placeholder={tr('ticketAge')}
+                      onChange={(e) => setAges(ages.map((x, j) => (j === i ? e.target.value : x)))} />
+                  </div>
+                ))}
+              </div>
+              <button className={`${btnCls} w-full mt-2.5`} disabled={busy} onClick={doEnter}>
+                {tr('dipEnterBtn')}
+              </button>
+            </>
+          )}
+        </div>
+      ) : null}
+    </div>
   );
 };
 

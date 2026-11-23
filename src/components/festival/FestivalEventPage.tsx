@@ -610,6 +610,17 @@ export const FestivalEventPage: React.FC<{ previewEvent?: FestivalEventDoc }> = 
                 )}
               </p>
             )}
+            {/* NEXT-LEVEL B1b — the e-dip aggregates ride the
+                same published summary: parties entered, allotted
+                and claimed. Counts only, like everything here. */}
+            {event.fairnessSummary.dip && (
+              <p className="text-sm text-stone-500 mt-1">
+                {t('surfaces.events.fairDipLine')
+                  .replace('{entries}', event.fairnessSummary.dip.entries.toLocaleString('en-IN'))
+                  .replace('{selected}', event.fairnessSummary.dip.selected.toLocaleString('en-IN'))
+                  .replace('{claimed}', event.fairnessSummary.dip.claimed.toLocaleString('en-IN'))}
+              </p>
+            )}
             <p className="text-center text-xs text-stone-400 mt-4">
               {t('surfaces.events.fairNoSurge')}
             </p>
