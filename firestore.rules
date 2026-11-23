@@ -622,6 +622,32 @@ service cloud.firestore {
       return ev.get('ticketReleaseAtMs', 0) <= 0
         || request.time.toMillis() >= ev.get('ticketReleaseAtMs', 0);
     }
+    // NEXT-LEVEL B1b — the e-dip interlock (the draw for
+    // oversubscribed darshan). A tier is a DIP tier when the
+    // published event doc stamps an entry window for it
+    // (dipOpensAtMs, per tier, epoch ms — the tkReleaseOpen
+    // stamped-clock idiom; absent/0 = not a dip tier, and the
+    // check below is then vacuously true). A direct purchase of
+    // a dip tier stands only when the buyer's own dip entry
+    // stands 'selected' inside the draw's published claim
+    // window (dipDraws[tier].claimByMs, per tier, stamped at
+    // draw time). The entry is read from COMMITTED state — the
+    // draw wrote it long before this purchase began.
+    function dipPath(festivalId, tierId, uid) {
+      return /databases/$(database)/documents/event_dip_entries/$(festivalId + '__' + tierId + '__' + uid);
+    }
+    function dipIsDipTier(ev, tierId) {
+      return ev.get('dipOpensAtMs', {}).get(tierId, 0) > 0;
+    }
+    function tkDipOk(d, ev) {
+      let tierId = tkTierOf(d);
+      let ep = dipPath(tkFestOf(d), tierId, request.auth.uid);
+      return !dipIsDipTier(ev, tierId)
+        || (exists(ep)
+            && get(ep).data.get('status', '') == 'selected'
+            && ev.get('dipDraws', {}).get(tierId, {}).get('claimByMs', 0)
+                 >= request.time.toMillis());
+    }
     // Ticket create: buyer-self only, pinned field shape, the
     // workspace agreeing on all three docs, shape + amounts checked
     // against the plan's stamped maps (tkCreateShapeOk/tkAmountsOk).
@@ -646,7 +672,8 @@ service cloud.firestore {
               'rsvpId', 'createdAt'])
         && tkCreateShapeOk(d, plan)
         && tkAmountsOk(d, ev, plan)
-        && tkReleaseOpen(ev);
+        && tkReleaseOpen(ev)
+        && tkDipOk(d, ev);
     }
     // REAL-WORLD PACK — desk (counter) sale create. A staff member
     // of the workspace sells a pass to a walk-in (cash in hand,
@@ -681,7 +708,14 @@ service cloud.firestore {
         && (tkStateOf(d) == 'comp'
             || (d.get('venueReceived', false) == true
                 && d.get('receivedBy', '') != ''))
-        && tkReleaseOpen(ev);
+        && tkReleaseOpen(ev)
+        // NEXT-LEVEL B1b — a desk sale of a DIP tier is refused
+        // outright: dip places are allotted by the draw alone,
+        // and the synthetic desk identity can never hold an
+        // entry for tkDipOk to witness. A walk-in for a dip
+        // tier is entered into the dip by staff help, never
+        // sold a place at the counter.
+        && !dipIsDipTier(ev, tkTierOf(d));
     }
     // The refund ledger line's anchor (walletTransactions create).
     function tkRefundLedgerOk() {
@@ -1377,6 +1411,104 @@ service cloud.firestore {
                   && tkNewGet('orgResponse', {}).get('text', '') is string
                   && tkNewGet('orgResponse', {}).get('text', '').size() <= 600)));
       allow delete: if false;
+    }
+
+    // NEXT-LEVEL B1b — e-dip entry witnesses (event_dip_entries).
+    // Create: the devotee enters THEMSELVES, under the derived
+    // doc id, inside the festival doc's stamped window (the
+    // tkReleaseOpen pattern — the window lives on the public
+    // event doc; the per-booking cap on the plan's stamped maps).
+    function dipEntryCreateOk(entryId) {
+      let d = request.resource.data;
+      let ev = get(/databases/$(database)/documents/festival_events/$(tkNewGet('festivalId', ''))).data;
+      let plan = get(/databases/$(database)/documents/festival_plans/$(tkNewGet('festivalId', ''))).data;
+      let opens = ev.get('dipOpensAtMs', {}).get(tkNewGet('tierId', ''), 0);
+      let closes = ev.get('dipClosesAtMs', {}).get(tkNewGet('tierId', ''), 0);
+      return uidIs(tkNewGet('uid', ''))
+        && entryId == tkNewGet('festivalId', '') + '__' + tkNewGet('tierId', '') + '__' + request.auth.uid
+        && tkNewGet('festivalId', '') != ''
+        && tkNewGet('tierId', '') != ''
+        && tkWsOf(d) != ''
+        && tkWsOf(ev) == tkWsOf(d)
+        && tkNewGet('buyerName', '') is string
+        && tkNewGet('buyerName', '').size() >= 1
+        && tkNewGet('buyerName', '').size() <= 80
+        && tkNewGet('attendees', []) is list
+        && tkNewGet('attendees', []).size() >= 1
+        && tkNewGet('attendees', []).size() <= 20
+        && tkNewGet('heads', 0) == tkNewGet('attendees', []).size()
+        && tkNewGet('heads', 0) <= tkPlanCfg(plan).get('tierMax', {}).get(tkNewGet('tierId', ''), 6)
+        && tkNewGet('status', '') == 'entered'
+        && tkNewGet('createdAt', 0) is number
+        && tkNewGet('createdAt', 0) > 0
+        && d.keys().hasOnly(['festivalId', 'tierId', 'workspaceId', 'uid', 'buyerName',
+             'attendees', 'heads', 'createdAt', 'status'])
+        && opens > 0
+        && request.time.toMillis() >= opens
+        && request.time.toMillis() <= closes;
+    }
+    // Staff move the standings the draw produces — nothing else:
+    // entered → selected | waitlisted (the draw), waitlisted →
+    // selected (a promotion), selected → lapsed (an unclaimed
+    // place, after its window). A published position, when the
+    // after-state carries one, is a positive number.
+    function dipStaffUpdateOk() {
+      let os = tkOldGet('status', '');
+      let ns = tkNewGet('status', '');
+      return hasRole(docWs(), R_ANY_STAFF())
+        && tkDiff(['status', 'dipPosition', 'updatedAt'])
+        && ((os == 'entered' && ns in ['selected', 'waitlisted'])
+            || (os == 'waitlisted' && ns == 'selected')
+            || (os == 'selected' && ns == 'lapsed'))
+        && (tkNewGet('dipPosition', 1) is number && tkNewGet('dipPosition', 1) >= 1);
+    }
+    // The claim: the entry's owner buys their selected place and
+    // the SAME batch flips the entry to 'claimed'. The witness
+    // is the purchase itself — the event doc's after-state
+    // anchor names the batch's ticket (the anchoredTierCounter
+    // idiom), and that ticket must be the entry owner's own,
+    // for this festival and tier, in a live money state.
+    function dipClaimConsumeOk() {
+      let evAfter = getAfter(/databases/$(database)/documents/festival_events/$(tkOldGet('festivalId', ''))).data;
+      let tp = ticketPath(evAfter.get('tierAnchorTicketId', ''));
+      let tk = existsAfter(tp) ? tkAfterData(tp) : {};
+      return tkOldGet('status', '') == 'selected'
+        && tkNewGet('status', '') == 'claimed'
+        && tkDiff(['status', 'updatedAt'])
+        && tk.size() > 0
+        && tkBuyerOf(tk) == request.auth.uid
+        && tkFestOf(tk) == tkOldGet('festivalId', '')
+        && tkTierOf(tk) == tkOldGet('tierId', '')
+        && tkStateOf(tk) in ['paid-wallet', 'pay-at-venue', 'comp'];
+    }
+    // Withdraw: the owner takes their own name out — only while
+    // the entry still stands 'entered' and the stamped window
+    // has not closed. After that the entry is the draw's record.
+    function dipWithdrawOk() {
+      let ev = get(/databases/$(database)/documents/festival_events/$(tkOldGet('festivalId', ''))).data;
+      let closes = ev.get('dipClosesAtMs', {}).get(tkOldGet('tierId', ''), 0);
+      return uidIs(tkOldGet('uid', ''))
+        && tkOldGet('status', '') == 'entered'
+        && closes > 0
+        && request.time.toMillis() <= closes;
+    }
+    // NEXT-LEVEL B1b — e-dip entries (NEW COLLECTION, flagged to
+    // the owner in advance). One entry per devotee per tier by
+    // doc-id construction ({festivalId}__{tierId}__{uid}): the
+    // household party that hopes for a place on an oversubscribed
+    // tier. Created by the devotee inside the stamped window;
+    // standings move only by staff (the draw, promotions) or by
+    // the owner's own witnessed claim purchase; deleted only by
+    // the owner withdrawing while the window stands open — after
+    // that the record is the audit, and staff delete is denied.
+    match /event_dip_entries/{entryId} {
+      allow read: if isSuperAdmin()
+        || (isLoggedIn() && uidIs(resource.data.get('uid', '')))
+        || hasRole(docWs(), R_ANY_STAFF());
+      allow create: if isLoggedIn() && dipEntryCreateOk(entryId);
+      allow update: if dipStaffUpdateOk()
+        || (isLoggedIn() && uidIs(tkOldGet('uid', '')) && dipClaimConsumeOk());
+      allow delete: if isLoggedIn() && dipWithdrawOk();
     }
 
     // EVENTS P1 — Utsav One team sharing. Until now the whole Utsav

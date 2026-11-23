@@ -1465,3 +1465,259 @@ describe('NEXT-LEVEL A1 — user follows (user_follows)', () => {
     await assertFails(unauthDb.collection('user_follows').doc('user-1').set(shape()));
   });
 });
+
+describe('NEXT-LEVEL B1b — the e-dip (event_dip_entries + the purchase interlock)', () => {
+  const EV = 'ws-1__fest1';
+  const now = Date.now();
+  const startMs = now + 30 * 86400000; // festival 30 days out → 100% rung
+  const OPEN = now - 3600000;          // dip window opened an hour ago
+  const CLOSE = now + 3600000;         // …and closes in an hour
+  const CLAIM_BY = now + 86400000;     // selected parties claim within a day
+  const ENTRY_ID = `${EV}__pass1__user-1`;
+
+  const entryDoc = (over: Record<string, unknown> = {}) => ({
+    festivalId: EV,
+    tierId: 'pass1',
+    workspaceId: 'ws-1',
+    uid: 'user-1',
+    buyerName: 'User One',
+    attendees: [{ name: 'User One' }, { name: 'Guest Two' }],
+    heads: 2,
+    createdAt: now,
+    status: 'entered',
+    ...over,
+  });
+
+  const ticketDoc = (over: Record<string, unknown> = {}) => ({
+    workspaceId: 'ws-1',
+    festivalId: EV,
+    tierId: 'pass1',
+    tierName: 'Cultural evening pass',
+    buyerUid: 'user-1',
+    buyerName: 'User One',
+    attendees: [{ name: 'User One' }, { name: 'Guest Two' }],
+    qty: 2,
+    amounts: { price: 1000, discount: 0, fee: 50, gst: 9, total: 1000 },
+    currency: 'INR',
+    paymentState: 'paid-wallet',
+    rsvpId: `${EV}__user-1`,
+    createdAt: '2026-01-01T00:00:00.000Z',
+    ...over,
+  });
+
+  // The festival carries TWO tiers: pass1 dips, pass2 does not —
+  // the control that proves non-dip behaviour is untouched.
+  const seed = async (over: { claimByMs?: number; closesMs?: number } = {}) => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      const db = context.firestore();
+      await db.collection('festival_plans').doc(EV).set({
+        workspaceId: 'ws-1',
+        ticketing: {
+          tiers: [],
+          tierPrices: { pass1: 500, pass2: 500 },
+          tierKinds: { pass1: 'paid', pass2: 'paid' },
+          tierEarly: {},
+          tierMax: { pass1: 6, pass2: 6 },
+          codeMap: {},
+          refundLadder: [
+            { minDaysBefore: 7, percent: 100 },
+            { minDaysBefore: 0, percent: 0 },
+          ],
+          discountUses: {},
+          feeBearer: 'organiser',
+          startMs,
+          endMs: startMs + 86400000 - 1,
+        },
+      });
+      await db.collection('festival_events').doc(EV).set({
+        workspaceId: 'ws-1',
+        published: true,
+        ticketFeeBearer: 'organiser',
+        tierCaps: { pass1: 100, pass2: 100 },
+        tierSold: {},
+        rsvpHeadcount: 0,
+        slotBooked: {},
+        dipOpensAtMs: { pass1: OPEN },
+        dipClosesAtMs: { pass1: over.closesMs ?? CLOSE },
+        dipDraws: {
+          pass1: {
+            seed: 'chit-42', poolHash: 'abc', poolCount: 1, frozenAtMs: now,
+            drawnAtMs: now, winnersCount: 1, claimByMs: over.claimByMs ?? CLAIM_BY,
+          },
+        },
+      });
+      await db.collection('wallets').doc('user-1').set({
+        uid: 'user-1', balance: 2000, totalSpent: 0, totalReceived: 0, currency: 'INR',
+      });
+    });
+  };
+
+  const seedEntry = async (status: string, extra: Record<string, unknown> = {}) => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await context.firestore().collection('event_dip_entries').doc(ENTRY_ID)
+        .set(entryDoc({ status, ...extra }));
+    });
+  };
+
+  const buyerDb = () => testEnv.authenticatedContext('user-1').firestore();
+  const staffDb = () => testEnv.authenticatedContext('admin-1').firestore();
+  const strangerDb = () => testEnv.authenticatedContext('stranger-1').firestore();
+
+  // The E2 purchase batch, plus — for a dip claim — the entry
+  // flip the same batch carries (selected → claimed).
+  const purchaseBatch = (db: any, opts: { tierId?: string; consumeClaim?: boolean } = {}) => {
+    const tierId = opts.tierId ?? 'pass1';
+    const batch = db.batch();
+    batch.set(db.collection('event_tickets').doc('tk-dip-1'), ticketDoc({ tierId }));
+    batch.set(db.collection('festival_rsvps').doc(`${EV}__user-1`), {
+      eventId: EV, workspaceId: 'ws-1', uid: 'user-1', name: 'User One',
+      headcount: 2, status: 'confirmed', createdAt: '2026-01-01T00:00:00.000Z', ticketId: 'tk-dip-1',
+    });
+    batch.update(db.collection('wallets').doc('user-1'), {
+      balance: 1000, totalSpent: 1000, lastDebitTicketId: 'tk-dip-1', updatedAt: 1,
+    });
+    batch.set(db.collection('walletTransactions').doc('txn-dip-1'), {
+      uid: 'user-1', type: 'spend', amount: 1000, currency: 'INR',
+      orderId: 'tk-dip-1', note: 'Seva pass', createdAt: 1,
+    });
+    batch.update(db.collection('festival_events').doc(EV), {
+      tierSold: { [tierId]: 2 }, tierAnchorTicketId: 'tk-dip-1', updatedAt: 1,
+    });
+    if (opts.consumeClaim) {
+      batch.update(db.collection('event_dip_entries').doc(ENTRY_ID), {
+        status: 'claimed', updatedAt: 2,
+      });
+    }
+    return batch.commit();
+  };
+
+  it('118. A devotee enters the dip inside the stamped window, under the derived id', async () => {
+    await seed();
+    await assertSucceeds(buyerDb().collection('event_dip_entries').doc(ENTRY_ID).set(entryDoc()));
+  });
+
+  it('119. An entry for someone else, or under a non-derived id, is refused', async () => {
+    await seed();
+    await assertFails(buyerDb().collection('event_dip_entries').doc(`${EV}__pass1__user-2`)
+      .set(entryDoc({ uid: 'user-2' })));
+    await assertFails(buyerDb().collection('event_dip_entries').doc('some-other-id')
+      .set(entryDoc()));
+    // A stranger may enter for THEMSELVES (the dip is a devotee
+    // act) — but never into someone else's derived id.
+    await assertFails(strangerDb().collection('event_dip_entries').doc(ENTRY_ID)
+      .set(entryDoc()));
+  });
+
+  it('120. An entry outside the window is refused (window already closed)', async () => {
+    await seed({ closesMs: now - 1000 });
+    await assertFails(buyerDb().collection('event_dip_entries').doc(ENTRY_ID).set(entryDoc()));
+  });
+
+  it('121. Shape pins: extra keys, a heads lie, an over-cap party and a born-selected entry all fail', async () => {
+    await seed();
+    const db = buyerDb().collection('event_dip_entries').doc(ENTRY_ID);
+    await assertFails(db.set(entryDoc({ admin: true })));
+    await assertFails(db.set(entryDoc({ heads: 3 })));
+    const bigParty = Array.from({ length: 7 }, (_, i) => ({ name: `Guest ${i}` }));
+    await assertFails(db.set(entryDoc({ attendees: bigParty, heads: 7 })));
+    await assertFails(db.set(entryDoc({ status: 'selected' })));
+    await assertFails(db.set(entryDoc({ workspaceId: 'ws-2' })));
+  });
+
+  it('122. Read: the owner and workspace staff yes, a stranger no', async () => {
+    await seed();
+    await seedEntry('entered');
+    const ref = (db: any) => db.collection('event_dip_entries').doc(ENTRY_ID);
+    await assertSucceeds(ref(buyerDb()).get());
+    await assertSucceeds(ref(staffDb()).get());
+    await assertFails(ref(strangerDb()).get());
+  });
+
+  it('123. Withdraw: the owner may withdraw an entered entry while the window stands open', async () => {
+    await seed();
+    await assertSucceeds(buyerDb().collection('event_dip_entries').doc(ENTRY_ID).set(entryDoc()));
+    await assertSucceeds(buyerDb().collection('event_dip_entries').doc(ENTRY_ID).delete());
+  });
+
+  it('124. Staff run the draw standings; a devotee cannot move their own standing', async () => {
+    await seed();
+    await seedEntry('entered');
+    const ref = (db: any) => db.collection('event_dip_entries').doc(ENTRY_ID);
+    await assertSucceeds(ref(staffDb()).update({ status: 'selected', dipPosition: 1, updatedAt: 3 }));
+    await assertFails(ref(buyerDb()).update({ status: 'waitlisted', dipPosition: 2, updatedAt: 4 }));
+    // A standing can never be rewritten backwards or sideways.
+    await assertFails(ref(staffDb()).update({ status: 'entered', updatedAt: 5 }));
+    await assertFails(ref(staffDb()).update({ status: 'claimed', updatedAt: 6 }));
+  });
+
+  it('125. Promotion and lapse: waitlisted → selected, selected → lapsed, staff only', async () => {
+    await seed();
+    await seedEntry('waitlisted', { dipPosition: 4 });
+    const ref = (db: any) => db.collection('event_dip_entries').doc(ENTRY_ID);
+    await assertSucceeds(ref(staffDb()).update({ status: 'selected', updatedAt: 7 }));
+    await assertSucceeds(ref(staffDb()).update({ status: 'lapsed', updatedAt: 8 }));
+  });
+
+  it('126. After the draw, an entry is the audit: owner delete and staff delete are both denied', async () => {
+    await seed();
+    await seedEntry('selected', { dipPosition: 1 });
+    const ref = (db: any) => db.collection('event_dip_entries').doc(ENTRY_ID);
+    await assertFails(ref(buyerDb()).delete());
+    await assertFails(ref(staffDb()).delete());
+  });
+
+  it('127. INTERLOCK: a direct purchase of the dip tier with no selected entry is refused', async () => {
+    await seed();
+    await assertFails(purchaseBatch(buyerDb()));
+    // An entry that merely stands 'entered' is not a place.
+    await seedEntry('entered');
+    await assertFails(purchaseBatch(buyerDb()));
+    // Nor is a waitlisted standing.
+    await seedEntry('waitlisted', { dipPosition: 3 });
+    await assertFails(purchaseBatch(buyerDb()));
+  });
+
+  it('128. A selected party claims: the purchase commits and consumes the claim in the same batch', async () => {
+    await seed();
+    await seedEntry('selected', { dipPosition: 1 });
+    await assertSucceeds(purchaseBatch(buyerDb(), { consumeClaim: true }));
+    const snap = await buyerDb().collection('event_dip_entries').doc(ENTRY_ID).get();
+    expect(snap.data()?.status).toBe('claimed');
+  });
+
+  it('129. After the claim window, even a selected party cannot buy', async () => {
+    await seed({ claimByMs: now - 1000 });
+    await seedEntry('selected', { dipPosition: 1 });
+    await assertFails(purchaseBatch(buyerDb(), { consumeClaim: true }));
+  });
+
+  it('130. A desk (counter) sale of the dip tier is refused — dip places are allotted by the draw alone', async () => {
+    await seed();
+    const db = staffDb();
+    const TID = 'tk-dip-desk';
+    const DESK_UID = `desk_${TID}`;
+    const batch = db.batch();
+    batch.set(db.collection('event_tickets').doc(TID), {
+      workspaceId: 'ws-1', festivalId: EV, tierId: 'pass1', tierName: 'Cultural evening pass',
+      buyerUid: DESK_UID, buyerName: 'Walk-in Guest',
+      attendees: [{ name: 'Walk-in Guest' }, { name: 'Guest Two' }], qty: 2,
+      amounts: { price: 1000, discount: 0, fee: 50, gst: 9, total: 1000 },
+      currency: 'INR', paymentState: 'pay-at-venue', rsvpId: `${EV}__${DESK_UID}`,
+      createdAt: '2026-01-01T00:00:00.000Z', deskSale: true, recordedBy: 'admin-1',
+      venueReceived: true, receivedBy: 'Admin One', receivedAt: '2026-01-01T00:00:00.000Z',
+    });
+    batch.set(db.collection('festival_rsvps').doc(`${EV}__${DESK_UID}`), {
+      eventId: EV, workspaceId: 'ws-1', uid: DESK_UID, name: 'Walk-in Guest',
+      headcount: 2, status: 'confirmed', createdAt: '2026-01-01T00:00:00.000Z', ticketId: TID,
+    });
+    batch.update(db.collection('festival_events').doc(EV), {
+      tierSold: { pass1: 2 }, tierAnchorTicketId: TID, updatedAt: 1,
+    });
+    await assertFails(batch.commit());
+  });
+
+  it('131. CONTROL: the non-dip tier of the same festival sells exactly as before, no entry involved', async () => {
+    await seed();
+    await assertSucceeds(purchaseBatch(buyerDb(), { tierId: 'pass2' }));
+  });
+});
