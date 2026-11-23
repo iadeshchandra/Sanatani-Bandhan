@@ -1391,6 +1391,7 @@ export const orgNs: OrgFragment = {
           cancel: "Cancel request",
           retryApply: "Retry applying",
           kindPayout: "Treasury payout",
+          kindAuction: "Auction lot",
           kindPayment: "Payment details",
           kindRole: "Role grant",
           statusPending: "Pending",

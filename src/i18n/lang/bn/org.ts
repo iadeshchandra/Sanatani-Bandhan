@@ -1391,6 +1391,7 @@ export const orgNs: OrgFragment = {
           cancel: "অনুরোধ বাতিল করুন",
           retryApply: "আবার কার্যকর করুন",
           kindPayout: "কোষাগার পরিশোধ",
+          kindAuction: "নিলাম লট",
           kindPayment: "পেমেন্ট বিবরণ",
           kindRole: "ভূমিকা প্রদান",
           statusPending: "অপেক্ষমাণ",
