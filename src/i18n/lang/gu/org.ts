@@ -1359,6 +1359,7 @@ export const orgNs: OrgFragment = {
           decideFailed: "તે પૂર્ણ થઈ શક્યું નહીં.",
           kindPayment: "ચુકવણી વિગતો",
           kindPayout: "ખજાના ચુકવણી",
+          kindAuction: "હરાજી લોટ",
           kindRole: "ભૂમિકા પ્રદાન",
           needsApply: "મંજૂર, પણ હજુ લાગુ નથી",
           payoutFiled: "ચુકવણી મંજૂરી માટે મોકલાઈ — ચેકર મંજૂર કરે ત્યારે તે નોંધાશે.",
