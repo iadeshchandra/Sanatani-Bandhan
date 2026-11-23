@@ -698,7 +698,7 @@ export const PurohitPortalUnified: React.FC = () => {
             <div>
               <div className="flex items-center gap-2">
                 <h1 className="text-base sm:text-lg font-black text-amber-100 tracking-tight leading-none">
-                  {portalMode === 'PUROHIT_PRO' ? 'Purohit Professional Workspace' : 'Personal Devotee Space'}
+                  {portalMode === 'PUROHIT_PRO' ? 'Purohit Professional Workspace' : 'Personal Space'}
                 </h1>
                 
                 {/* Real-Time Verification Badge */}

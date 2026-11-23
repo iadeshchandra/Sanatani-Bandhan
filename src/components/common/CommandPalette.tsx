@@ -183,7 +183,7 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({ onSelectModule }
           key: 'qa-personal',
           kind: 'action',
           label: 'Switch to Personal View',
-          sub: 'Devotee space',
+          sub: 'Personal space',
           icon: UserCircle,
           run: () => setViewMode('MEMBER'),
         },

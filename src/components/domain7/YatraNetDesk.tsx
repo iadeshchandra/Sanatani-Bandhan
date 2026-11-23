@@ -582,7 +582,7 @@ export default function YatraNetDesk() {
           ) : (
             <div className="px-3.5 py-1.5 rounded-xl bg-emerald-500/15 border border-emerald-500/40 text-emerald-300 text-xs font-bold flex items-center gap-2 shadow-xs">
               <Footprints className="w-4 h-4 text-emerald-400" />
-              <span>Devotee Mode (Personal Pilgrimage Passport)</span>
+              <span>Personal Mode (Pilgrimage Passport)</span>
             </div>
           )}
 

@@ -158,7 +158,7 @@ export default function MemberAppShell() {
           </span>
           <span className="font-bold text-saffron-300 flex items-center gap-1.5 truncate">
             <UserCircle className="w-3.5 h-3.5 text-saffron-400 shrink-0" />
-            <span className="truncate">Devotee App Preview</span>
+            <span className="truncate">Personal Space</span>
           </span>
           <span className="text-temple-400 hidden md:inline">•</span>
           <span className="text-temple-300 font-medium truncate hidden md:inline">
@@ -269,7 +269,7 @@ export default function MemberAppShell() {
                 <span className="text-xs font-bold text-temple-800">Institution ERP</span>
               </div>
               <p className="text-[11px] text-temple-500 leading-snug mb-2.5">
-                You're previewing the devotee app. Switch back to administer treasury, pujas, CRM and all desks.
+                You're seeing the Personal space, as your members do. Switch back to administer treasury, pujas, CRM and all desks.
               </p>
               <Button
                 variant="secondary"

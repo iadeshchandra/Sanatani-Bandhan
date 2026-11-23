@@ -517,7 +517,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   const handleSwitchToPersonal = () => {
     setViewMode('MEMBER');
-    showToast('Devotee App Preview — this is what your community members see 🙏', 'success', 'Mode Changed');
+    showToast('Personal Preview — this is what your community members see 🙏', 'success', 'Mode Changed');
     if (window.innerWidth < 1024) onClose();
   };
 
@@ -725,7 +725,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </div>
         </div>
 
-        {/* Quick Switch to Devotee App Preview — unmistakable hat labeling */}
+        {/* Quick Switch to Personal Preview — unmistakable hat labeling */}
         {!isCollapsed && (
           <div className="p-3 bg-gradient-to-r from-saffron-500/10 via-saffron-500/10 to-transparent border-b border-temple-800">
             {/* DESIGN ELEVATION E2: the preview switch is the house Button
@@ -740,13 +740,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
               <span className="flex w-full items-center justify-between">
                 <span className="flex items-center gap-2">
                   <UserCircle className="w-4 h-4 text-white" />
-                  <span className="font-extrabold">Devotee App Preview</span>
+                  <span className="font-extrabold">Personal Preview</span>
                 </span>
                 <ArrowLeftRight className="w-3.5 h-3.5 text-white group-hover:rotate-180 transition-transform duration-300" />
               </span>
             </Button>
             <p className="text-[10px] text-temple-400 mt-1.5 px-1 leading-snug">
-              See the devotee-facing app. You're currently in the <span className="font-bold text-temple-200">Institution ERP</span>.
+              See the Personal app. You're currently in the <span className="font-bold text-temple-200">Institution ERP</span>.
             </p>
           </div>
         )}
@@ -759,7 +759,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <button
               onClick={handleSwitchToPersonal}
               className="w-11 h-11 rounded-xl bg-cta hover:bg-cta-hover text-white flex items-center justify-center shadow-md transition-transform hover:scale-105 cursor-pointer"
-              title="Devotee App Preview — what your community members see"
+              title="Personal Preview — what your community members see"
             >
               <UserCircle className="w-5 h-5" />
             </button>

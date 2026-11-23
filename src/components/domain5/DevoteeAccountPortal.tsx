@@ -765,7 +765,7 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
               takes the light tone with the rest of the portal. */}
           <Tabs
             tone="light"
-            ariaLabel="Devotee portal sections"
+            ariaLabel="Personal portal sections"
             tabs={[
               { id: 'PASS', label: '1. Digital Pass & ID', icon: <QrCode className="w-4 h-4" />, badge: 'Vault QR' },
               { id: 'SADHANA', label: '2. Sadhana & Vrats', icon: <Flame className="w-4 h-4" />, badge: 'Japa Mala' },

@@ -312,23 +312,23 @@ export const Header: React.FC<HeaderProps> = ({
               } else {
                 window.location.href = '/';
               }
-              showToast('Here is what your community members see 🙏', 'success', 'Devotee preview');
+              showToast('Here is what your community members see 🙏', 'success', 'Personal preview');
             }}
             className="flex items-center gap-1.5 px-3 py-1.5 min-h-[44px] bg-gradient-to-r from-amber-500/20 via-orange-500/20 to-amber-500/20 hover:from-amber-500 hover:to-orange-500 text-amber-300 hover:text-slate-950 rounded-xl transition-all border border-amber-500/40 font-bold text-xs shadow-xs cursor-pointer group"
             title="See what your community members see"
           >
             <Sparkles className="w-4 h-4 text-amber-400 group-hover:text-slate-950 transition-colors" />
-            <span className="font-bold">👁 Devotee preview</span>
+            <span className="font-bold">👁 Personal preview</span>
           </button>
 
           <button
             id="header-btn-switch-personal"
             onClick={() => {
               setViewMode('MEMBER');
-              showToast('Switched to Personal Devotee Space 🙏', 'success', 'Personal Mode Active');
+              showToast('Switched to Personal Space 🙏', 'success', 'Personal Mode Active');
             }}
             className="flex items-center gap-1.5 px-3 py-1.5 min-h-[44px] bg-gradient-to-r from-saffron-500/20 to-saffron-500/20 hover:from-saffron-500 hover:to-saffron-500 text-saffron-300 hover:text-temple-950 rounded-xl transition-all border border-saffron-500/40 font-bold text-xs shadow-xs cursor-pointer group"
-            title="Switch to Personal Devotee View (Darshan, Sadhana Japa, Vivah, e-Pass & 80G Receipts)"
+            title="Switch to Personal View (Darshan, Sadhana Japa, Vivah, e-Pass & 80G Receipts)"
           >
             <UserCircle className="w-4 h-4 text-saffron-400 group-hover:text-temple-950 transition-colors" />
             <span className="font-bold hidden 2xl:inline">Personal View</span>
@@ -430,7 +430,7 @@ export const Header: React.FC<HeaderProps> = ({
                 <div className="h-px bg-temple-700 my-1 mx-2"></div>
               </div>
 
-              {/* Devotee-view switch (plain language — no B2C jargon) */}
+              {/* Personal-view switch (plain language — no B2C jargon) */}
               <div className="px-1 py-1 mb-2 space-y-1">
                 <button
                   type="button"
@@ -441,12 +441,12 @@ export const Header: React.FC<HeaderProps> = ({
                     } else {
                       window.location.href = '/';
                     }
-                    showToast('Here is what your community members see 🙏', 'success', 'Devotee preview');
+                    showToast('Here is what your community members see 🙏', 'success', 'Personal preview');
                   }}
                   className="w-full text-left px-3 py-2 min-h-[44px] rounded-xl text-xs font-bold flex items-center gap-2 bg-gradient-to-r from-amber-500/20 to-orange-500/20 hover:from-amber-500 hover:to-orange-500 text-amber-300 hover:text-slate-950 transition-all border border-amber-500/40 cursor-pointer"
                 >
                   <Sparkles className="w-4 h-4 text-amber-400" />
-                  <span>👁 Devotee preview</span>
+                  <span>👁 Personal preview</span>
                 </button>
                 <button
                   type="button"

@@ -114,7 +114,7 @@ export const DemoSelectionModal: React.FC<DemoSelectionModalProps> = ({ isOpen, 
               }`}
             >
               <p className={`text-sm font-bold ${view === 'devotee' ? 'text-saffron-900' : 'text-slate-700'}`}>
-                🙏 {safeTranslate('demo_view_devotee', 'Devotee App', 'ভক্ত অ্যাপ', 'भक्त ऐप')}
+                🙏 {safeTranslate('demo_view_devotee', 'Personal App', 'পার্সোনাল অ্যাপ', 'पर्सनल ऐप')}
               </p>
               <p className="text-[11px] text-slate-500 mt-0.5">
                 {safeTranslate('demo_view_devotee_desc', 'See what your community members see', 'আপনার সম্প্রদায়ের সদস্যরা যা দেখেন তা দেখুন', 'देखें कि आपके समुदाय के सदस्य क्या देखते हैं')}

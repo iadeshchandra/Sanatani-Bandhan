@@ -691,7 +691,7 @@ export function wouldMountIfEnabled(workspace: any, moduleId: string): boolean {
  */
 export const ORG_RESTRICTED_GUIDANCE: Record<string, string> = {
   'sanatani-vivah':
-    'Vivah services live in the personal devotee view and in community organisation workspaces (Mandir, Sangha, Samaj, Trust).',
+    'Vivah services live in the personal view and in community organisation workspaces (Mandir, Sangha, Samaj, Trust).',
   gurukul:
     'Gurukul desks belong to Gurukul / Vidyalaya workspaces — the residential shiksha surface.',
   gurukulAcademy:

@@ -51,9 +51,9 @@ export const PreviewFrame: React.FC<{
             <p className="text-sm sm:text-[15px] font-black leading-tight">
               {safeTranslate(
                 'preview_title',
-                'Devotee preview — you are seeing this as a devotee.',
-                'ভক্ত প্রিভিউ — আপনি এটি একজন ভক্তের চোখে দেখছেন।',
-                'भक्त पूर्वावलोकन — आप इसे एक भक्त की दृष्टि से देख रहे हैं।'
+                'Personal preview — you are seeing this as a devotee.',
+                'ব্যক্তিগত প্রিভিউ — আপনি এটি একজন ভক্তের চোখে দেখছেন।',
+                'व्यक्तिगत पूर्वावलोकन — आप इसे एक भक्त की दृष्टि से देख रहे हैं।'
               )}
             </p>
             <p className="text-xs font-semibold text-stone-800 leading-snug" aria-live="polite">
