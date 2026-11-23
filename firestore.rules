@@ -2697,6 +2697,13 @@ service cloud.firestore {
     function pollKindOf(pollId) {
       return get(/databases/$(database)/documents/polls/$(pollId)).data.get('kind', 'choice');
     }
+    // POLLS NEXT-LEVEL P1: was the poll launched as a NAMED ballot?
+    // The field is create-only (no update path may touch it), so the
+    // secrecy choice is frozen at launch — exactly like kind and
+    // resultVisibility above.
+    function pollBallotNamed(pollId) {
+      return get(/databases/$(database)/documents/polls/$(pollId)).data.get('ballot', 'secret') == 'named';
+    }
     function pollBallotOk(pollId) {
       let pdata = get(/databases/$(database)/documents/polls/$(pollId)).data;
       let kind = pdata.get('kind', 'choice');
@@ -2812,12 +2819,19 @@ service cloud.firestore {
     }
     // Committee management: conclude (early or at deadline) and the
     // official note. Nothing else on the doc may change here.
+    // POLLS NEXT-LEVEL P1: the recorded outcome rides this path —
+    // writable ONLY in the write that concludes the poll or onto an
+    // already-concluded poll, and never over an existing outcome
+    // (write-once: the record of the decision cannot be rewritten).
     function pollManageOk() {
       return diffKeys()
-               .hasOnly(['status', 'adminNote', 'updatedAt'])
+               .hasOnly(['status', 'adminNote', 'outcome', 'updatedAt'])
         && (reqStatus() == resStatus()
             || (resStatus() == 'ACTIVE'
-                && reqStatus() == 'CONCLUDED'));
+                && reqStatus() == 'CONCLUDED'))
+        && (!diffKeys().hasAny(['outcome'])
+            || (reqStatus() == 'CONCLUDED'
+                && !('outcome' in resource.data)));
     }
     // Deadline truth no longer waits for a manager's visit: ANY member
     // of the poll's workspace may land the conclusion once the stored
@@ -2856,10 +2870,24 @@ service cloud.firestore {
             // through pollEditOk (zero ballots cast).
             && tkNewGet('kind', 'choice') in ['choice', 'multi', 'text']
             && tkNewGet('resultVisibility', 'afterVote') in ['live', 'afterVote', 'afterClose', 'committee']
+            // POLLS NEXT-LEVEL P1: the Decision-grade fields, when
+            // carried, must be honest shapes — the class enum, the
+            // secrecy enum, and both marks non-negative (a negative
+            // mark would make its test trivially true; an over-100
+            // mark can only defeat the creator's own poll, and the
+            // client reads out-of-range marks as unrecorded).
+            // Absent fields read as the legacy defaults (pulse /
+            // advisory / secret / unrecorded).
+            && tkNewGet('pollClass', 'pulse') in ['pulse', 'decision']
+            && tkNewGet('ballot', 'secret') in ['secret', 'named']
+            && tkNewGet('quorumPct', 0) >= 0
+            && tkNewGet('passPct', 0) >= 0
             && reqKeys().hasOnly(
                  ['workspaceId', 'title', 'description', 'targetAudience', 'status',
                   'createdAt', 'createdBy', 'expiresAt', 'expiresAtTs', 'options',
-                  'totalVotes', 'votedUsers', 'kind', 'resultVisibility']));
+                  'totalVotes', 'votedUsers', 'kind', 'resultVisibility',
+                  'pollClass', 'binding', 'ballot', 'eligibleCount', 'quorumPct',
+                  'passPct', 'createdByUid']));
       allow update: if ((demoWriteOk(docWs()) || isTenantMember(docWs()))
             && wsImmutable() && pollVoteAnchorOk(pollId))
         || ((demoWriteOk(docWs()) || isTenantMember(docWs()))
@@ -2881,6 +2909,11 @@ service cloud.firestore {
         allow read: if isLoggedIn() && (voterUid == request.auth.uid
           || isSuperAdmin()
           || (pollAudience(pollId) == 'MANAGERS' && pollCommittee(pollWs(pollId)))
+          // POLLS NEXT-LEVEL P1: a poll launched as a NAMED ballot —
+          // the committee of the poll's own workspace may read the
+          // ballots (the desk logs the opening, exactly as for
+          // committee polls above).
+          || (pollBallotNamed(pollId) && pollCommittee(pollWs(pollId)))
           // EVENTS P1: free-text responses are an ANNOUNCED suggestion
           // box — the committee of the poll's own workspace may read
           // them (the create form says so in plain words; a secret

@@ -1721,3 +1721,144 @@ describe('NEXT-LEVEL B1b — the e-dip (event_dip_entries + the purchase interlo
     await assertSucceeds(purchaseBatch(buyerDb(), { tierId: 'pass2' }));
   });
 });
+
+describe('POLLS NEXT-LEVEL P1 — the Decision-grade core (polls)', () => {
+  const now = Date.now();
+  const OUTCOME = {
+    tallies: { opt_0: 3, opt_1: 1 },
+    totalVotes: 4,
+    turnout: 40,
+    quorumMet: true,
+    verdict: 'carried',
+    winnerOptionIds: ['opt_0'],
+    concludedAt: now,
+  };
+
+  // A launch-shaped poll doc (the create clause's closed key set).
+  const pollDoc = (over: Record<string, unknown> = {}) => ({
+    workspaceId: 'ws-1',
+    title: 'Repair the hall roof this year?',
+    description: '',
+    targetAudience: 'ALL_MEMBERS',
+    status: 'ACTIVE',
+    createdAt: now,
+    createdBy: 'Admin One',
+    expiresAt: now + 86400000,
+    expiresAtTs: firebase.firestore.Timestamp.fromMillis(now + 86400000),
+    options: { opt_0: { text: 'Yes', votes: 0 }, opt_1: { text: 'No', votes: 0 } },
+    totalVotes: 0,
+    kind: 'choice',
+    resultVisibility: 'afterClose',
+    ...over,
+  });
+
+  const decisionDoc = (over: Record<string, unknown> = {}) => pollDoc({
+    pollClass: 'decision',
+    binding: true,
+    ballot: 'secret',
+    eligibleCount: 10,
+    quorumPct: 25,
+    passPct: 50,
+    createdByUid: 'admin-1',
+    ...over,
+  });
+
+  const seedPoll = async (id: string, doc: Record<string, unknown>) => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await context.firestore().collection('polls').doc(id).set(doc);
+    });
+  };
+
+  const seedBallot = async (pollId: string, uid: string) => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await context.firestore().collection('polls').doc(pollId)
+        .collection('votes').doc(uid)
+        .set({ optionId: 'opt_0', optionIds: ['opt_0'], castAt: now });
+    });
+  };
+
+  const committeeDb = () => testEnv.authenticatedContext('admin-1').firestore();
+  const memberDb = () => testEnv.authenticatedContext('user-1').firestore();
+
+  it('132. a Decision poll launches with every P1 field carried', async () => {
+    await assertSucceeds(committeeDb().collection('polls').doc('p1-a').set(decisionDoc()));
+  });
+
+  it('133. a bad pollClass value is refused at launch', async () => {
+    await assertFails(committeeDb().collection('polls').doc('p1-b').set(decisionDoc({ pollClass: 'ranked' })));
+  });
+
+  it('134. a negative quorum mark is refused at launch', async () => {
+    await assertFails(committeeDb().collection('polls').doc('p1-c').set(decisionDoc({ quorumPct: -5 })));
+  });
+
+  it('135. an outcome key at launch is refused — outcomes are concluded into existence', async () => {
+    await assertFails(committeeDb().collection('polls').doc('p1-d').set(decisionDoc({ outcome: OUTCOME })));
+  });
+
+  it('136. the committee concludes WITH the recorded outcome in the same write', async () => {
+    await seedPoll('p1-e', decisionDoc());
+    await assertSucceeds(committeeDb().collection('polls').doc('p1-e')
+      .update({ status: 'CONCLUDED', outcome: OUTCOME }));
+  });
+
+  it('137. the outcome is write-once: a rewrite over a concluded record fails', async () => {
+    await seedPoll('p1-f', decisionDoc({ status: 'CONCLUDED', outcome: OUTCOME }));
+    await assertFails(committeeDb().collection('polls').doc('p1-f')
+      .update({ outcome: { ...OUTCOME, verdict: 'not-carried' } }));
+  });
+
+  it('138. CONTROL: the official note still moves on a concluded poll whose outcome is stored', async () => {
+    await seedPoll('p1-g', decisionDoc({ status: 'CONCLUDED', outcome: OUTCOME }));
+    await assertSucceeds(committeeDb().collection('polls').doc('p1-g')
+      .update({ adminNote: 'Roof contract awarded.' }));
+  });
+
+  it('139. the committee may stamp the outcome onto a poll the deadline already concluded', async () => {
+    await seedPoll('p1-h', decisionDoc({ status: 'CONCLUDED' }));
+    await assertSucceeds(committeeDb().collection('polls').doc('p1-h')
+      .update({ outcome: OUTCOME }));
+  });
+
+  it('140. an outcome write onto a still-ACTIVE poll fails', async () => {
+    await seedPoll('p1-i', decisionDoc());
+    await assertFails(committeeDb().collection('polls').doc('p1-i')
+      .update({ outcome: OUTCOME }));
+  });
+
+  it('141. a member lands the deadline conclusion (status only), as before', async () => {
+    await seedPoll('p1-j', decisionDoc({
+      expiresAt: now - 1000,
+      expiresAtTs: firebase.firestore.Timestamp.fromMillis(now - 1000),
+    }));
+    await assertSucceeds(memberDb().collection('polls').doc('p1-j')
+      .update({ status: 'CONCLUDED' }));
+  });
+
+  it('142. a member outcome write fails — the record is the committee\u2019s to stamp', async () => {
+    await seedPoll('p1-k', decisionDoc({ status: 'CONCLUDED' }));
+    await assertFails(memberDb().collection('polls').doc('p1-k')
+      .update({ outcome: OUTCOME }));
+  });
+
+  it('143. Decision + NAMED: the committee may read another member\u2019s ballot', async () => {
+    await seedPoll('p1-l', decisionDoc({ ballot: 'named' }));
+    await seedBallot('p1-l', 'user-1');
+    await assertSucceeds(committeeDb().collection('polls').doc('p1-l')
+      .collection('votes').doc('user-1').get());
+  });
+
+  it('144. Decision + SECRET: the committee may NOT read another member\u2019s ballot', async () => {
+    await seedPoll('p1-m', decisionDoc({ ballot: 'secret' }));
+    await seedBallot('p1-m', 'user-1');
+    await assertFails(committeeDb().collection('polls').doc('p1-m')
+      .collection('votes').doc('user-1').get());
+  });
+
+  it('145. CONTROL: a member always reads their own ballot, named or secret', async () => {
+    await seedPoll('p1-n', decisionDoc({ ballot: 'secret' }));
+    await seedBallot('p1-n', 'user-1');
+    await assertSucceeds(memberDb().collection('polls').doc('p1-n')
+      .collection('votes').doc('user-1').get());
+  });
+});
