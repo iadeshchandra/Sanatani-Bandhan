@@ -288,6 +288,8 @@ export interface TranslationSchema {
     twoMode?: { [key: string]: string };
     // AUCTION A1 — Nilam (2026-11-23): the auction & allotment desk.
     nilam?: { [key: string]: string };
+    // FOUR PILLARS (2026-11-24) — the section headers inside Personal.
+    pillars?: { [key: string]: string };
   };
   // Error-Polish batch (G-E4/G-E5): friendlyError targets — the ONLY
   // strings a non-auth failure may ever render (see lib/friendlyError.ts).

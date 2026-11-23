@@ -163,7 +163,10 @@ describe('surfaces + vibe dict completeness (en/hi/bn authored)', () => {
     // sheet, the member vote card, the WhatsApp reminder pack and
     // its standing lines, and the in-app reminder broadcast copy)
     // in all 10 languages, taking the pin to 1172.
-    expect(keysOf(en).length).toBe(1172);
+    // SOS + PILLARS (2026-11-24) adds 4 surfaces.pillars keys
+    // (personal, social, locations, management — the section headers
+    // inside Personal) in all 10 languages, taking the pin to 1176.
+    expect(keysOf(en).length).toBe(1176);
     for (const bucket of Object.keys(en)) {
       for (const leaf of Object.keys(en[bucket])) {
         for (const dict of [en, hi, bn]) {
