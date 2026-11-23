@@ -1368,43 +1368,131 @@ export const generateTreasuryLedgerPDF = async (
 };
 
 /**
- * 10. Community Poll / Resolution Report PDF
+ * 10. Poll Result Certificate PDF (POLLS NEXT-LEVEL P1 — repaired).
+ * =====================================================================
+ * The previous version read `poll.votes[]` and `poll.category` —
+ * fields the ballot-box poll doc never carries (ballots live in
+ * polls/{id}/votes/{uid}; the doc holds counts only) — so it printed
+ * "No recorded votes" and no tallies at all. This certificate reads
+ * the REAL model: the options map's counts, or the outcome recorded
+ * on the poll at conclusion when one is stored (the record of truth),
+ * the frozen electorate and quorum of a Decision poll, and the
+ * verdict. It certifies the COUNT — individual ballots are never
+ * listed here (secret ballots stay secret; named ballots live in the
+ * desk's logged audit view, not on a printable sheet).
  */
 export const generatePollReportPdf = (
   workspaceName: string,
   poll: any,
   devotees: DevoteeMember[] = []
 ) => {
+  void devotees; // kept for signature compatibility — the certificate lists counts, never voters
   const doc = new jsPDF();
+  const isDecision = poll?.pollClass === 'decision';
+  const kind = poll?.kind === 'multi' || poll?.kind === 'text' ? poll.kind : 'choice';
+  const outcome = poll?.outcome && typeof poll.outcome === 'object' ? poll.outcome : null;
+  const totalVotes: number =
+    typeof outcome?.totalVotes === 'number' ? outcome.totalVotes
+    : typeof poll?.totalVotes === 'number' ? poll.totalVotes
+    : Object.values(poll?.options || {}).reduce((s: number, o: any) => s + (o?.votes || 0), 0);
+  const tallyOf = (id: string, fallback: number) =>
+    outcome?.tallies && typeof outcome.tallies[id] === 'number' ? outcome.tallies[id] : fallback;
+  const concludedMs: number | null =
+    typeof outcome?.concludedAt === 'number' ? outcome.concludedAt
+    : typeof poll?.expiresAt === 'number' && poll.expiresAt > 0 ? poll.expiresAt
+    : null;
+
   doc.setFontSize(18);
   doc.setTextColor(180, 83, 9);
   doc.text(workspaceName || 'Sanatani Bandhan', 14, 20);
 
   doc.setFontSize(14);
   doc.setTextColor(31, 41, 55);
-  doc.text(`Community Panchayat Resolution: ${poll?.title || 'Poll Report'}`, 14, 30);
+  doc.text('Poll Result Certificate', 14, 30);
+
+  doc.setFontSize(11);
+  doc.setTextColor(31, 41, 55);
+  const question = String(poll?.title || 'Community poll');
+  doc.text(doc.splitTextToSize(question, 180), 14, 40);
 
   doc.setFontSize(10);
   doc.setTextColor(107, 114, 128);
-  doc.text(`Category: ${poll?.category || 'Governance'} | Status: ${poll?.status || 'Active'}`, 14, 38);
+  let y = 52;
+  const standing = isDecision
+    ? `Decision poll · ${poll?.binding === true ? 'Binding' : 'Advisory'}`
+    : 'Pulse poll · Advisory';
+  const ballotLine =
+    poll?.ballot === 'named' || poll?.targetAudience === 'MANAGERS' || kind === 'text'
+      ? 'Named ballot — ballots are held in the committee audit record'
+      : 'Secret ballot — no ballot is linked to a voter on this certificate';
+  doc.text(`${standing} | Audience: ${poll?.targetAudience === 'MANAGERS' ? 'Committee' : 'All members'}`, 14, y); y += 6;
+  doc.text(ballotLine, 14, y); y += 6;
+  doc.text(`Status: ${poll?.status || 'CONCLUDED'}${concludedMs ? ` | Concluded: ${new Date(concludedMs).toLocaleDateString(appLocale())}` : ''}`, 14, y); y += 10;
 
-  const voters = (poll?.votes || []).map((v: any) => {
-    const devotee = devotees.find((d) => d.id === v.devoteeId);
-    return [
-      devotee?.fullName || v.devoteeName || v.devoteeId,
-      v.choice || (v.inFavor ? 'In Favor' : 'Against'),
-      v.timestamp ? new Date(v.timestamp).toLocaleDateString(appLocale()) : 'N/A',
-    ];
-  });
+  doc.setTextColor(31, 41, 55);
+  if (kind === 'text') {
+    doc.setFontSize(11);
+    doc.text(`${totalVotes} written response${totalVotes === 1 ? '' : 's'} received.`, 14, y); y += 7;
+    doc.setFontSize(10);
+    doc.setTextColor(107, 114, 128);
+    doc.text('Written responses are read by the committee; they are not reproduced on this certificate.', 14, y); y += 10;
+  } else {
+    const rows = Object.keys(poll?.options || {}).map((id) => {
+      const o = poll.options[id];
+      const votes = tallyOf(id, o?.votes || 0);
+      const share = totalVotes > 0 ? `${Math.round((votes / totalVotes) * 100)}%` : '—';
+      const isWinner = Array.isArray(outcome?.winnerOptionIds) && outcome.winnerOptionIds.includes(id);
+      return [o?.text || id, String(votes), share, isWinner ? 'Leading' : ''];
+    });
+    autoTable(doc, {
+      startY: y,
+      head: [['Option', 'Votes', 'Share of votes cast', '']],
+      body: rows.length > 0 ? rows : [['No options recorded', '0', '—', '']],
+      theme: 'striped',
+      styles: { fontSize: 9 },
+      headStyles: { fillColor: [180, 83, 9], textColor: 255 },
+    });
+    y = (doc as any).lastAutoTable.finalY + 10;
+  }
 
-  autoTable(doc, {
-    startY: 45,
-    head: [['Devotee Member', 'Vote Cast', 'Timestamp']],
-    body: voters.length > 0 ? voters : [['No recorded votes', '-', '-']],
-    theme: 'striped',
-    styles: { fontSize: 9 },
-    headStyles: { fillColor: [180, 83, 9], textColor: 255 },
-  });
+  doc.setFontSize(11);
+  doc.setTextColor(31, 41, 55);
+  doc.text(`Total votes cast: ${totalVotes}`, 14, y); y += 7;
 
-  doc.save(`Resolution_${poll?.id || 'Report'}.pdf`);
+  if (isDecision) {
+    const eligible = typeof poll?.eligibleCount === 'number' && poll.eligibleCount > 0 ? poll.eligibleCount : 0;
+    if (eligible > 0) {
+      const turnoutPct = Math.round((totalVotes / eligible) * 100);
+      const quorumPct = typeof poll?.quorumPct === 'number' ? poll.quorumPct : 25;
+      const quorumMet = typeof outcome?.quorumMet === 'boolean' ? outcome.quorumMet : totalVotes * 100 >= quorumPct * eligible;
+      doc.text(`Turnout: ${totalVotes} of ${eligible} eligible members (${turnoutPct}%)`, 14, y); y += 7;
+      doc.text(`Quorum: ${quorumPct}% required — ${quorumMet ? 'met' : 'NOT met'}`, 14, y); y += 7;
+    }
+    if (outcome?.verdict) {
+      const verdictText =
+        outcome.verdict === 'carried' ? 'Carried'
+        : outcome.verdict === 'quorum-not-met' ? 'Quorum not met — the question was not decided'
+        : 'Not carried';
+      doc.text(`Verdict: ${verdictText}`, 14, y); y += 7;
+    }
+  }
+
+  if (poll?.adminNote) {
+    y += 3;
+    doc.setFontSize(10);
+    doc.setTextColor(31, 41, 55);
+    doc.text('Official committee note:', 14, y); y += 6;
+    doc.setTextColor(107, 114, 128);
+    doc.text(doc.splitTextToSize(String(poll.adminNote), 180), 14, y);
+    y += 6 * Math.ceil(String(poll.adminNote).length / 95) + 4;
+  }
+
+  y += 4;
+  doc.setFontSize(9);
+  doc.setTextColor(107, 114, 128);
+  doc.text(`Record reference: poll ${poll?.id || '—'}${poll?.createdBy ? ` · launched by ${poll.createdBy}` : ''}`, 14, y); y += 5;
+  doc.text('This certificate is printed from the poll record stored by Sanatani Bandhan. The outcome, once recorded', 14, y); y += 5;
+  doc.text('at conclusion, cannot be rewritten; openings of any named ballot list are logged in the workspace history.', 14, y);
+
+  doc.save(`Poll_Certificate_${poll?.id || 'Report'}.pdf`);
 };

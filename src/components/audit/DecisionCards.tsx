@@ -30,22 +30,34 @@ interface Props {
   isCommittee?: boolean;
 }
 
+let generatePollReportPdf: any = null;
+import('../../utils/pdfGenerator')
+  .then((mod) => { generatePollReportPdf = (mod as any).generatePollReportPdf; })
+  .catch(() => {});
+
 export const DecisionCards: React.FC<Props> = ({ workspaceId, isCommittee }) => {
   const { t } = useLanguage();
   const [cards, setCards] = useState<DecisionCard[]>([]);
+  // POLLS P1 — the raw poll docs behind the cards, so a card can
+  // print its result certificate (the generator reads the record,
+  // never the rendered lines).
+  const [pollDocs, setPollDocs] = useState<Record<string, any>>({});
 
   useEffect(() => {
     let cancelled = false;
     (async () => {
       const now = Date.now();
       const out: DecisionCard[] = [];
+      const docs: Record<string, any> = {};
       try {
         const pollsSnap = await getDocs(
           query(collection(db, 'polls'), where('workspaceId', '==', workspaceId), limit(50))
         );
         pollsSnap.docs.forEach((d) => {
+          const docData = { id: d.id, ...(d.data() as object) };
+          docs[d.id] = docData;
           const card = pollDecisionCard(
-            { id: d.id, ...(d.data() as object) } as never,
+            docData as never,
             { isCommittee: !!isCommittee },
             now
           );
@@ -54,6 +66,7 @@ export const DecisionCards: React.FC<Props> = ({ workspaceId, isCommittee }) => 
       } catch {
         /* polls unreadable for this viewer — resolutions may still show */
       }
+      if (!cancelled) setPollDocs(docs);
       try {
         const resSnap = await getDocs(
           query(collection(db, 'resolutions'), where('workspaceId', '==', workspaceId), limit(50))
@@ -91,6 +104,9 @@ export const DecisionCards: React.FC<Props> = ({ workspaceId, isCommittee }) => 
                 aria-hidden
                 className="absolute left-0 top-1.5 w-[15px] h-[15px] rounded-full bg-gradient-to-br from-amber-500 to-orange-700 ring-2 ring-amber-100"
               />
+              {c.badgeLine && (
+                <p className="text-[10px] font-black uppercase tracking-widest text-amber-700">{c.badgeLine}</p>
+              )}
               <p className="text-sm font-black text-stone-900 leading-snug">{c.title}</p>
               <p className="text-xs font-bold text-stone-600 mt-0.5">{c.outcomeLine}</p>
               <p className="text-[11px] text-stone-400 mt-0.5">{c.detailLine}</p>
@@ -98,6 +114,14 @@ export const DecisionCards: React.FC<Props> = ({ workspaceId, isCommittee }) => 
                 <p className="text-xs text-stone-500 italic mt-1.5 bg-amber-50/70 border border-amber-100 rounded-xl px-3 py-2">
                   {c.note}
                 </p>
+              )}
+              {c.kind === 'poll' && pollDocs[c.id] && (
+                <button
+                  onClick={() => { if (generatePollReportPdf) generatePollReportPdf('', pollDocs[c.id], []); }}
+                  className="mt-2 text-[10px] font-black uppercase tracking-widest text-stone-500 hover:text-amber-700 underline underline-offset-2"
+                >
+                  {t('surfaces.events.certificateBtn')}
+                </button>
               )}
             </li>
           ))}

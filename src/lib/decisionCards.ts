@@ -23,6 +23,9 @@ import {
   pollOptionList,
   pollResultsVisible,
   pollTotalVotes,
+  pollClass,
+  pollIsBinding,
+  pollStoredOutcome,
   ABSTAIN_OPTION_ID,
   type PollLike,
 } from './pollLogic';
@@ -36,6 +39,8 @@ export interface DecisionCard {
   kind: 'poll' | 'resolution';
   id: string;
   title: string;
+  /** POLLS P1: the class + standing label, e.g. "Decision poll · Binding". */
+  badgeLine?: string;
   /** The outcome in one plain line, e.g. "“Blue gates” — 61% of 214 votes". */
   outcomeLine: string;
   /** Turnout / quorum line. */
@@ -65,11 +70,54 @@ export function pollDecisionCard(
 
   const total = pollTotalVotes(poll);
   const kind = pollKind(poll);
+  const isDecision = pollClass(poll) === 'decision';
+  const badgeLine = isDecision
+    ? `Decision poll · ${pollIsBinding(poll) ? 'Binding' : 'Advisory'}`
+    : 'Pulse poll · Advisory';
+  // POLLS P1 — the recorded outcome, when the poll carries one, IS
+  // the card's truth (tallies, verdict, tie — computed once at
+  // conclusion). Polls without one keep the derived reading below.
+  const stored = pollStoredOutcome(poll);
+  const eligible = typeof poll.eligibleCount === 'number' && poll.eligibleCount > 0 ? poll.eligibleCount : 0;
   let outcomeLine: string;
-  if (kind === 'text') {
+  let detailLine: string;
+  if (stored && kind !== 'text') {
+    const textOf = (id: string) => poll.options?.[id]?.text || id;
+    const winners = stored.winnerOptionIds;
+    if (stored.verdict === 'quorum-not-met') {
+      outcomeLine = eligible > 0
+        ? `Not decided — quorum not met (${stored.totalVotes} of ${eligible} eligible members voted)`
+        : 'Not decided — quorum not met';
+    } else if (stored.totalVotes === 0 || winners.length === 0) {
+      outcomeLine = 'No votes were cast';
+    } else if (winners.length > 1) {
+      const names = winners.map((id) => `“${textOf(id)}”`).join(' and ');
+      const each = stored.tallies[winners[0]] || 0;
+      outcomeLine = `Tie — ${names} at ${each} vote${each === 1 ? '' : 's'} each`;
+      if (stored.verdict === 'carried') outcomeLine += ' · carried jointly';
+    } else {
+      const topVotes = stored.tallies[winners[0]] || 0;
+      const pct = stored.totalVotes > 0 ? Math.round((topVotes / stored.totalVotes) * 100) : 0;
+      outcomeLine = `“${textOf(winners[0])}” — ${pct}% of ${stored.totalVotes} vote${stored.totalVotes === 1 ? '' : 's'}`;
+      if (stored.verdict === 'carried') outcomeLine += ' · carried';
+      if (stored.verdict === 'not-carried') outcomeLine += ' · not carried';
+    }
+    const abstainVotes = stored.tallies[ABSTAIN_OPTION_ID] || 0;
+    if (abstainVotes > 0 && stored.totalVotes > 0) outcomeLine += ` · ${abstainVotes} abstained`;
+    detailLine =
+      isDecision && eligible > 0
+        ? `${stored.totalVotes} of ${eligible} eligible members voted · quorum ${stored.quorumMet ? 'met' : 'not met'}`
+        : `${stored.totalVotes} vote${stored.totalVotes === 1 ? '' : 's'} counted openly`;
+  } else if (kind === 'text') {
     outcomeLine = total === 1 ? '1 written response received' : `${total} written responses received`;
+    if (stored?.verdict === 'quorum-not-met') outcomeLine += ' · quorum not met';
+    detailLine =
+      isDecision && eligible > 0
+        ? `${total} of ${eligible} eligible members responded · quorum ${stored?.quorumMet ? 'met' : 'not met'}`
+        : 'Free-text responses — read by the committee';
   } else if (total === 0) {
     outcomeLine = 'No votes were cast';
+    detailLine = '0 votes counted openly';
   } else {
     const options = pollOptionList(poll).filter((o) => o.id !== ABSTAIN_OPTION_ID);
     const top = options.reduce((a, b) => (b.votes > (a?.votes ?? -1) ? b : a), options[0]);
@@ -79,15 +127,21 @@ export function pollDecisionCard(
     if (abstain && abstain.votes > 0) {
       outcomeLine += ` · ${abstain.votes} abstained`;
     }
+    detailLine = `${total} vote${total === 1 ? '' : 's'} counted openly`;
   }
   return {
     kind: 'poll',
     id: poll.id,
     title: poll.title || 'Community poll',
+    badgeLine,
     outcomeLine,
-    detailLine: kind === 'text' ? 'Free-text responses — read by the committee' : `${total} vote${total === 1 ? '' : 's'} counted openly`,
+    detailLine,
     ...(poll.adminNote ? { note: poll.adminNote } : {}),
-    ...(typeof poll.expiresAt === 'number' && poll.expiresAt > 0 ? { concludedAt: poll.expiresAt } : {}),
+    ...(stored
+      ? { concludedAt: stored.concludedAt }
+      : typeof poll.expiresAt === 'number' && poll.expiresAt > 0
+        ? { concludedAt: poll.expiresAt }
+        : {}),
   };
 }
 

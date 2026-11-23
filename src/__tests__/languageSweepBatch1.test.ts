@@ -148,7 +148,13 @@ describe('surfaces + vibe dict completeness (en/hi/bn authored)', () => {
     // standing, claim and waiting-list states in plain words;
     // the tier picker's draw line and published aggregates; the
     // fairness summary's dip line) in all 10 languages.
-    expect(keysOf(en).length).toBe(1020);
+    // POLLS NEXT-LEVEL P1 adds 26 surfaces.events keys (the
+    // Decision-grade core: classLabel…concludeOutcomeNote — the
+    // poll class + binding labels shown before voting, the ballot
+    // secrecy choice, the quorum/pass marks with the frozen-
+    // electorate note, the card badges, the recorded verdict
+    // lines, and the result certificate) in all 10 languages.
+    expect(keysOf(en).length).toBe(1046);
     for (const bucket of Object.keys(en)) {
       for (const leaf of Object.keys(en[bucket])) {
         for (const dict of [en, hi, bn]) {

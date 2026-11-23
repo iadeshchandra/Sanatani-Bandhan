@@ -29,6 +29,18 @@ export interface PollLike {
   options?: Record<string, PollOptionLike>;
   kind?: string;
   resultVisibility?: string;
+  targetAudience?: string;
+  // POLLS P1 (NEXT-LEVEL) — the Decision-grade fields. All optional:
+  // polls launched before this batch carry none of them and read as
+  // Pulse polls with the legacy derived outcome.
+  pollClass?: string;
+  binding?: boolean;
+  ballot?: string;
+  eligibleCount?: number;
+  quorumPct?: number;
+  passPct?: number;
+  createdByUid?: string;
+  outcome?: PollOutcome;
 }
 
 /** Total ballots counted on a poll, across both data models. */
@@ -184,4 +196,167 @@ export function validateTextResponse(text: string): string | null {
   if (t.length === 0) return 'empty';
   if (t.length > POLL_TEXT_MAX) return 'too-long';
   return null;
+}
+
+/* ------------------------------------------------------------------ */
+/* POLLS NEXT-LEVEL P1 — classes, electorate, the recorded outcome     */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Poll classes (P1):
+ *  - 'pulse'    — WhatsApp-grade: a quick community opinion. Advisory
+ *                 by nature; no electorate, no quorum, no verdict.
+ *                 Every poll launched before P1 is a pulse poll.
+ *  - 'decision' — governance-grade: a frozen electorate snapshot, a
+ *                 quorum and a pass mark set at launch, a secrecy
+ *                 choice, and a recorded outcome with a verdict.
+ *                 Labelled Binding or Advisory BEFORE the first vote
+ *                 (the labelling law — never after).
+ */
+export type PollClass = 'pulse' | 'decision';
+
+export function pollClass(p: PollLike): PollClass {
+  return p.pollClass === 'decision' ? 'decision' : 'pulse';
+}
+
+/** Decision polls only: does the house act on the result? */
+export function pollIsBinding(p: PollLike): boolean {
+  return pollClass(p) === 'decision' && p.binding === true;
+}
+
+/**
+ * The ballot's secrecy, as a creator's choice (P1) resolved against
+ * the postures the rules have always enforced:
+ *  - a Decision poll's stored `ballot` choice wins ('secret' | 'named');
+ *  - committee (MANAGERS) polls are NAMED votes by design (P0) — the
+ *    committee reads the ballots, every opening logged;
+ *  - text polls are an announced suggestion box — 'named' in effect;
+ *  - everything else (community choice/multi) is secret — nobody,
+ *    not even the committee, can read another member's ballot.
+ */
+export type PollBallotMode = 'secret' | 'named';
+
+export function pollBallotMode(p: PollLike): PollBallotMode {
+  if (p.ballot === 'named') return 'named';
+  if (p.ballot === 'secret') return 'secret';
+  if (p.targetAudience === 'MANAGERS' || pollKind(p) === 'text') return 'named';
+  return 'secret';
+}
+
+/** Board roles — the rules' R_BOARD set, spelled as the register keeps them. */
+export const POLL_BOARD_ROLES = ['SuperAdmin', 'SUPER_ADMIN', 'Trustee', 'TRUSTEE', 'Manager', 'MANAGER'];
+
+/**
+ * The electorate snapshot for a new Decision poll: how many distinct
+ * registered members of the workspace may vote, counted from the
+ * member register (the devotees list the desk already loads) at
+ * creation time. Mirrors the Resolutions precedent (addResolution's
+ * boardSize): MANAGERS counts distinct board-role members, deduped
+ * by account (userId, falling back to the register record id);
+ * ALL_MEMBERS counts every distinct register identity the same way.
+ * The count is a snapshot of the REGISTER — it is stamped on the poll
+ * and never recomputed, so later joins/leaves do not move a launched
+ * poll's quorum base.
+ */
+export function pollElectorateCount(
+  members: readonly { id?: string; userId?: string; role?: string }[],
+  audience: string
+): number {
+  const ids = new Set<string>();
+  for (const m of members || []) {
+    if (!m) continue;
+    if (audience === 'MANAGERS' && !POLL_BOARD_ROLES.includes(String(m.role || ''))) continue;
+    const key = m.userId || m.id;
+    if (key) ids.add(String(key));
+  }
+  return ids.size;
+}
+
+export const POLL_DEFAULT_QUORUM_PCT = 25;
+export const POLL_DEFAULT_PASS_PCT = 50;
+
+/** A percentage field read defensively: a finite 0–100 number, else the fallback. */
+export function pollPct(value: unknown, fallback: number): number {
+  return typeof value === 'number' && Number.isFinite(value) && value >= 0 && value <= 100
+    ? value
+    : fallback;
+}
+
+/**
+ * The recorded outcome — computed ONCE at conclusion and stored on
+ * the poll doc (firestore.rules: writable only in the conclude write
+ * or onto an already-concluded poll, and never rewritable). Every
+ * consumer (desk card, Transparency Board card, result certificate)
+ * reads THIS when present; polls without one keep the legacy
+ * derive-at-render path.
+ *
+ * Verdict law (Decision polls):
+ *  - quorum is judged on ALL ballots cast (abstentions included —
+ *    an abstaining member did turn up) against the frozen electorate;
+ *  - the pass mark is judged on votes cast FOR AN OPTION (abstentions
+ *    excluded — standing aside is not a vote against the leader);
+ *  - a tie at the top means NO option carried the house: the verdict
+ *    is 'not-carried' and every tied id is recorded in
+ *    winnerOptionIds — a tie is a tie, never silently first-in-order;
+ *  - a text poll has no winner: with quorum met its verdict is
+ *    'carried' in the narrow sense that the consultation validly
+ *    completed (its outcome line reports the response count).
+ * Pulse outcomes store tallies + winner/tie only — no turnout, no
+ * quorum, no verdict (a pulse decides nothing).
+ */
+export interface PollOutcome {
+  tallies: Record<string, number>;
+  totalVotes: number;
+  turnout?: number;
+  quorumMet?: boolean;
+  verdict?: 'carried' | 'not-carried' | 'quorum-not-met';
+  winnerOptionIds: string[];
+  concludedAt: number;
+}
+
+export function computePollOutcome(p: PollLike, now: number): PollOutcome {
+  const tallies: Record<string, number> = {};
+  for (const o of pollOptionList(p)) tallies[o.id] = o.votes;
+  const totalVotes = pollTotalVotes(p);
+  const candidates = pollOptionList(p).filter((o) => o.id !== ABSTAIN_OPTION_ID);
+  const topVotes = candidates.reduce((m, o) => Math.max(m, o.votes), 0);
+  const winnerOptionIds =
+    topVotes > 0 ? candidates.filter((o) => o.votes === topVotes).map((o) => o.id) : [];
+
+  const outcome: PollOutcome = { tallies, totalVotes, winnerOptionIds, concludedAt: now };
+  if (pollClass(p) !== 'decision') return outcome;
+
+  const eligible = typeof p.eligibleCount === 'number' && p.eligibleCount > 0 ? p.eligibleCount : 0;
+  const quorumPct = pollPct(p.quorumPct, POLL_DEFAULT_QUORUM_PCT);
+  const passPct = pollPct(p.passPct, POLL_DEFAULT_PASS_PCT);
+  let quorumMet: boolean | undefined;
+  if (eligible > 0) {
+    outcome.turnout = Math.round((totalVotes / eligible) * 10000) / 10000;
+    quorumMet = totalVotes * 100 >= quorumPct * eligible;
+    outcome.quorumMet = quorumMet;
+  }
+
+  if (quorumMet === false) {
+    outcome.verdict = 'quorum-not-met';
+  } else if (pollKind(p) === 'text') {
+    outcome.verdict = 'carried';
+  } else if (winnerOptionIds.length !== 1) {
+    // Zero votes, or a tie at the top: no single option carried.
+    outcome.verdict = 'not-carried';
+  } else {
+    const abstainVotes = tallies[ABSTAIN_OPTION_ID] || 0;
+    const passBase = totalVotes - abstainVotes;
+    outcome.verdict =
+      passBase > 0 && topVotes * 100 >= passPct * passBase ? 'carried' : 'not-carried';
+  }
+  return outcome;
+}
+
+/** The stored outcome, shape-checked — or null (legacy/derived path). */
+export function pollStoredOutcome(p: PollLike): PollOutcome | null {
+  const o = p.outcome;
+  if (!o || typeof o !== 'object') return null;
+  if (typeof o.totalVotes !== 'number' || typeof o.concludedAt !== 'number') return null;
+  if (!o.tallies || typeof o.tallies !== 'object' || !Array.isArray(o.winnerOptionIds)) return null;
+  return o;
 }

@@ -5,6 +5,8 @@ import { db } from '../../lib/firebase';
 import {
   pollTotalVotes, pollIsOpen, pollKind, pollResultsVisible, pollResultVisibility, pollIsEditable,
   ABSTAIN_OPTION_ID, validateMultiChoice, validateTextResponse, ballotCast,
+  pollClass, pollIsBinding, pollBallotMode, pollElectorateCount, computePollOutcome, pollStoredOutcome,
+  POLL_DEFAULT_QUORUM_PCT, POLL_DEFAULT_PASS_PCT,
   type MyBallot,
 } from '../../lib/pollLogic';
 import { publishBroadcast } from '../../org/broadcastService';
@@ -48,9 +50,12 @@ export const CommunityPollsTab: React.FC = () => {
   // EVENTS P1 — in-progress multi picks + text drafts, per poll.
   const [multiPick, setMultiPick] = useState<Record<string, string[]>>({});
   const [textDraft, setTextDraft] = useState<Record<string, string>>({});
-  // Named ballots for the committee audit of a MANAGERS poll — loaded
+  // Named ballots for the committee audit of a named poll — loaded
   // only while the audit view is open, and the opening is logged.
-  const [auditBallots, setAuditBallots] = useState<Record<string, string>>({});
+  // POLLS P1: keyed to the voter's chosen option ids (a multi ballot
+  // names several) — committee (MANAGERS) polls and Decision polls
+  // whose creator chose a named ballot.
+  const [auditBallots, setAuditBallots] = useState<Record<string, string[]>>({});
   // EVENTS P1 — free-text responses for the committee audit of a text
   // poll (an announced suggestion box; opening is logged the same way).
   const [auditTexts, setAuditTexts] = useState<{ uid: string; text: string }[]>([]);
@@ -70,7 +75,15 @@ export const CommunityPollsTab: React.FC = () => {
     // EVENTS P1 — the shape + the launch-time result rule.
     kind: 'choice' as 'choice' | 'multi' | 'text',
     abstain: false,
-    resultVisibility: 'afterVote' as 'live' | 'afterVote' | 'afterClose' | 'committee'
+    resultVisibility: 'afterVote' as 'live' | 'afterVote' | 'afterClose' | 'committee',
+    // POLLS NEXT-LEVEL P1 — the class, and for Decision polls the
+    // standing (binding), the secrecy choice, and the two marks.
+    // All frozen at launch, like the shape and the result rule.
+    pollClass: 'pulse' as 'pulse' | 'decision',
+    binding: false,
+    ballot: 'secret' as 'secret' | 'named',
+    quorumPct: POLL_DEFAULT_QUORUM_PCT,
+    passPct: POLL_DEFAULT_PASS_PCT
   });
 
   // EVENTS P1 — edit-before-first-vote (committee; locked forever
@@ -123,6 +136,26 @@ export const CommunityPollsTab: React.FC = () => {
     }
   }, [polls, firebaseUser]);
 
+  // POLLS NEXT-LEVEL P1 — the recorded outcome. A poll concluded in
+  // the committee modal carries its outcome in that write; a poll
+  // that auto-concluded at its deadline gets its outcome stamped
+  // here, by the first committee client that finds it concluded
+  // without one (the auto-conclude path is status-only in the rules
+  // — any member may flip it, so no outcome may ride it). The
+  // computation is deterministic from the frozen counts, and the
+  // rules make the stamp write-once: a second stamper is refused
+  // and quietly ignored.
+  const outcomeStampTried = React.useRef<Set<string>>(new Set());
+  useEffect(() => {
+    if (!isManagerOrAdmin || polls.length === 0) return;
+    polls.forEach(p => {
+      if (p.status !== 'CONCLUDED' || pollStoredOutcome(p) || outcomeStampTried.current.has(p.id)) return;
+      outcomeStampTried.current.add(p.id);
+      const outcome = computePollOutcome(p, Date.now());
+      updateDoc(doc(db, 'polls', p.id), { outcome }).catch(() => { /* already stamped, or not ours to stamp */ });
+    });
+  }, [polls, isManagerOrAdmin]);
+
   // My ballots: one tiny listener per poll on my OWN vote doc.
   useEffect(() => {
     const uid = firebaseUser?.uid;
@@ -152,15 +185,19 @@ export const CommunityPollsTab: React.FC = () => {
     return () => unsubs.forEach(u => u());
   }, [polls, firebaseUser]);
 
-  // Committee audit ballots: subscribe only while a MANAGERS poll's
+  // Committee audit ballots: subscribe only while a NAMED poll's
   // audit view is open (rules allow the committee to read these —
-  // named voting is the design for committee polls; community ballots
-  // are never readable by anyone but the voter).
+  // named voting is the design for committee polls, and for Decision
+  // polls whose creator chose a named ballot; secret ballots are
+  // never readable by anyone but the voter).
   useEffect(() => {
-    if (!auditPoll || auditPoll.targetAudience !== 'MANAGERS') { setAuditBallots({}); return; }
+    if (!auditPoll || pollBallotMode(auditPoll) !== 'named' || pollKind(auditPoll) === 'text') { setAuditBallots({}); return; }
     const unsub = onSnapshot(collection(db, 'polls', auditPoll.id, 'votes'), (snap) => {
-      const map: Record<string, string> = {};
-      snap.docs.forEach(d => { map[d.id] = (d.data() as any).optionId; });
+      const map: Record<string, string[]> = {};
+      snap.docs.forEach(d => {
+        const data = d.data() as any;
+        map[d.id] = Array.isArray(data.optionIds) ? data.optionIds : data.optionId ? [data.optionId] : [];
+      });
       setAuditBallots(map);
     }, () => setAuditBallots({}));
     return () => unsub();
@@ -223,18 +260,31 @@ export const CommunityPollsTab: React.FC = () => {
         }
       }
 
-      const newPoll = {
+      // POLLS P1 — the deadline twins must AGREE: the UI reads the
+      // ms number, the rules read the Timestamp. Both are built from
+      // the same value here, and the agreement is verified before
+      // the write — a poll whose twins disagree would show one
+      // deadline and enforce another.
+      const expiresTs = Timestamp.fromMillis(expirationMs);
+      if (expiresTs.toMillis() !== expirationMs) throw new Error("The deadline could not be recorded consistently.");
+
+      const isDecision = pollForm.pollClass === 'decision';
+      const newPoll: Record<string, unknown> = {
         workspaceId: activeWorkspace.id,
         title: pollForm.title.trim(),
         description: pollForm.description.trim(),
         targetAudience: pollForm.targetAudience,
         status: 'ACTIVE',
         createdAt: Date.now(),
+        // POLLS P1 — attribution: the display name is derived from
+        // the signed-in profile, and the creator's uid is stamped
+        // beside it (the rules check it against the caller).
         createdBy: currentUser?.name || 'Admin',
+        createdByUid: firebaseUser?.uid || '',
         expiresAt: expirationMs,
         // Timestamp twin of the deadline — firestore.rules compare
         // this (a real timestamp) when verifying expiry/conclusion.
-        expiresAtTs: Timestamp.fromMillis(expirationMs),
+        expiresAtTs: expiresTs,
         options: optionsMap,
         // Ballot-box model: the doc carries ONLY this count; each
         // ballot lives in polls/{id}/votes/{uid}. No votedUsers map.
@@ -242,7 +292,24 @@ export const CommunityPollsTab: React.FC = () => {
         // EVENTS P1 — chosen at launch and frozen by the rules: the
         // question's shape and when members may see the results.
         kind: pollForm.kind,
-        resultVisibility: pollForm.resultVisibility
+        resultVisibility: pollForm.resultVisibility,
+        // POLLS NEXT-LEVEL P1 — the class, labelled before any vote.
+        pollClass: pollForm.pollClass,
+        ...(isDecision
+          ? {
+              binding: pollForm.binding,
+              // The secrecy choice the rules can honour: committee
+              // polls and written responses are named by design;
+              // a community Decision poll takes the creator's choice.
+              ballot:
+                pollForm.targetAudience === 'MANAGERS' || isText ? 'named' : pollForm.ballot,
+              // The frozen electorate: the member register, counted
+              // now (pollElectorateCount) — later joins do not move it.
+              eligibleCount: pollElectorateCount(devotees, pollForm.targetAudience),
+              quorumPct: Math.min(100, Math.max(0, Math.round(pollForm.quorumPct) || 0)),
+              passPct: Math.min(100, Math.max(0, Math.round(pollForm.passPct) || 0))
+            }
+          : {})
       };
 
       const pollRef = doc(collection(db, 'polls'));
@@ -252,7 +319,7 @@ export const CommunityPollsTab: React.FC = () => {
       pushToDataLayer('generate_lead', { poll_target: newPoll.targetAudience, options_count: validOptions.length });
 
       setShowCreateModal(false);
-      setPollForm({ title: '', description: '', targetAudience: 'ALL_MEMBERS', endDate: '', endTime: '', options: ['', ''], kind: 'choice', abstain: false, resultVisibility: 'afterVote' });
+      setPollForm({ title: '', description: '', targetAudience: 'ALL_MEMBERS', endDate: '', endTime: '', options: ['', ''], kind: 'choice', abstain: false, resultVisibility: 'afterVote', pollClass: 'pulse', binding: false, ballot: 'secret', quorumPct: POLL_DEFAULT_QUORUM_PCT, passPct: POLL_DEFAULT_PASS_PCT });
       setActiveTab('ACTIVE');
     } catch (err: any) {
       console.error(err);
@@ -416,11 +483,14 @@ export const CommunityPollsTab: React.FC = () => {
       const dateTimeString = editForm.endTime ? `${editForm.endDate}T${editForm.endTime}` : `${editForm.endDate}T23:59:59`;
       const expirationMs = new Date(dateTimeString).getTime();
       if (expirationMs <= Date.now()) throw new Error("The deadline must be in the future.");
+      // POLLS P1 — the deadline twins must agree (see handleCreatePoll).
+      const expiresTs = Timestamp.fromMillis(expirationMs);
+      if (expiresTs.toMillis() !== expirationMs) throw new Error("The deadline could not be recorded consistently.");
       const updates: Record<string, unknown> = {
         title: editForm.title.trim(),
         description: editForm.description.trim(),
         expiresAt: expirationMs,
-        expiresAtTs: Timestamp.fromMillis(expirationMs),
+        expiresAtTs: expiresTs,
         resultVisibility: editForm.resultVisibility
       };
       if (pollKind(editPoll) !== 'text') {
@@ -454,6 +524,14 @@ export const CommunityPollsTab: React.FC = () => {
       const updates: any = { status: 'CONCLUDED' };
       if (concludeData.note.trim()) {
         updates.adminNote = concludeData.note.trim();
+      }
+      // POLLS NEXT-LEVEL P1 — the outcome is computed ONCE, here,
+      // from the poll's frozen counts, and stored on the record in
+      // the same write that concludes it (the rules allow the
+      // outcome key only on this path, and never a rewrite).
+      const poll = polls.find(p => p.id === concludeData.id);
+      if (poll && !pollStoredOutcome(poll)) {
+        updates.outcome = computePollOutcome(poll, Date.now());
       }
       await updateDoc(doc(db, 'polls', concludeData.id), updates);
       showToastMsg("Poll concluded and decision published.", 'success');
@@ -523,7 +601,9 @@ export const CommunityPollsTab: React.FC = () => {
     // (Blueprint A audit chain), so the reveal is never silent.
     // EVENTS P1: reading a text poll's named responses is a reveal
     // of exactly the same kind and is logged the same way.
-    if (poll.targetAudience === 'MANAGERS' || pollKind(poll) === 'text') {
+    // POLLS P1: a Decision poll whose creator chose a named ballot
+    // joins the same posture — the reveal is logged identically.
+    if (poll.targetAudience === 'MANAGERS' || pollKind(poll) === 'text' || pollBallotMode(poll) === 'named') {
       noteAudit({
         action: 'poll.ballotsRevealed',
         entityType: 'poll',
@@ -821,10 +901,17 @@ export const CommunityPollsTab: React.FC = () => {
               const showResults = pollResultsVisible(poll, { hasVoted: iVoted, isCommittee: isManagerOrAdmin }, Date.now());
               const visRule = pollResultVisibility(poll);
 
-              let winnerId = null;
+              // POLLS P1 — a concluded poll's stored outcome names
+              // its winners (ALL of them: a tie badges every tied
+              // option); a poll without one keeps the derived read.
+              const storedOutcome = poll.status === 'CONCLUDED' ? pollStoredOutcome(poll) : null;
+              let winnerIds: string[] = [];
               if (poll.status === 'CONCLUDED' && totalVotes > 0 && showResults && kind !== 'text') {
-                 winnerId = options.reduce((max, obj) => obj.votes > max.votes ? obj : max, options[0]).id;
+                 if (storedOutcome) winnerIds = storedOutcome.winnerOptionIds;
+                 else if (options.length > 0) winnerIds = [options.reduce((max, obj) => obj.votes > max.votes ? obj : max, options[0]).id];
               }
+              const cls = pollClass(poll);
+              const ballotMode = pollBallotMode(poll);
 
               return (
                 <div key={poll.id} className={`bg-white rounded-3xl p-6 sm:p-8 shadow-sm border transition-all duration-300 ring-1 ring-black/5 flex flex-col justify-between group ${poll.status === 'ACTIVE' ? 'border-saffron-200 hover:shadow-md hover:border-saffron-300' : 'border-stone-200 opacity-90'}`}>
@@ -843,6 +930,21 @@ export const CommunityPollsTab: React.FC = () => {
                          ) : (
                            <span className="text-[9px] font-black uppercase tracking-widest px-3 py-1.5 rounded-lg border bg-stone-800 text-white border-stone-900 flex items-center gap-1.5 shadow-sm">
                              <Lock size={12}/> Concluded
+                           </span>
+                         )}
+                         {/* POLLS P1 — the class + standing + secrecy,
+                             labelled BEFORE any voting surface. */}
+                         <span className={`text-[9px] font-black uppercase tracking-widest px-3 py-1.5 rounded-lg border flex items-center gap-1.5 shadow-sm ${cls === 'decision' ? 'bg-amber-50 text-amber-700 border-amber-200' : 'bg-stone-50 text-stone-500 border-stone-200'}`}>
+                           {cls === 'decision' ? t('surfaces.events.badgeDecision') : t('surfaces.events.badgePulse')}
+                         </span>
+                         {cls === 'decision' && (
+                           <span className="text-[9px] font-black uppercase tracking-widest px-3 py-1.5 rounded-lg border bg-amber-50 text-amber-700 border-amber-200 flex items-center gap-1.5 shadow-sm">
+                             {pollIsBinding(poll) ? t('surfaces.events.badgeBinding') : t('surfaces.events.badgeAdvisory')}
+                           </span>
+                         )}
+                         {cls === 'decision' && (
+                           <span className="text-[9px] font-black uppercase tracking-widest px-3 py-1.5 rounded-lg border bg-stone-50 text-stone-600 border-stone-200 flex items-center gap-1.5 shadow-sm">
+                             {ballotMode === 'named' ? t('surfaces.events.badgeNamed') : t('surfaces.events.badgeSecret')}
                            </span>
                          )}
                        </div>
@@ -941,7 +1043,7 @@ export const CommunityPollsTab: React.FC = () => {
                        options.map((opt) => {
                          const percentage = totalVotes > 0 ? Math.round((opt.votes / totalVotes) * 100) : 0;
                          const isMyChoice = kind === 'multi' ? (myBallot?.optionIds || []).includes(opt.id) : myVote === opt.id;
-                         const isWinner = winnerId === opt.id;
+                         const isWinner = winnerIds.includes(opt.id);
                          return (
                            <div key={opt.id} className="relative w-full bg-stone-50 border border-stone-100 rounded-xl overflow-hidden shadow-sm">
                              <div
@@ -988,6 +1090,36 @@ export const CommunityPollsTab: React.FC = () => {
                    </div>
 
 
+                   {/* POLLS P1 — the recorded verdict of a Decision
+                       poll: what the house decided, and the turnout
+                       it was decided on. Read from the stored
+                       outcome — never re-derived at render. */}
+                   {poll.status === 'CONCLUDED' && cls === 'decision' && storedOutcome?.verdict && showResults && (
+                     <div className="mt-5 bg-amber-50 border border-amber-100 p-5 rounded-2xl flex items-start gap-4 shadow-sm relative overflow-hidden">
+                       <div className="absolute top-0 left-0 w-1.5 h-full bg-amber-500"></div>
+                       <Award size={20} className="text-amber-600 shrink-0"/>
+                       <div>
+                         <p className="text-[10px] font-black text-amber-800 uppercase tracking-widest mb-1.5">
+                           {storedOutcome.verdict === 'carried'
+                             ? t('surfaces.events.outcomeCarried')
+                             : storedOutcome.verdict === 'quorum-not-met'
+                               ? t('surfaces.events.outcomeQuorumNotMet')
+                               : t('surfaces.events.outcomeNotCarried')}
+                         </p>
+                         {typeof poll.eligibleCount === 'number' && poll.eligibleCount > 0 && (
+                           <p className="text-xs font-bold text-amber-900 leading-relaxed">
+                             {t('surfaces.events.turnoutLine')
+                               .replace('{voted}', String(storedOutcome.totalVotes))
+                               .replace('{eligible}', String(poll.eligibleCount))}
+                             {storedOutcome.quorumMet !== undefined
+                               ? ` · ${storedOutcome.quorumMet ? t('surfaces.events.quorumMet') : t('surfaces.events.quorumNotMet')}`
+                               : ''}
+                           </p>
+                         )}
+                       </div>
+                     </div>
+                   )}
+
                    {poll.status === 'CONCLUDED' && poll.adminNote && (
                      <div className="mt-5 bg-blue-50 border border-blue-100 p-5 rounded-2xl flex items-start gap-4 shadow-sm relative overflow-hidden">
                        <div className="absolute top-0 left-0 w-1.5 h-full bg-blue-500"></div>
@@ -1007,7 +1139,7 @@ export const CommunityPollsTab: React.FC = () => {
                      <div className="flex flex-wrap items-center justify-center gap-2 w-full sm:w-auto">
                        {poll.status === 'CONCLUDED' && (
                          <button onClick={() => handleDownloadPDF(poll)} className="flex-1 sm:flex-none bg-white hover:bg-red-50 hover:text-red-600 border border-stone-200 hover:border-red-200 text-stone-700 px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex justify-center items-center gap-1.5 shadow-sm hover:shadow-md">
-                           <FileText size={14}/> Report
+                           <FileText size={14}/> {t('surfaces.events.certificateBtn')}
                          </button>
                        )}
 
@@ -1117,6 +1249,78 @@ export const CommunityPollsTab: React.FC = () => {
                      <option value="MANAGERS">Internal (Only Admins & Managers)</option>
                    </select>
                  </div>
+
+                 {/* POLLS NEXT-LEVEL P1 — the class, and for Decision
+                     polls the standing, the secrecy choice and the
+                     two marks. All of it is labelled BEFORE the first
+                     vote and frozen at launch, like the shape. */}
+                 <div>
+                   <label className="block text-[10px] font-black text-stone-500 uppercase tracking-widest mb-1.5 flex items-center gap-1.5"><Award size={12}/> {t('surfaces.events.classLabel')}</label>
+                   <select
+                     value={pollForm.pollClass} onChange={e=>setPollForm({...pollForm, pollClass: e.target.value as typeof pollForm.pollClass})}
+                     className="w-full p-4 bg-stone-50 border border-stone-200 rounded-xl text-sm font-bold focus:bg-white focus:border-saffron-500 outline-none transition-all appearance-none cursor-pointer shadow-sm"
+                   >
+                     <option value="pulse">{t('surfaces.events.classPulse')}</option>
+                     <option value="decision">{t('surfaces.events.classDecision')}</option>
+                   </select>
+                   {pollForm.pollClass === 'pulse' && (
+                     <p className="text-[11px] font-bold text-stone-600 mt-2 leading-relaxed">{t('surfaces.events.classPulseNote')}</p>
+                   )}
+                 </div>
+
+                 {pollForm.pollClass === 'decision' && (
+                   <>
+                     <div>
+                       <label className="block text-[10px] font-black text-stone-500 uppercase tracking-widest mb-1.5 flex items-center gap-1.5"><ShieldCheck size={12}/> {t('surfaces.events.bindingLabel')}</label>
+                       <select
+                         value={pollForm.binding ? 'binding' : 'advisory'} onChange={e=>setPollForm({...pollForm, binding: e.target.value === 'binding'})}
+                         className="w-full p-4 bg-stone-50 border border-stone-200 rounded-xl text-sm font-bold focus:bg-white focus:border-saffron-500 outline-none transition-all appearance-none cursor-pointer shadow-sm"
+                       >
+                         <option value="advisory">{t('surfaces.events.bindingAdvisory')}</option>
+                         <option value="binding">{t('surfaces.events.bindingBinding')}</option>
+                       </select>
+                     </div>
+                     <div>
+                       <label className="block text-[10px] font-black text-stone-500 uppercase tracking-widest mb-1.5 flex items-center gap-1.5"><Lock size={12}/> {t('surfaces.events.ballotLabel')}</label>
+                       {pollForm.targetAudience === 'MANAGERS' || pollForm.kind === 'text' ? (
+                         <p className="text-[11px] font-bold text-stone-600 leading-relaxed bg-stone-50 border border-stone-200 rounded-xl p-4">
+                           {pollForm.targetAudience === 'MANAGERS' ? t('surfaces.events.ballotNamedFixed') : t('surfaces.events.textNote')}
+                         </p>
+                       ) : (
+                         <select
+                           value={pollForm.ballot} onChange={e=>setPollForm({...pollForm, ballot: e.target.value as typeof pollForm.ballot})}
+                           className="w-full p-4 bg-stone-50 border border-stone-200 rounded-xl text-sm font-bold focus:bg-white focus:border-saffron-500 outline-none transition-all appearance-none cursor-pointer shadow-sm"
+                         >
+                           <option value="secret">{t('surfaces.events.ballotSecret')}</option>
+                           <option value="named">{t('surfaces.events.ballotNamed')}</option>
+                         </select>
+                       )}
+                     </div>
+                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                       <div>
+                         <label className="block text-[10px] font-black text-stone-500 uppercase tracking-widest mb-1.5">{t('surfaces.events.quorumLabel')}</label>
+                         <input
+                           type="number" min={0} max={100} step={1}
+                           value={pollForm.quorumPct}
+                           onChange={e=>setPollForm({...pollForm, quorumPct: Number(e.target.value)})}
+                           className="w-full p-4 bg-stone-50 border border-stone-200 rounded-xl text-sm font-bold focus:bg-white focus:border-saffron-500 outline-none transition-all shadow-sm"
+                         />
+                       </div>
+                       <div>
+                         <label className="block text-[10px] font-black text-stone-500 uppercase tracking-widest mb-1.5">{t('surfaces.events.passLabel')}</label>
+                         <input
+                           type="number" min={0} max={100} step={1}
+                           value={pollForm.passPct}
+                           onChange={e=>setPollForm({...pollForm, passPct: Number(e.target.value)})}
+                           className="w-full p-4 bg-stone-50 border border-stone-200 rounded-xl text-sm font-bold focus:bg-white focus:border-saffron-500 outline-none transition-all shadow-sm"
+                         />
+                       </div>
+                     </div>
+                     <p className="text-[11px] font-bold text-stone-600 leading-relaxed">
+                       {t('surfaces.events.electorateNote').replace('{count}', String(pollElectorateCount(devotees, pollForm.targetAudience)))}
+                     </p>
+                   </>
+                 )}
 
                  {/* EVENTS P1 — the shape, chosen at launch and frozen after. */}
                  <div>
@@ -1290,7 +1494,10 @@ export const CommunityPollsTab: React.FC = () => {
             </div>
             <form onSubmit={handleConcludePoll}>
                <p className="text-xs font-bold text-stone-500 mb-5 leading-relaxed">
-                 You are concluding <strong className="text-stone-800">"{concludeData.title}"</strong>. This will permanently lock voting. 
+                 You are concluding <strong className="text-stone-800">"{concludeData.title}"</strong>. This will permanently lock voting.
+               </p>
+               <p className="text-[11px] font-bold text-stone-500 mb-5 leading-relaxed bg-amber-50 border border-amber-100 rounded-xl px-3 py-2">
+                 {t('surfaces.events.concludeOutcomeNote')}
                </p>
                <div className="mb-8 text-left">
                  <label className="block text-[10px] font-black text-blue-600 uppercase tracking-widest mb-2 flex items-center gap-1.5"><MessageSquare size={14}/> Official Committee Decision (Optional)</label>
@@ -1317,9 +1524,9 @@ export const CommunityPollsTab: React.FC = () => {
                   <ListChecks className="text-blue-600" size={24}/> Ballot Audit
                 </h3>
                 <p className="text-[10px] font-black text-stone-600 uppercase tracking-widest mt-1">
-                  {auditPoll.targetAudience === 'MANAGERS'
-                    ? 'Committee poll — named ballots; this opening was recorded'
-                    : 'Community poll — ballots are private; counts only'}
+                  {pollBallotMode(auditPoll) === 'named'
+                    ? 'Named ballots — this opening was recorded'
+                    : 'Secret ballot — ballots are private; counts only'}
                 </p>
               </div>
               <button onClick={() => setAuditPoll(null)} className="p-2.5 rounded-full hover:bg-stone-200 text-stone-600 hover:text-stone-700 transition-colors shadow-sm"><X size={16}/></button>
@@ -1331,9 +1538,9 @@ export const CommunityPollsTab: React.FC = () => {
                  <p className="text-sm font-black text-blue-900">{auditPoll.title}</p>
                  <p className="text-[10px] font-bold text-blue-700 mt-1">{pollTotalVotes(auditPoll)} total votes counted</p>
                </div>
-               {auditPoll.targetAudience !== 'MANAGERS' && pollKind(auditPoll) !== 'text' && (
+               {pollBallotMode(auditPoll) !== 'named' && pollKind(auditPoll) !== 'text' && (
                  <p className="text-xs font-bold text-stone-500 leading-relaxed bg-stone-50 border border-stone-100 rounded-2xl p-4">
-                   Individual ballots on community polls are private — each vote is stored under the voter's own account, and not even the committee can see who chose what. Only the counts below are visible.
+                   This is a secret ballot — each vote is stored under the voter's own account, and not even the committee can see who chose what. Only the counts below are visible.
                  </p>
                )}
                {pollKind(auditPoll) === 'text' && (
@@ -1362,14 +1569,17 @@ export const CommunityPollsTab: React.FC = () => {
                )}
                {Object.keys(auditPoll.options || {}).map(optId => {
                   const opt = auditPoll.options[optId];
-                  // Named ballots exist only for committee polls: the
-                  // ballot box (keyed by firebase uid) plus any legacy
+                  // Named ballots exist only where the poll is a
+                  // named vote (committee polls by design; Decision
+                  // polls by the creator's choice): the ballot box
+                  // (keyed by firebase uid) plus any legacy
                   // pre-ballot-box votes (keyed by member id). Names
                   // only — phone numbers are never shown here.
-                  const ballotUids = auditPoll.targetAudience === 'MANAGERS'
-                    ? Object.keys(auditBallots).filter(uid => auditBallots[uid] === optId)
+                  const namedBallots = pollBallotMode(auditPoll) === 'named' && pollKind(auditPoll) !== 'text';
+                  const ballotUids = namedBallots
+                    ? Object.keys(auditBallots).filter(uid => (auditBallots[uid] || []).includes(optId))
                     : [];
-                  const legacyUids = auditPoll.targetAudience === 'MANAGERS'
+                  const legacyUids = namedBallots
                     ? Object.keys(auditPoll.votedUsers || {}).filter(uid => auditPoll.votedUsers[uid] === optId && !ballotUids.includes(uid))
                     : [];
                   const voterKeys = [...ballotUids, ...legacyUids];
@@ -1379,7 +1589,7 @@ export const CommunityPollsTab: React.FC = () => {
                         <span className="text-sm font-black text-stone-800">{opt.text}</span>
                         <span className="text-[10px] font-black bg-white px-2.5 py-1 rounded-md border border-stone-200 text-stone-500 uppercase tracking-widest shadow-sm">{opt.votes} Votes</span>
                       </div>
-                      {auditPoll.targetAudience === 'MANAGERS' && (
+                      {namedBallots && (
                         <div className="p-2 bg-white">
                           {voterKeys.length > 0 ? (
                             <div className="divide-y divide-stone-50">
