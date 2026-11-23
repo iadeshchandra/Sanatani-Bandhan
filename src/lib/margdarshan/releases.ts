@@ -63,6 +63,17 @@ export interface ReleaseEntry {
 
 export const RELEASES: readonly ReleaseEntry[] = [
   {
+    version: 'v2026.11.23-eac3cff',
+    date: '2026-11-23',
+    sections: {
+      new: [
+        { text: { en: 'The e-dip is here: when far more devotees want a darshan tier than there are places, the committee can open a dip instead of a rush. Devotees enter once per household during the window — no buying, no racing, no fastest-phone advantage.', hi: 'ई-डिप आ गया है: जब किसी दर्शन श्रेणी के चाहने वाले स्थानों से कहीं अधिक हों, तो समिति भीड़-धक्का की जगह डिप खोल सकती है। भक्त अवधि में प्रति परिवार एक बार प्रवेश करते हैं — कोई खरीद नहीं, कोई दौड़ नहीं, तेज़ फ़ोन का कोई फ़ायदा नहीं।', bn: 'ই-ডিপ এসে গেছে: কোনো দর্শন শ্রেণিতে জায়গার চেয়ে ভক্ত অনেক বেশি হলে, কমিটি হুড়োহুড়ির বদলে ডিপ খুলতে পারে। ভক্তরা সময়সীমায় পরিবারপ্রতি একবার প্রবেশ করেন — কোনো কেনা নয়, কোনো দৌড় নয়, দ্রুত ফোনের কোনো সুবিধা নয়।' } },
+        { text: { en: 'A draw the whole community can check: the entry pool is frozen and published before the draw, the seed is announced openly, and the method is named — so anyone can verify the result. Winners claim within their window; everyone else holds a waitlist place in draw order.', hi: 'ऐसा ड्रॉ जिसे पूरा समुदाय जाँच सके: ड्रॉ से पहले प्रवेश-सूची स्थिर करके प्रकाशित की जाती है, बीज खुलकर घोषित होता है, और विधि का नाम दिया जाता है — ताकि कोई भी परिणाम जाँच सके। विजेता अपनी अवधि में दावा करते हैं; बाक़ी सबको ड्रॉ क्रम में प्रतीक्षा-स्थान मिलता है।', bn: 'এমন ড্র যা পুরো সম্প্রদায় যাচাই করতে পারে: ড্রয়ের আগে প্রবেশ-তালিকা স্থির করে প্রকাশ করা হয়, বীজ প্রকাশ্যে ঘোষণা করা হয়, আর পদ্ধতির নাম দেওয়া হয় — যাতে যে কেউ ফলাফল যাচাই করতে পারে। বিজয়ীরা নিজেদের সময়সীমায় দাবি করেন; বাকি সবাই ড্রয়ের ক্রমে অপেক্ষমাণ স্থান পান।' } },
+      ],
+    },
+  },
+
+  {
     version: 'v2026.11.23-77b9297',
     date: '2026-11-23',
     sections: {
