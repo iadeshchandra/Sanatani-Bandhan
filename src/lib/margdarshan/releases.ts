@@ -63,6 +63,15 @@ export interface ReleaseEntry {
 
 export const RELEASES: readonly ReleaseEntry[] = [
   {
+    version: 'v2026.11.24-841a08c',
+    date: '2026-11-24',
+    sections: {
+      new: [
+        { text: { en: 'Organisations can now speak to the right people: a broadcast can be addressed to followers, members, or staff — and the platform itself can post a notice that reaches every signed-in member once, in their own language.', hi: 'संगठन अब सही लोगों तक बात पहुँचा सकते हैं: एक प्रसारण अनुयायियों, सदस्यों या कर्मचारियों को संबोधित हो सकता है — और मंच स्वयं एक सूचना लगा सकता है जो हर साइन-इन सदस्य तक एक बार, उनकी अपनी भाषा में पहुँचती है।', bn: 'প্রতিষ্ঠান এখন সঠিক মানুষের কাছে কথা পৌঁছে দিতে পারে: একটি প্রচার অনুসারী, সদস্য বা কর্মীদের উদ্দেশ্যে হতে পারে — আর মঞ্চ নিজেই একটি সূচনা দিতে পারে যা প্রতিটি সাইন-ইন সদস্যের কাছে একবার, তাঁর নিজের ভাষায় পৌঁছায়।' } },
+      ],
+    },
+  },
+  {
     version: 'v2026.11.24-03d894b',
     date: '2026-11-24',
     sections: {
