@@ -454,6 +454,45 @@ export function notifyOrgAnnouncement(recipientUid: string, a: OrgAnnouncementIn
   return send(recipientUid, event);
 }
 
+export interface PlatformNoticeNotifyInput {
+  noticeId: string;
+  /** The admin-authored headline — shown verbatim (one language,
+   *  the admin's own; we never machine-translate an official notice). */
+  title: string;
+  /** The admin-authored body, when written — overrides the
+   *  dictionary body slot exactly as an announcement's message does. */
+  body?: string;
+  kind: 'info' | 'important';
+  dedupeKey: string;
+}
+
+const PLATFORM_NOTICE_BODY_MAX = 480;
+
+/**
+ * Platform notice → Suchana (NOTIFICATION WAVE 4). GodMode's one
+ * voice: maintenance, new versions, policy. Tier follows the
+ * notice's kind — 'info' rings gentle (the info tier), 'important'
+ * rings at the action tier. The dictionary frame supplies the
+ * "📣 Sanatani Bandhan" label in the reader's language; the notice's
+ * own words ride verbatim in the body slot.
+ */
+export function notifyPlatformNotice(recipientUid: string, a: PlatformNoticeNotifyInput): Promise<EmitResult> {
+  const event = base(
+    'suchana',
+    a.kind === 'important' ? 'important' : 'gentle',
+    'platformNotice',
+    { title: a.title },
+    a.dedupeKey,
+    { payload: { noticeId: a.noticeId } },
+  );
+  const bodyText = (a.body ?? '').trim();
+  if (bodyText) {
+    const clipped = bodyText.length > PLATFORM_NOTICE_BODY_MAX ? `${bodyText.slice(0, PLATFORM_NOTICE_BODY_MAX)}…` : bodyText;
+    event.body = { en: clipped, bn: clipped, hi: clipped };
+  }
+  return send(recipientUid, event);
+}
+
 export interface PollReminderNotifyInput {
   orgId: string;
   orgName: string;

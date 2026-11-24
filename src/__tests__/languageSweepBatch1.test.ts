@@ -172,7 +172,12 @@ describe('surfaces + vibe dict completeness (en/hi/bn authored)', () => {
     // store: 88 entries x title/body) in all 10 languages, taking
     // the pin to 1352. en/hi/bn authored verbatim from warmCopy;
     // ta/te/mr/gu/kn/ml/sa are labelled drafts (proofread follow-up).
-    expect(keysOf(en).length).toBe(1352);
+    // NOTIFICATION WAVE 4 (2026-11-24) adds 2 surfaces.notify keys
+    // (suchanaPlatformNoticeBody + suchanaPlatformNoticeTitle — the
+    // GodMode platform-notice frame) in all 10 languages, taking
+    // the pin to 1354. en/hi/bn authored; ta/te/mr/gu/kn/ml/sa are
+    // labelled drafts (proofread follow-up).
+    expect(keysOf(en).length).toBe(1354);
     for (const bucket of Object.keys(en)) {
       for (const leaf of Object.keys(en[bucket])) {
         for (const dict of [en, hi, bn]) {

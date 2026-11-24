@@ -55,6 +55,7 @@ import { RankingTab } from './godmode/RankingTab';
 import { CopilotLauncher } from '../../ai/godmode/CopilotPanel';
 import { AdminsTab } from './godmode/AdminsTab';
 import { SuggestionTriageTab } from './godmode/SuggestionTriageTab';
+import { PlatformNoticesTab } from './godmode/PlatformNoticesTab';
 import { ConsoleHeader } from './godmode/ConsoleHeader';
 import { NeedsAttention } from './godmode/NeedsAttention';
 import { useConsoleStatus } from './godmode/useConsoleStatus';
@@ -69,7 +70,7 @@ interface GodModeConsole2Props {
 
 type TabId = 'overview' | 'users' | 'admins' | 'workspaces' | 'verification' | 'moderation'
   | 'suggestions'
-  | 'billing' | 'commission' | 'finance' | 'messages' | 'audit'
+  | 'billing' | 'commission' | 'finance' | 'messages' | 'notices' | 'audit'
   | 'database' | 'content' | 'settings' | 'support' | 'marketplace'
   | 'professionals' | 'growth' | 'apikeys' | 'translations' | 'ranking' | 'system';
 
@@ -91,6 +92,7 @@ const TABS: Array<{ id: TabId; label: string; icon: React.ReactNode }> = [
   { id: 'translations', label: 'Translations', icon: <Languages className="w-4 h-4" /> },
   { id: 'ranking', label: 'Ranking', icon: <SlidersHorizontal className="w-4 h-4" /> },
   { id: 'messages', label: 'Messages', icon: <MessageSquare className="w-4 h-4" /> },
+  { id: 'notices', label: 'Notices', icon: <Megaphone className="w-4 h-4" /> },
   { id: 'database', label: 'Database', icon: <Database className="w-4 h-4" /> },
   { id: 'content', label: 'Content', icon: <Megaphone className="w-4 h-4" /> },
   { id: 'settings', label: 'Settings', icon: <SlidersHorizontal className="w-4 h-4" /> },
@@ -598,6 +600,7 @@ export const GodModeConsole2: React.FC<GodModeConsole2Props> = ({ isOpen, onClos
       case 'translations': return <TranslationsTab />;
       case 'ranking': return <RankingTab />;
       case 'messages': return <MessagesTab />;
+      case 'notices': return <PlatformNoticesTab />;
       case 'database': return <DatabaseExplorerTab />;
       case 'content': return <ContentTab />;
       case 'settings': return <SettingsTab />;

@@ -43,10 +43,13 @@ import { db } from '../firebase';
 import {
   buildBroadcastDoc,
   chunkOrgIds,
+  isStaffBroadcastRole,
+  broadcastRoleMatches,
   normalizeFollowedOrgs,
   sortBroadcastsNewestFirst,
   toEpochMs,
   BROADCAST_HISTORY_LIMIT,
+  type BroadcastAudience,
   type OrgBroadcast,
   type OrgFollow,
 } from './broadcast';
@@ -66,6 +69,13 @@ function fromDoc(id: string, data: Record<string, unknown> | undefined): OrgBroa
     createdByName: typeof data.createdByName === 'string' ? data.createdByName : '',
     audienceCount: typeof data.audienceCount === 'number' ? data.audienceCount : 0,
     createdAt: toEpochMs(data.createdAt),
+    // Wave 4 addressing — anything unreadable resolves DOWN to the
+    // legacy 'followers' audience (the doc's pre-Wave-4 meaning).
+    audience:
+      data.audience === 'members' || data.audience === 'staff' ? data.audience : 'followers',
+    ...(typeof data.audienceRole === 'string' && data.audienceRole
+      ? { audienceRole: data.audienceRole }
+      : {}),
   };
 }
 
@@ -79,11 +89,90 @@ export async function fetchAudienceCount(orgId: string): Promise<number> {
   }
 }
 
+/** REAL current member count for an org (workspaceMembers roll). */
+export async function fetchMemberCount(orgId: string): Promise<number> {
+  try {
+    const snap = await getCountFromServer(
+      query(collection(db, 'workspaceMembers'), where('workspaceId', '==', orgId)),
+    );
+    return snap.data().count;
+  } catch {
+    return 0;
+  }
+}
+
 /**
- * Publish a broadcast. Snapshots the REAL follower count at send time
- * (the campaign's only count — delivery/read stats are never invented).
- * Returns the new broadcast (with its id). Throws on failure so the
- * composer can show an honest error.
+ * The org's membership edges as raw roles (trustee-side read — the
+ * rules allow a trustee to read their own org's roll). Capped so a
+ * very large roll degrades to a partial count rather than a hang.
+ */
+async function fetchOrgMemberRoles(orgId: string): Promise<string[]> {
+  try {
+    const snap = await getDocs(
+      query(collection(db, 'workspaceMembers'), where('workspaceId', '==', orgId), limit(1000)),
+    );
+    const roles: string[] = [];
+    snap.forEach((d) => {
+      const data = d.data() as Record<string, unknown>;
+      roles.push(typeof data.role === 'string' ? data.role : '');
+    });
+    return roles;
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * NOTIFICATION WAVE 4 — the REAL size of the ADDRESSED audience,
+ * counted with the same predicate receivers resolve with, so the
+ * number the composer shows is the number that can actually be
+ * reached: followers → the followers store; members → the roll;
+ * staff → roll edges carrying a staff role (and the named role
+ * when narrowed). Never estimated, never a delivery stat.
+ */
+export async function fetchBroadcastAudienceCount(
+  orgId: string,
+  audience: BroadcastAudience,
+  audienceRole?: string,
+): Promise<number> {
+  if (audience === 'followers') return fetchAudienceCount(orgId);
+  if (audience === 'members') return fetchMemberCount(orgId);
+  const roles = await fetchOrgMemberRoles(orgId);
+  return roles.filter((r) =>
+    audienceRole ? broadcastRoleMatches(r, audienceRole) : isStaffBroadcastRole(r),
+  ).length;
+}
+
+/**
+ * MY OWN membership edges (orgId → my role), for the watcher's
+ * receiver-side audience resolution. Each user reads only their
+ * own edges (the rules allow exactly that); fail-soft to {} —
+ * with no edges, members/staff broadcasts simply never candidate.
+ */
+export async function fetchMyMemberships(uid: string): Promise<Record<string, string>> {
+  if (!uid) return {};
+  try {
+    const snap = await getDocs(
+      query(collection(db, 'workspaceMembers'), where('uid', '==', uid)),
+    );
+    const out: Record<string, string> = {};
+    snap.forEach((d) => {
+      const data = d.data() as Record<string, unknown>;
+      if (typeof data.workspaceId === 'string' && data.workspaceId) {
+        out[data.workspaceId] = typeof data.role === 'string' ? data.role : '';
+      }
+    });
+    return out;
+  } catch {
+    return {};
+  }
+}
+
+/**
+ * Publish a broadcast. Snapshots the REAL count of the ADDRESSED
+ * audience at send time (the campaign's only count — delivery/read
+ * stats are never invented). Returns the new broadcast (with its
+ * id). Throws on failure so the composer can show an honest error.
  */
 export async function publishBroadcast(args: {
   orgId: string;
@@ -92,8 +181,14 @@ export async function publishBroadcast(args: {
   body?: string;
   createdBy: string;
   createdByName: string;
+  audience?: BroadcastAudience;
+  audienceRole?: string;
 }): Promise<OrgBroadcast> {
-  const audienceCount = await fetchAudienceCount(args.orgId);
+  const audienceCount = await fetchBroadcastAudienceCount(
+    args.orgId,
+    args.audience ?? 'followers',
+    args.audienceRole,
+  );
   const docData = buildBroadcastDoc({ ...args, audienceCount, createdAt: Date.now() });
   const ref = await addDoc(collection(db, COLLECTION), docData);
   return { id: ref.id, ...docData };

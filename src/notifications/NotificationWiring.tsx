@@ -41,6 +41,7 @@ import { startStaffGovernanceNotify } from '../lib/staffGovernanceNotifyService'
 import { startStaffMoneyNotify } from '../lib/staffMoneyNotifyService';
 import { startTicketDipNotify } from '../lib/ticketDipNotifyService';
 import { startFollowedFestivalNotify } from '../lib/followedFestivalNotifyService';
+import { startPlatformNoticeNotify } from '../lib/platformNoticeService';
 import { PlanUpgradeHost } from '../billing/PlanUpgradeFlow';
 
 export const NotificationWiring: React.FC = () => {
@@ -272,6 +273,17 @@ export const NotificationWiring: React.FC = () => {
   useEffect(() => {
     if (!uid) return undefined;
     return startFollowedFestivalNotify(uid);
+  }, [uid]);
+
+  // Platform notices → NotificationCenter (self-listen,
+  // NOTIFICATION WAVE 4). GodMode's one voice: my device polls the
+  // platformNotices shelf (readable by any signed-in user) and rings
+  // each live notice exactly once — maintenance, new versions,
+  // policy — in my language's frame. Baseline-silent first run;
+  // expiry honoured, so a stale maintenance notice never rings late.
+  useEffect(() => {
+    if (!uid) return undefined;
+    return startPlatformNoticeNotify(uid);
   }, [uid]);
 
   // Event reminders → NotificationCenter (self-listen, EVENTS P1).

@@ -36,7 +36,7 @@ import {
   pickNotifications,
   BROADCAST_RECENCY_MS,
 } from './broadcast';
-import { fetchFollowedOrgs, fetchRecentBroadcasts } from './broadcastService';
+import { fetchFollowedOrgs, fetchMyMemberships, fetchRecentBroadcasts } from './broadcastService';
 import { startPollLoop } from '../lib/pollCadence';
 
 const SEEN_KEY_PREFIX = 'sb.orgBroadcasts.seen.v1.';
@@ -146,13 +146,18 @@ export async function checkOrgBroadcasts(uid: string, opts: { now?: number } = {
     }
 
     const follows = await fetchFollowedOrgs(uid);
+    // NOTIFICATION WAVE 4: my own membership edges join the fetch
+    // set — a members/staff broadcast from an org I belong to (but
+    // do not follow) must still reach me. The pick resolves the
+    // audience against these edges, on my device only (law L4).
+    const memberships = await fetchMyMemberships(uid);
+    const fetchOrgIds = Array.from(
+      new Set([...follows.map((f) => f.orgId), ...Object.keys(memberships)]),
+    );
     const broadcasts =
-      follows.length === 0
+      fetchOrgIds.length === 0
         ? []
-        : await fetchRecentBroadcasts(
-            follows.map((f) => f.orgId),
-            now - BROADCAST_RECENCY_MS,
-          );
+        : await fetchRecentBroadcasts(fetchOrgIds, now - BROADCAST_RECENCY_MS);
 
     // NOTIFICATION WAVE 2: the per-org daily line. Poll reminders
     // never reach this pick (resolved above, their ids merged into
@@ -165,6 +170,7 @@ export async function checkOrgBroadcasts(uid: string, opts: { now?: number } = {
       now,
       baseline,
       dayCounts,
+      memberships,
     });
 
     // Persist the seen marks FIRST — if an emit crashes midway, the

@@ -2,7 +2,8 @@
  * notifyCopy.test.ts — NOTIFICATION WAVE 3 proofs.
  * ========================================================
  * The Suchana centre's copy migrated from the trilingual warmCopy
- * store to the 10-language dictionary (surfaces.notify, 176 leaves).
+ * store to the 10-language dictionary (surfaces.notify; 176 leaves
+ * at Wave 3, 178 after Wave 4's platform-notice frame).
  * This suite proves:
  *   (a) every migrated leaf exists, non-empty, in ALL 10 languages,
  *       with identical key sets — and the en/hi/bn values are the
@@ -53,11 +54,13 @@ const CORES: Record<string, typeof enCore> = {
 describe('Wave 3 — surfaces.notify completeness (all 10 languages)', () => {
   const enNotify = enCore.surfaces?.notify ?? {};
 
-  it('carries exactly 176 leaves (88 entries x title/body)', () => {
-    expect(Object.keys(enNotify).length).toBe(176);
+  it('carries exactly 178 leaves (89 entries x title/body)', () => {
+    // 176 from Wave 3 + 2 from NOTIFICATION WAVE 4 (the platform
+    // notice frame: suchanaPlatformNotice title/body).
+    expect(Object.keys(enNotify).length).toBe(178);
   });
 
-  it('every language carries the identical 176 keys, all non-empty', () => {
+  it('every language carries the identical 178 keys, all non-empty', () => {
     const expected = Object.keys(enNotify).sort();
     for (const lang of NOTIFY_LANGS) {
       const bucket = CORES[lang].surfaces?.notify ?? {};

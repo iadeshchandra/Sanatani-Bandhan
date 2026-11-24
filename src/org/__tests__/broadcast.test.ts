@@ -2,6 +2,9 @@ import {
   validateBroadcastInput,
   buildBroadcastDoc,
   normalizeFollowedOrgs,
+  normalizeBroadcastRole,
+  isStaffBroadcastRole,
+  broadcastRoleMatches,
   toEpochMs,
   pickNotifications,
   buildAnnouncementInput,
@@ -71,8 +74,12 @@ describe('buildBroadcastDoc', () => {
       createdAt: NOW,
     });
     expect(Object.keys(doc).sort()).toEqual(
-      ['audienceCount', 'body', 'createdAt', 'createdBy', 'createdByName', 'orgId', 'orgName', 'title'].sort(),
+      ['audience', 'audienceCount', 'body', 'createdAt', 'createdBy', 'createdByName', 'orgId', 'orgName', 'title'].sort(),
     );
+    // Wave 4: no audience argument → the doc carries the legacy
+    // 'followers' audience explicitly; no audienceRole key at all.
+    expect(doc.audience).toBe('followers');
+    expect('audienceRole' in doc).toBe(false);
     expect(doc.title).toBe('Abhishek at 6 PM');
     expect(doc.body).toBe('Bring flowers.');
     // No undefined values anywhere (Firestore rejects them).
@@ -221,5 +228,180 @@ describe('history helpers', () => {
     expect(chunks.map((c) => c.length)).toEqual([10, 10, 3]);
     expect(chunks.flat()).toEqual(ids);
     expect(chunkOrgIds([])).toEqual([]);
+  });
+});
+
+/* --------------------- WAVE 4 — audience addressing --------------------- */
+
+describe('Wave 4 — audience addressing', () => {
+  const follows = [{ orgId: 'org-1', followedAt: NOW - 24 * HOUR }];
+
+  it('role helpers normalise legacy spellings and fail closed', () => {
+    expect(normalizeBroadcastRole('SUPER_ADMIN')).toBe('SUPERADMIN');
+    expect(normalizeBroadcastRole('Manager')).toBe('SEVADAR');
+    expect(normalizeBroadcastRole(' volunteer ')).toBe('SEVADAR');
+    expect(normalizeBroadcastRole(42)).toBe('');
+    expect(normalizeBroadcastRole(undefined)).toBe('');
+    expect(isStaffBroadcastRole('Accountant')).toBe(true);
+    expect(isStaffBroadcastRole('ACCOUNTANT')).toBe(true);
+    expect(isStaffBroadcastRole('Devotee')).toBe(false);
+    expect(isStaffBroadcastRole('DEVOTEE')).toBe(false);
+    expect(isStaffBroadcastRole('')).toBe(false);
+    expect(broadcastRoleMatches('ACCOUNTANT', 'Accountant')).toBe(true);
+    expect(broadcastRoleMatches('Trustee', 'Accountant')).toBe(false);
+    expect(broadcastRoleMatches('', 'Accountant')).toBe(false);
+  });
+
+  it('validation: bad audience and misplaced role are stable error codes', () => {
+    expect(validateBroadcastInput({ title: 'Hi', audience: 'everyone' })).toBe('audience_invalid');
+    expect(validateBroadcastInput({ title: 'Hi', audience: 'members', audienceRole: 'Trustee' })).toBe(
+      'audience_role_mismatch',
+    );
+    expect(validateBroadcastInput({ title: 'Hi', audience: 'staff', audienceRole: 'Trustee' })).toBeNull();
+    expect(validateBroadcastInput({ title: 'Hi', audience: 'staff' })).toBeNull();
+    expect(validateBroadcastInput({ title: 'Hi' })).toBeNull();
+  });
+
+  it('buildBroadcastDoc: staff role rides only on staff docs', () => {
+    const base = {
+      orgId: 'org-1',
+      orgName: 'X',
+      title: 'T',
+      createdBy: 't',
+      createdByName: '',
+      audienceCount: 3,
+      createdAt: NOW,
+    };
+    const staff = buildBroadcastDoc({ ...base, audience: 'staff', audienceRole: ' Accountant ' });
+    expect(staff.audience).toBe('staff');
+    expect(staff.audienceRole).toBe('Accountant');
+    const members = buildBroadcastDoc({ ...base, audience: 'members' });
+    expect(members.audience).toBe('members');
+    expect('audienceRole' in members).toBe(false);
+    expect(() => buildBroadcastDoc({ ...base, audience: 'members', audienceRole: 'Trustee' })).toThrow(
+      /audience_role_mismatch/,
+    );
+  });
+
+  it('members broadcast: a follower who is NOT a member is undisturbed — not even marked seen', () => {
+    const agm = broadcast({ id: 'b-agm', audience: 'members', title: 'AGM on Friday' });
+    const r = pickNotifications({
+      broadcasts: [agm],
+      seen: {},
+      follows,
+      now: NOW,
+      baseline: false,
+      memberships: {},
+    });
+    expect(r.notify).toEqual([]);
+    expect(r.markSeen).toEqual({});
+  });
+
+  it('members broadcast: a member rings on next open — no follow edge needed', () => {
+    const agm = broadcast({ id: 'b-agm', audience: 'members', title: 'AGM on Friday' });
+    const r = pickNotifications({
+      broadcasts: [agm],
+      seen: {},
+      follows: [], // the member does not follow the org at all
+      now: NOW,
+      baseline: false,
+      memberships: { 'org-1': 'Devotee' },
+    });
+    expect(r.notify.map((b) => b.id)).toEqual(['b-agm']);
+    expect(r.markSeen['b-agm']).toBe(agm.createdAt);
+  });
+
+  it('members broadcast: baseline still settles silently for members', () => {
+    const agm = broadcast({ id: 'b-agm', audience: 'members' });
+    const r = pickNotifications({
+      broadcasts: [agm],
+      seen: {},
+      follows: [],
+      now: NOW,
+      baseline: true,
+      memberships: { 'org-1': 'Trustee' },
+    });
+    expect(r.notify).toEqual([]);
+    expect(r.markSeen['b-agm']).toBe(agm.createdAt);
+  });
+
+  it('staff broadcast: a devotee-role member is excluded; any staff role rings', () => {
+    const roster = broadcast({ id: 'b-roster', audience: 'staff', title: 'Roster change' });
+    const devotee = pickNotifications({
+      broadcasts: [roster],
+      seen: {},
+      follows: [],
+      now: NOW,
+      baseline: false,
+      memberships: { 'org-1': 'Devotee' },
+    });
+    expect(devotee.notify).toEqual([]);
+    expect(devotee.markSeen).toEqual({});
+    const sevadar = pickNotifications({
+      broadcasts: [roster],
+      seen: {},
+      follows: [],
+      now: NOW,
+      baseline: false,
+      memberships: { 'org-1': 'VOLUNTEER' }, // legacy spelling on the edge
+    });
+    expect(sevadar.notify.map((b) => b.id)).toEqual(['b-roster']);
+  });
+
+  it('staff broadcast narrowed to a role: only that role rings', () => {
+    const books = broadcast({
+      id: 'b-books',
+      audience: 'staff',
+      audienceRole: 'Accountant',
+      title: 'Books close on Monday',
+    });
+    const priest = pickNotifications({
+      broadcasts: [books],
+      seen: {},
+      follows: [],
+      now: NOW,
+      baseline: false,
+      memberships: { 'org-1': 'Priest' },
+    });
+    expect(priest.notify).toEqual([]);
+    const acct = pickNotifications({
+      broadcasts: [books],
+      seen: {},
+      follows: [],
+      now: NOW,
+      baseline: false,
+      memberships: { 'org-1': 'ACCOUNTANT' }, // legacy spelling still matches
+    });
+    expect(acct.notify.map((b) => b.id)).toEqual(['b-books']);
+  });
+
+  it('legacy doc without an audience field behaves exactly as followers (follow-time gate intact)', () => {
+    const legacy = broadcast({ id: 'b-legacy', createdAt: NOW - 30 * HOUR }); // before followedAt (NOW-24h)
+    delete legacy.audience;
+    const r = pickNotifications({ broadcasts: [legacy], seen: {}, follows, now: NOW, baseline: false });
+    expect(r.notify).toEqual([]); // follow-time gate still applies
+    const fresh = broadcast({ id: 'b-legacy2' });
+    delete fresh.audience;
+    const r2 = pickNotifications({
+      broadcasts: [fresh],
+      seen: {},
+      follows: [],
+      now: NOW,
+      baseline: false,
+      memberships: { 'org-1': 'Trustee' }, // membership alone does NOT unlock a followers broadcast
+    });
+    expect(r2.notify).toEqual([]);
+    expect(r2.markSeen).toEqual({});
+  });
+
+  it('P2a regression: the poll-reminder title contract shape is untouched by audience work', () => {
+    // The reminder broadcast is an ordinary followers doc (no audience
+    // field); its fanout suppression lives in pollReminderFanout and
+    // keys off the title prefix — Wave 4 must not disturb either.
+    const reminder = broadcast({ id: 'b-remind', title: '🗳️ Poll reminder: Annual budget' });
+    delete reminder.audience;
+    const r = pickNotifications({ broadcasts: [reminder], seen: {}, follows, now: NOW, baseline: false });
+    expect(r.notify.map((b) => b.id)).toEqual(['b-remind']);
+    expect(buildAnnouncementInput(reminder).title).toBe(reminder.title);
   });
 });

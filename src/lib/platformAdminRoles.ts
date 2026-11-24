@@ -58,7 +58,7 @@ export const GODMODE_TAB_IDS = [
   'overview', 'users', 'admins', 'workspaces', 'verification', 'moderation',
   'suggestions',
   'billing', 'commission', 'finance', 'marketplace', 'professionals',
-  'growth', 'apikeys', 'translations', 'ranking', 'messages', 'database',
+  'growth', 'apikeys', 'translations', 'ranking', 'messages', 'notices', 'database',
   'content', 'settings', 'support', 'audit', 'system',
 ] as const;
 

@@ -8,12 +8,18 @@
  * followers' devices self-listen and ring their own Suchana bell
  * (broadcastListener.ts). This component is the trustee's desk for it:
  *
- *  - Composer: headline + message, honest delivery copy (followers
- *    receive it when they next open the app — a PWA has no push rail
- *    on Spark, and we say so instead of pretending).
+ *  - Composer: headline + message, honest delivery copy (the chosen
+ *    audience receives it when they next open the app — a PWA has no
+ *    push rail on Spark, and we say so instead of pretending).
+ *  - NOTIFICATION WAVE 4: an audience picker (Followers / Members /
+ *    Staff, optionally one staff role) addresses each announcement;
+ *    the line above the composer always counts and names the
+ *    ADDRESSED audience, and receivers resolve it against their own
+ *    membership edge — a members' AGM notice never disturbs the
+ *    org's followers.
  *  - Campaign history: the org's past broadcasts with timestamps and
- *    the REAL follower count snapshotted at send time. No invented
- *    delivery/read metrics — ever.
+ *    the REAL addressed-audience count snapshotted at send time. No
+ *    invented delivery/read metrics — ever.
  *
  * Non-trustee visitors see the latest announcements as a public list
  * (announcements are public information; the notification deep-link
@@ -32,10 +38,12 @@ import {
   validateBroadcastInput,
   BROADCAST_TITLE_MAX,
   BROADCAST_BODY_MAX,
+  BROADCAST_STAFF_ROLES,
+  type BroadcastAudience,
   type OrgBroadcast,
 } from './broadcast';
 import {
-  fetchAudienceCount,
+  fetchBroadcastAudienceCount,
   fetchBroadcastsSince,
   listBroadcastHistory,
   publishBroadcast,
@@ -72,7 +80,13 @@ const BroadcastRow: React.FC<{ b: OrgBroadcast; T: (k: string, en: string, bn: s
       {b.createdByName && <span>{b.createdByName}</span>}
       <span>
         {b.audienceCount}{' '}
-        {T('orgbroadcast_followers_word', 'followers', 'অনুসারী', 'अनुयायी')}
+        {b.audience === 'members'
+          ? T('orgbroadcast_members_word', 'members', 'সদস্য', 'सदस्य')
+          : b.audience === 'staff'
+            ? b.audienceRole
+              ? `${b.audienceRole} ${T('orgbroadcast_staff_word', 'staff', 'কর্মী', 'कर्मचारी')}`
+              : T('orgbroadcast_staff_word', 'staff', 'কর্মী', 'कर्मचारी')
+            : T('orgbroadcast_followers_word', 'followers', 'অনুসারী', 'अनुयायी')}
       </span>
     </p>
   </li>
@@ -87,6 +101,11 @@ export const OrgAnnouncementsSection: React.FC<OrgAnnouncementsSectionProps> = (
   const [history, setHistory] = useState<OrgBroadcast[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [audience, setAudience] = useState<number | null>(null);
+  // NOTIFICATION WAVE 4 — who this announcement is addressed to
+  // (followers / members / staff, optionally one staff role). The
+  // count above the composer always counts the ADDRESSED audience.
+  const [audienceChoice, setAudienceChoice] = useState<BroadcastAudience>('followers');
+  const [staffRole, setStaffRole] = useState('');
   const [title, setTitle] = useState('');
   const [body, setBody] = useState('');
   const [formError, setFormError] = useState<string | null>(null);
@@ -106,7 +125,6 @@ export const OrgAnnouncementsSection: React.FC<OrgAnnouncementsSectionProps> = (
       setLoaded(true);
     }
     if (isTrustee) {
-      setAudience(await fetchAudienceCount(orgId));
       const now = Date.now();
       const todays = await fetchBroadcastsSince(orgId, startOfLocalDay(now));
       setTodayCount(countBroadcastsToday(todays, now));
@@ -116,6 +134,25 @@ export const OrgAnnouncementsSection: React.FC<OrgAnnouncementsSectionProps> = (
   useEffect(() => {
     void load();
   }, [load]);
+
+  // Wave 4: the audience count follows the picker — followers from
+  // the followers store, members/staff from the membership roll,
+  // counted with the same predicate receivers resolve with.
+  useEffect(() => {
+    if (!isTrustee) return;
+    let live = true;
+    setAudience(null);
+    void fetchBroadcastAudienceCount(
+      orgId,
+      audienceChoice,
+      audienceChoice === 'staff' && staffRole ? staffRole : undefined,
+    ).then((n) => {
+      if (live) setAudience(n);
+    });
+    return () => {
+      live = false;
+    };
+  }, [orgId, isTrustee, audienceChoice, staffRole]);
 
   // Nothing to show a visitor until the org has actually announced —
   // and trustees always see their desk.
@@ -130,6 +167,10 @@ export const OrgAnnouncementsSection: React.FC<OrgAnnouncementsSectionProps> = (
         return T('orgbroadcast_err_title_long', `Headline is too long (max ${BROADCAST_TITLE_MAX} characters).`, `শিরোনাম খুব লম্বা (সর্বোচ্চ ${BROADCAST_TITLE_MAX} অক্ষর)।`, `शीर्षक बहुत लंबा है (अधिकतम ${BROADCAST_TITLE_MAX} अक्षर)।`);
       case 'body_too_long':
         return T('orgbroadcast_err_body_long', `Message is too long (max ${BROADCAST_BODY_MAX} characters).`, `বার্তা খুব লম্বা (সর্বোচ্চ ${BROADCAST_BODY_MAX} অক্ষর)।`, `संदेश बहुत लंबा है (अधिकतम ${BROADCAST_BODY_MAX} अक्षर)।`);
+      case 'audience_invalid':
+        return T('orgbroadcast_err_audience', 'Please choose who should receive this announcement.', 'কে এই ঘোষণা পাবেন তা বেছে নিন।', 'कृपया चुनें कि यह घोषणा किसे मिले।');
+      case 'audience_role_mismatch':
+        return T('orgbroadcast_err_audience_role', 'A specific role can only be chosen for a staff announcement.', 'নির্দিষ্ট ভূমিকা শুধু কর্মীদের ঘোষণার জন্য বেছে নেওয়া যায়।', 'विशिष्ट भूमिका केवल कर्मचारी घोषणा के लिए चुनी जा सकती है।');
       default:
         return T('orgbroadcast_err_generic', 'Could not publish. Please try again.', 'প্রকাশ করা যায়নি। আবার চেষ্টা করুন।', 'प्रकाशित नहीं हो सका। फिर से प्रयास करें।');
     }
@@ -137,7 +178,12 @@ export const OrgAnnouncementsSection: React.FC<OrgAnnouncementsSectionProps> = (
 
   const handlePublish = async () => {
     if (!firebaseUser || publishing) return;
-    const err = validateBroadcastInput({ title, body });
+    const err = validateBroadcastInput({
+      title,
+      body,
+      audience: audienceChoice,
+      audienceRole: audienceChoice === 'staff' ? staffRole : undefined,
+    });
     if (err) {
       setFormError(errorCopy(err));
       return;
@@ -159,6 +205,8 @@ export const OrgAnnouncementsSection: React.FC<OrgAnnouncementsSectionProps> = (
         body,
         createdBy: firebaseUser.uid,
         createdByName: firebaseUser.displayName || 'Trustee',
+        audience: audienceChoice,
+        audienceRole: audienceChoice === 'staff' && staffRole ? staffRole : undefined,
       });
       setHistory((h) => [published, ...h]);
       setAudience(published.audienceCount);
@@ -167,12 +215,26 @@ export const OrgAnnouncementsSection: React.FC<OrgAnnouncementsSectionProps> = (
       setTitle('');
       setBody('');
       showToast(
-        T(
-          'orgbroadcast_sent',
-          `Announcement published — ${published.audienceCount} followers will receive it in their Suchana inbox when they next open the app.`,
-          `ঘোষণা প্রকাশিত হয়েছে — ${published.audienceCount} অনুসারী পরেরবার অ্যাপ খুললে তাদের সূচনা ইনবক্সে এটি পাবেন।`,
-          `घोषणा प्रकाशित हुई — ${published.audienceCount} अनुयायी अगली बार ऐप खोलने पर अपने सूचना इनबॉक्स में इसे पाएंगे।`,
-        ),
+        audienceChoice === 'members'
+          ? T(
+              'orgbroadcast_sent_members',
+              `Announcement published — ${published.audienceCount} members will receive it in their Suchana inbox when they next open the app.`,
+              `ঘোষণা প্রকাশিত হয়েছে — ${published.audienceCount} সদস্য পরেরবার অ্যাপ খুললে তাদের সূচনা ইনবক্সে এটি পাবেন।`,
+              `घोषणा प्रकाशित हुई — ${published.audienceCount} सदस्य अगली बार ऐप खोलने पर अपने सूचना इनबॉक्स में इसे पाएंगे।`,
+            )
+          : audienceChoice === 'staff'
+            ? T(
+                'orgbroadcast_sent_staff',
+                `Announcement published — ${published.audienceCount} staff will receive it in their Suchana inbox when they next open the app.`,
+                `ঘোষণা প্রকাশিত হয়েছে — ${published.audienceCount} কর্মী পরেরবার অ্যাপ খুললে তাদের সূচনা ইনবক্সে এটি পাবেন।`,
+                `घोषणा प्रकाशित हुई — ${published.audienceCount} कर्मचारी अगली बार ऐप खोलने पर अपने सूचना इनबॉक्स में इसे पाएंगे।`,
+              )
+            : T(
+                'orgbroadcast_sent',
+                `Announcement published — ${published.audienceCount} followers will receive it in their Suchana inbox when they next open the app.`,
+                `ঘোষণা প্রকাশিত হয়েছে — ${published.audienceCount} অনুসারী পরেরবার অ্যাপ খুললে তাদের সূচনা ইনবক্সে এটি পাবেন।`,
+                `घोषणा प्रकाशित हुई — ${published.audienceCount} अनुयायी अगली बार ऐप खोलने पर अपने सूचना इनबॉक्स में इसे पाएंगे।`,
+              ),
         'success',
       );
     } catch {
@@ -193,16 +255,84 @@ export const OrgAnnouncementsSection: React.FC<OrgAnnouncementsSectionProps> = (
 
       {isTrustee && (
         <div className="mb-5 bg-amber-50/60 border border-amber-100 rounded-2xl p-4 space-y-3">
+          <div>
+            <p className="text-[11px] font-black uppercase tracking-widest text-stone-500 mb-1.5">
+              {T('orgbroadcast_audience_label', 'Who should receive this?', 'কে এটি পাবেন?', 'इसे कौन पाए?')}
+            </p>
+            <div className="flex flex-wrap gap-2" role="radiogroup" aria-label={T('orgbroadcast_audience_label', 'Who should receive this?', 'কে এটি পাবেন?', 'इसे कौन पाए?')}>
+              {(
+                [
+                  ['followers', 'orgbroadcast_aud_followers', 'Followers', 'অনুসারী', 'अनुयायी'],
+                  ['members', 'orgbroadcast_aud_members', 'Members', 'সদস্য', 'सदस्य'],
+                  ['staff', 'orgbroadcast_aud_staff', 'Staff', 'কর্মী', 'कर्मचारी'],
+                ] as Array<[BroadcastAudience, string, string, string, string]>
+              ).map(([value, key, en, bn, hi]) => (
+                <button
+                  key={value}
+                  type="button"
+                  role="radio"
+                  aria-checked={audienceChoice === value}
+                  onClick={() => {
+                    setAudienceChoice(value);
+                    setCapArmed(false);
+                  }}
+                  className={`px-4 py-2 min-h-[44px] rounded-xl text-xs font-black border transition-all cursor-pointer ${
+                    audienceChoice === value
+                      ? 'bg-amber-600 text-white border-amber-600 shadow'
+                      : 'bg-white text-stone-600 border-stone-200 hover:border-amber-400'
+                  }`}
+                >
+                  {T(key, en, bn, hi)}
+                </button>
+              ))}
+            </div>
+            {audienceChoice === 'staff' && (
+              <select
+                value={staffRole}
+                onChange={(e) => setStaffRole(e.target.value)}
+                aria-label={T('orgbroadcast_staff_role_label', 'Which staff role?', 'কোন কর্মী ভূমিকা?', 'कौन सी कर्मचारी भूमिका?')}
+                className="mt-2 w-full sm:w-auto bg-white border border-stone-200 rounded-xl px-3 py-2.5 min-h-[44px] text-sm text-stone-900 focus:outline-none focus:border-amber-500"
+              >
+                <option value="">{T('orgbroadcast_staff_any', 'All staff', 'সকল কর্মী', 'सभी कर्मचारी')}</option>
+                {BROADCAST_STAFF_ROLES.map((r) => (
+                  <option key={r} value={r}>
+                    {r}
+                  </option>
+                ))}
+              </select>
+            )}
+          </div>
           <p className="text-xs text-stone-500 flex items-center gap-1.5">
             <Users size={14} className="text-amber-700 shrink-0" />
             {audience === null
-              ? T('orgbroadcast_audience_loading', 'Counting your followers…', 'আপনার অনুসারী গণনা হচ্ছে…', 'आपके अनुयायी गिने जा रहे हैं…')
-              : T(
-                  'orgbroadcast_audience',
-                  `Your ${audience} followers receive each announcement when they next open the app 🔔`,
-                  `আপনার ${audience} অনুসারী পরেরবার অ্যাপ খুললে প্রতিটি ঘোষণা পাবেন 🔔`,
-                  `आपके ${audience} अनुयायी अगली बार ऐप खोलने पर प्रत्येक घोषणा पाएंगे 🔔`,
-                )}
+              ? T('orgbroadcast_audience_loading', 'Counting who will receive this…', 'কারা এটি পাবেন গণনা হচ্ছে…', 'इसे कौन पाएंगे, गिना जा रहा है…')
+              : audienceChoice === 'members'
+                ? T(
+                    'orgbroadcast_audience_members',
+                    `Your ${audience} members receive this when they next open the app — followers who are not members will not 🔔`,
+                    `আপনার ${audience} সদস্য পরেরবার অ্যাপ খুললে এটি পাবেন — যারা সদস্য নন এমন অনুসারীরা পাবেন না 🔔`,
+                    `आपके ${audience} सदस्य अगली बार ऐप खोलने पर इसे पाएंगे — जो अनुयायी सदस्य नहीं हैं, वे नहीं पाएंगे 🔔`,
+                  )
+                : audienceChoice === 'staff'
+                  ? staffRole
+                    ? T(
+                        'orgbroadcast_audience_staff_role',
+                        `Your ${audience} ${staffRole} staff receive this when they next open the app 🔔`,
+                        `আপনার ${audience} জন ${staffRole} কর্মী পরেরবার অ্যাপ খুললে এটি পাবেন 🔔`,
+                        `आपके ${audience} ${staffRole} कर्मचारी अगली बार ऐप खोलने पर इसे पाएंगे 🔔`,
+                      )
+                    : T(
+                        'orgbroadcast_audience_staff',
+                        `Your ${audience} staff receive this when they next open the app 🔔`,
+                        `আপনার ${audience} কর্মী পরেরবার অ্যাপ খুললে এটি পাবেন 🔔`,
+                        `आपके ${audience} कर्मचारी अगली बार ऐप खोलने पर इसे पाएंगे 🔔`,
+                      )
+                  : T(
+                      'orgbroadcast_audience',
+                      `Your ${audience} followers receive each announcement when they next open the app 🔔`,
+                      `আপনার ${audience} অনুসারী পরেরবার অ্যাপ খুললে প্রতিটি ঘোষণা পাবেন 🔔`,
+                      `आपके ${audience} अनुयायी अगली बार ऐप खोलने पर प्रत्येक घोषणा पाएंगे 🔔`,
+                    )}
           </p>
           <div>
             <input
@@ -227,7 +357,7 @@ export const OrgAnnouncementsSection: React.FC<OrgAnnouncementsSectionProps> = (
               }}
               rows={3}
               maxLength={BROADCAST_BODY_MAX + 20}
-              placeholder={T('orgbroadcast_body_ph', 'Your message to devotees (optional)…', 'ভক্তদের জন্য আপনার বার্তা (ঐচ্ছিক)…', 'भक्तों के लिए आपका संदेश (वैकल्पिक)…')}
+              placeholder={T('orgbroadcast_body_ph', 'Your message (optional)…', 'আপনার বার্তা (ঐচ্ছিক)…', 'आपका संदेश (वैकल्पिक)…')}
               className="w-full bg-white border border-stone-200 rounded-xl px-3 py-2.5 text-sm text-stone-900 focus:outline-none focus:border-amber-500"
               aria-label={T('orgbroadcast_body_label', 'Announcement message', 'ঘোষণার বার্তা', 'घोषणा संदेश')}
             />
@@ -256,9 +386,9 @@ export const OrgAnnouncementsSection: React.FC<OrgAnnouncementsSectionProps> = (
           <p className="text-[11px] text-stone-400 leading-relaxed">
             {T(
               'orgbroadcast_delivery_note',
-              'Followers receive this in their Suchana inbox when they next open the app. There is no SMS or WhatsApp charge — announcements stay inside Sanatani Bandhan.',
-              'অনুসারীরা পরেরবার অ্যাপ খুললে তাদের সূচনা ইনবক্সে এটি পাবেন। SMS বা WhatsApp-এর কোনো খরচ নেই — ঘোষণা সনাতনী বন্ধনের ভিতরেই থাকে।',
-              'अनुयायी अगली बार ऐप खोलने पर अपने सूचना इनबॉक्स में इसे पाएंगे। SMS या WhatsApp का कोई शुल्क नहीं — घोषणाएं सनातनी बंधन के भीतर ही रहती हैं।',
+              'The audience you choose receives this in their Suchana inbox when they next open the app. There is no SMS or WhatsApp charge — announcements stay inside Sanatani Bandhan.',
+              'আপনার বেছে নেওয়া শ্রোতারা পরেরবার অ্যাপ খুললে তাদের সূচনা ইনবক্সে এটি পাবেন। SMS বা WhatsApp-এর কোনো খরচ নেই — ঘোষণা সনাতনী বন্ধনের ভিতরেই থাকে।',
+              'आपके चुने हुए श्रोता अगली बार ऐप खोलने पर अपने सूचना इनबॉक्स में इसे पाएंगे। SMS या WhatsApp का कोई शुल्क नहीं — घोषणाएं सनातनी बंधन के भीतर ही रहती हैं।',
             )}
           </p>
         </div>

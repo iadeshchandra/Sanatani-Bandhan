@@ -29,6 +29,66 @@
 /* ------------------------------------------------------------------ */
 
 /** One published org broadcast (a doc in `orgBroadcasts`). */
+/**
+ * NOTIFICATION WAVE 4 — the audience a broadcast is ADDRESSED to
+ * (DESIGN law L1: role is the address). Absent on a doc == the
+ * legacy 'followers' audience, byte-for-byte the pre-Wave-4
+ * behaviour. 'members' = the org's enrolled members (a
+ * workspaceMembers edge); 'staff' = members holding a staff role,
+ * optionally narrowed to one role via `audienceRole`.
+ */
+export type BroadcastAudience = 'followers' | 'members' | 'staff';
+
+export const BROADCAST_AUDIENCES: readonly BroadcastAudience[] = ['followers', 'members', 'staff'];
+
+/** The staff roles the composer may narrow a staff broadcast to
+ *  (canonical workspace roles; legacy spellings on old edges are
+ *  normalised by `normalizeBroadcastRole` before comparison). */
+export const BROADCAST_STAFF_ROLES: readonly string[] = [
+  'Trustee', 'Accountant', 'Priest', 'Sevadar', 'CSO', 'Auditor', 'SuperAdmin',
+];
+
+const BROADCAST_ROLE_ALIASES: Record<string, string> = {
+  SUPERADMIN: 'SUPERADMIN',
+  TRUSTEE: 'TRUSTEE',
+  ACCOUNTANT: 'ACCOUNTANT',
+  PRIEST: 'PRIEST',
+  SEVADAR: 'SEVADAR',
+  MANAGER: 'SEVADAR',
+  VOLUNTEER: 'SEVADAR',
+  CSO: 'CSO',
+  AUDITOR: 'AUDITOR',
+  DEVOTEE: 'DEVOTEE',
+};
+
+const BROADCAST_STAFF_SET: ReadonlySet<string> = new Set([
+  'SUPERADMIN', 'TRUSTEE', 'ACCOUNTANT', 'PRIEST', 'SEVADAR', 'CSO', 'AUDITOR',
+]);
+
+/**
+ * Normalise a workspaceMembers edge role (any historical spelling)
+ * to the comparison form used by the audience gates. Unknown or
+ * unreadable roles normalise to '' — which is never staff and
+ * never matches a named role (fail-closed).
+ */
+export function normalizeBroadcastRole(role: unknown): string {
+  if (typeof role !== 'string') return '';
+  const key = role.trim().toUpperCase().replace(/[\s_]+/g, '');
+  if (!key) return '';
+  return BROADCAST_ROLE_ALIASES[key] ?? key;
+}
+
+/** True when an edge role is a staff role (any staff desk). */
+export function isStaffBroadcastRole(role: unknown): boolean {
+  return BROADCAST_STAFF_SET.has(normalizeBroadcastRole(role));
+}
+
+/** True when an edge role IS the wanted role (alias-safe). */
+export function broadcastRoleMatches(role: unknown, wanted: string): boolean {
+  const mine = normalizeBroadcastRole(role);
+  return mine !== '' && mine === normalizeBroadcastRole(wanted);
+}
+
 export interface OrgBroadcast {
   id: string;
   orgId: string;
@@ -42,6 +102,10 @@ export interface OrgBroadcast {
   audienceCount: number;
   /** Epoch ms (client clock, matching the codebase's now() convention). */
   createdAt: number;
+  /** Wave 4 addressing. Optional: absent == 'followers' (legacy). */
+  audience?: BroadcastAudience;
+  /** Wave 4: the staff role a 'staff' broadcast is narrowed to. */
+  audienceRole?: string;
 }
 
 /** The exact field set written to Firestore — whitelist, nothing else. */
@@ -133,18 +197,31 @@ export function composerCapNotice(countToday: number): { needsConfirm: boolean; 
  * Validate trustee composer input. Returns a stable error code or null.
  * Codes (not prose) so the UI can render trilingual copy.
  */
-export function validateBroadcastInput(input: { title: string; body?: string }): string | null {
+export function validateBroadcastInput(input: {
+  title: string;
+  body?: string;
+  audience?: string;
+  audienceRole?: string;
+}): string | null {
   const title = (input.title ?? '').trim();
   const body = (input.body ?? '').trim();
   if (title.length === 0) return 'title_required';
   if (title.length > BROADCAST_TITLE_MAX) return 'title_too_long';
   if (body.length > BROADCAST_BODY_MAX) return 'body_too_long';
+  // Wave 4 addressing (mirrors the rules-side enum exactly).
+  const audience = input.audience ?? 'followers';
+  if (audience !== 'followers' && audience !== 'members' && audience !== 'staff') {
+    return 'audience_invalid';
+  }
+  const role = (input.audienceRole ?? '').trim();
+  if (role && audience !== 'staff') return 'audience_role_mismatch';
   return null;
 }
 
 /**
  * Build the exact Firestore doc for a broadcast. Whitelist-exact: no
- * undefined values, no extra keys (the proposed rules pin this key set).
+ * undefined values, no extra keys (the rules pin this key set — the
+ * base eight plus Wave 4's optional 'audience' / 'audienceRole').
  * Throws on invalid input — callers validate first for friendly errors.
  */
 export function buildBroadcastDoc(args: {
@@ -156,12 +233,20 @@ export function buildBroadcastDoc(args: {
   createdByName: string;
   audienceCount: number;
   createdAt: number;
+  audience?: BroadcastAudience;
+  audienceRole?: string;
 }): OrgBroadcastDoc {
-  const err = validateBroadcastInput({ title: args.title, body: args.body });
+  const err = validateBroadcastInput({
+    title: args.title,
+    body: args.body,
+    audience: args.audience,
+    audienceRole: args.audienceRole,
+  });
   if (err) throw new Error(`Invalid broadcast: ${err}`);
   if (!args.orgId) throw new Error('Invalid broadcast: org_required');
   if (!args.createdBy) throw new Error('Invalid broadcast: author_required');
-  return {
+  const audience: BroadcastAudience = args.audience ?? 'followers';
+  const doc: OrgBroadcastDoc = {
     orgId: args.orgId,
     orgName: args.orgName ?? '',
     title: args.title.trim(),
@@ -170,7 +255,13 @@ export function buildBroadcastDoc(args: {
     createdByName: args.createdByName ?? '',
     audienceCount: Math.max(0, Math.floor(args.audienceCount) || 0),
     createdAt: args.createdAt,
+    audience,
   };
+  // The role rides ONLY on a staff broadcast (the rules refuse it
+  // anywhere else); an empty role means "any staff".
+  const role = (args.audienceRole ?? '').trim();
+  if (audience === 'staff' && role) doc.audienceRole = role;
+  return doc;
 }
 
 /* ------------------------------------------------------------------ */
@@ -227,15 +318,19 @@ export interface PickResult {
  * Decide what a watcher check should do.
  *
  * Laws:
- *  - Only broadcasts from followed orgs are candidates at all.
+ *  - Candidates are broadcasts ADDRESSED to me (Wave 4): a followers
+ *    broadcast needs my follow edge; a members/staff broadcast needs
+ *    my own membership edge (and staff role) for that org. Anything
+ *    not addressed to me is not a candidate — not even marked seen —
+ *    and the sender never learns I was excluded (L4).
  *  - EVERY candidate is marked seen (even ones that don't notify) so
  *    history can never re-blast on the next check.
  *  - On the very first check (`baseline`), nothing notifies — the
  *    devotee's existing world is a baseline, not a backlog (same law as
  *    socialNotify's initial snapshots).
  *  - A broadcast notifies only when it is fresh (within RECENCY), was
- *    published after the devotee followed the org (small grace), and was
- *    not seen before.
+ *    published after the devotee followed the org (small grace —
+ *    followers audience only), and was not seen before.
  *  - At most MAX_NOTIFY_PER_CHECK bells, oldest first; overflow is
  *    marked seen without a bell (better silent than a flood).
  */
@@ -253,6 +348,17 @@ export function pickNotifications(args: {
    * in the org's public announcements). Omit for the uncapped pick.
    */
   dayCounts?: Record<string, number>;
+  /**
+   * NOTIFICATION WAVE 4: MY OWN membership edges, orgId → my role
+   * on that org's workspaceMembers roll (receiver-side resolution,
+   * law L4 — resolved from my own readable edge, never from any
+   * sender-side list). 'members' broadcasts candidate on the edge
+   * existing at all; 'staff' broadcasts on my edge carrying a
+   * staff role (and the named role, when the sender narrowed it).
+   * Omit and members/staff broadcasts simply never candidate —
+   * the followers path is untouched.
+   */
+  memberships?: Record<string, string>;
 }): PickResult {
   const followByOrg = new Map(args.follows.map((f) => [f.orgId, f.followedAt]));
   const markSeen: Record<string, number> = {};
@@ -260,15 +366,29 @@ export function pickNotifications(args: {
 
   for (const b of args.broadcasts ?? []) {
     if (!b || typeof b.id !== 'string' || typeof b.orgId !== 'string') continue;
+    const audience: BroadcastAudience =
+      b.audience === 'members' || b.audience === 'staff' ? b.audience : 'followers';
     const followedAt = followByOrg.get(b.orgId);
-    if (followedAt === undefined) continue; // not my org — not a candidate
+    if (audience === 'followers') {
+      if (followedAt === undefined) continue; // not my org — not a candidate
+    } else {
+      // Members/staff addressing resolves against MY OWN edge.
+      const myRole = args.memberships?.[b.orgId];
+      if (myRole === undefined) continue; // not a member — not a candidate
+      if (audience === 'staff') {
+        if (!isStaffBroadcastRole(myRole)) continue; // a devotee edge is not staff
+        if (b.audienceRole && !broadcastRoleMatches(myRole, b.audienceRole)) continue;
+      }
+    }
     markSeen[b.id] = b.createdAt;
     if (args.baseline) continue;
     if (args.seen && args.seen[b.id] !== undefined) continue;
     if (typeof b.createdAt !== 'number' || !Number.isFinite(b.createdAt)) continue;
     if (b.createdAt < args.now - BROADCAST_RECENCY_MS) continue; // too old
     if (b.createdAt > args.now + FOLLOW_GRACE_MS) continue; // future/clock skew
-    if (b.createdAt < followedAt - FOLLOW_GRACE_MS) continue; // before I followed
+    // The follow-time gate belongs to the followers audience alone:
+    // a member's enrolment is the address, not a follow timestamp.
+    if (audience === 'followers' && followedAt !== undefined && b.createdAt < followedAt - FOLLOW_GRACE_MS) continue; // before I followed
     eligible.push(b);
   }
 

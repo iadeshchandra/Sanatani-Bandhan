@@ -230,6 +230,7 @@ describe('tab classification is exhaustive', () => {
       expect(ADMIN_TABS.includes(tab)).toBe(true);
     }
     // J3 (2026-11-01): +1 — the Margdarshan Suggestions triage tab.
-    expect(GODMODE_TAB_IDS.length).toBe(23); // 21 legacy tabs + admins + suggestions
+    // NOTIFICATION WAVE 4 (2026-11-24): +1 — the platform Notices desk.
+    expect(GODMODE_TAB_IDS.length).toBe(24); // 21 legacy tabs + admins + suggestions + notices
   });
 });
