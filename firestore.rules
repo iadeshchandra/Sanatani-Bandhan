@@ -1550,6 +1550,10 @@ service cloud.firestore {
     // notice freezes once published and the outcome once accepted;
     // registrations / objections / affixtures never shrink and
     // registrations are capped at 100 (the bounded-array decision).
+    function lotTxFrozen(o, d, k) {
+      return o.settlement.get(k, '') == ''
+        || d.settlement.get(k, '') == o.settlement.get(k, '');
+    }
     function lotCreateOk() {
       let d = reqData();
       return d.status == 'draft'
@@ -1557,7 +1561,9 @@ service cloud.firestore {
         && d.title is string && d.title.size() > 0 && d.title.size() <= 120
         && d.reservePrice is number && d.reservePrice >= 0
         && d.registrations is list && d.registrations.size() == 0
-        && reqKeys().hasOnly(['workspaceId', 'source', 'lotClass', 'title', 'description', 'mediaRefs', 'reservePrice', 'valuationBasis', 'sanction', 'leaseTermYears', 'status', 'history', 'notice', 'affixtures', 'objections', 'registrations', 'outcome', 'settlement', 'failReason', 'createdAt', 'updatedAt']);
+        && tkNewGet('lotMode', 'hall') in ['hall', 'sealed']
+        && tkNewGet('bidderUids', []) == []
+        && reqKeys().hasOnly(['workspaceId', 'source', 'lotClass', 'title', 'description', 'mediaRefs', 'reservePrice', 'valuationBasis', 'sanction', 'leaseTermYears', 'status', 'history', 'notice', 'affixtures', 'objections', 'registrations', 'outcome', 'settlement', 'failReason', 'createdAt', 'updatedAt', 'lotMode', 'bidderUids']);
     }
     function lotUpdateOk() {
       let os = resData().status;
@@ -1578,22 +1584,86 @@ service cloud.firestore {
         && (!(ns in ['noticed', 'open', 'accepted', 'settled'])
           || !((d.lotClass == 'immovable-sale' || (d.leaseTermYears is number && d.leaseTermYears > 5))
             && !(d.sanction is map && d.sanction.get('authority', '') != '' && d.sanction.get('reference', '') != '')))
-        && (o.settlement.get('depositTxId', '') == ''
-          || d.settlement.get('depositTxId', '') == o.settlement.get('depositTxId', ''))
-        && (o.settlement.get('balanceTxId', '') == ''
-          || d.settlement.get('balanceTxId', '') == o.settlement.get('balanceTxId', ''))
+        && (lotTxFrozen(o, d, 'depositTxId'))
+        && (lotTxFrozen(o, d, 'balanceTxId'))
         && (!(os in ['accepted', 'settled']) || d.outcome == o.outcome)
         && (!(os in ['noticed', 'open', 'accepted', 'settled']) || d.notice == o.notice)
+        && tkNewGet('lotMode', 'hall') == tkOldGet('lotMode', 'hall')
+        && tkNewGet('bidderUids', []).size() >= tkOldGet('bidderUids', []).size()
         && d.registrations.size() >= o.registrations.size()
         && d.registrations.size() <= 100
         && d.objections.size() >= o.objections.size()
         && d.affixtures.size() >= o.affixtures.size();
     }
+    function lotWriteGate(ws) {
+      return demoWriteOk(ws) || hasRole(ws, R_BOARD()) || hasRole(ws, R_FINANCE());
+    }
     match /auction_lots/{lotId} {
       allow read: if isSuperAdmin() || hasRole(docWs(), R_ANY_STAFF()) || demoPublicRead(docWs());
-      allow create: if (demoWriteOk(newDocWs()) || hasRole(newDocWs(), R_BOARD()) || hasRole(newDocWs(), R_FINANCE())) && lotCreateOk();
-      allow update: if (demoWriteOk(newDocWs()) || hasRole(newDocWs(), R_BOARD()) || hasRole(newDocWs(), R_FINANCE())) && lotUpdateOk();
+      allow create: if (lotWriteGate(newDocWs())) && lotCreateOk();
+      allow update: if (lotWriteGate(newDocWs())) && lotUpdateOk();
       allow delete: if false;
+
+      // AUCTION A2 — sealed bids, one doc per bidder (the doc id
+      // IS the bidder's uid: a second live bid is impossible by
+      // construction, and replace/withdraw are the bidder's own
+      // writes on that one doc). Before the lot's stored close
+      // clock — the notice's auctionAt, frozen with the notice so
+      // the deadline cannot be quietly moved (the Sabarimala
+      // lesson) — a bid answers ONLY to its own bidder: not other
+      // bidders, not the committee, not staff. After the close,
+      // the lot's board/finance roles may read them: the opening.
+      // "Sealed" means exactly this — hidden until the opening
+      // moment; no cryptographic sealing is claimed or run.
+      match /bids/{bidId} {
+        allow read: if isSuperAdmin() || uidIs(tkOldGet('bidderUid', '')) || bidReadOk(lotId);
+        allow create: if isLoggedIn() && bidCreateOk(lotId, bidId);
+        allow update: if bidOwnWindowOk(lotId) && tkDiff(['amount', 'updatedAt'])
+          && tkNewGet('amount', 0) > 0;
+        allow delete: if bidOwnWindowOk(lotId);
+      }
+    }
+    function lotPath(lotId) {
+      return /databases/$(database)/documents/auction_lots/$(lotId);
+    }
+    function lotCloseOf(l) {
+      return l.get('notice', {}).get('auctionAt', 0);
+    }
+    // The sealed window stands open only while the lot is 'open',
+    // sealed-mode, and the close clock has not passed. A lot with
+    // no notice carries auctionAt 0, and no request time is < 0 —
+    // the window can never stand open on an unnoticed lot.
+    function lotSealedWindowOpen(l) {
+      return l.get('status', '') == 'open'
+        && l.get('lotMode', 'hall') == 'sealed'
+        && request.time.toMillis() < lotCloseOf(l);
+    }
+    function bidCreateOk(lotId, bidId) {
+      let l = docData(lotPath(lotId));
+      return bidId == request.auth.uid
+        && uidIs(tkNewGet('bidderUid', ''))
+        && lotSealedWindowOpen(l)
+        && (request.auth.uid in l.get('bidderUids', [])
+            || demoWriteOk(l.get('workspaceId', '')))
+        && tkNewGet('amount', 0) > 0
+        && reqKeys().hasOnly(['bidderUid', 'amount', 'createdAt', 'updatedAt']);
+    }
+    // Replace + withdraw share one head: the bid's own bidder,
+    // while the window still stands. After the close both are
+    // refused — a sealed bid is irrevocable once the window shuts.
+    function bidOwnWindowOk(lotId) {
+      return uidIs(tkOldGet('bidderUid', ''))
+        && lotSealedWindowOpen(docData(lotPath(lotId)));
+    }
+    // The committee's first lawful look: the close clock has
+    // passed on a lot that carries one.
+    function bidReadOk(lotId) {
+      let l = docData(lotPath(lotId));
+      return lotCloseOf(l) > 0
+        && request.time.toMillis() >= lotCloseOf(l)
+        && (hasRole(l.get('workspaceId', ''), R_BOARD())
+            || hasRole(l.get('workspaceId', ''), R_FINANCE())
+            || demoPublicRead(l.get('workspaceId', '')));
     }
 
 
@@ -2744,11 +2814,14 @@ service cloud.firestore {
     // votes were rules-denied while any trustee anywhere could
     // rewrite any org's polls, and every signed-in user could read
     // every poll including the full votedUsers map.
+    function pollPath(pollId) {
+      return /databases/$(database)/documents/polls/$(pollId);
+    }
     function pollWs(pollId) {
-      return docGet(/databases/$(database)/documents/polls/$(pollId), 'workspaceId', null);
+      return docGet(pollPath(pollId), 'workspaceId', null);
     }
     function pollAudience(pollId) {
-      return docGet(/databases/$(database)/documents/polls/$(pollId), 'targetAudience', 'ALL_MEMBERS');
+      return docGet(pollPath(pollId), 'targetAudience', 'ALL_MEMBERS');
     }
     function pollCommittee(ws) {
       return hasRole(ws, R_BOARD());
@@ -2761,12 +2834,15 @@ service cloud.firestore {
       return data.get('totalVotes', data.get('votedUsers', {}).size());
     }
     function pollKindOf(pollId) {
-      return docGet(/databases/$(database)/documents/polls/$(pollId), 'kind', 'choice');
+      return docGet(pollPath(pollId), 'kind', 'choice');
     }
     // POLLS NEXT-LEVEL P2b: the REAL option count. The option
     // ceiling counts real options only — the reserved abstain
     // entry (pre-P2b polls carry it inside the options map) never
     // consumes one of the slots.
+    function pollVisOk() {
+      return tkNewGet('resultVisibility', 'afterVote') in ['live', 'afterVote', 'afterClose', 'committee'];
+    }
     function pollRealOptionCount(opts) {
       return opts.size() - (opts.keys().hasAny(['abstain']) ? 1 : 0);
     }
@@ -2775,7 +2851,7 @@ service cloud.firestore {
     // secrecy choice is frozen at launch — exactly like kind and
     // resultVisibility above.
     function pollBallotNamed(pollId) {
-      return docGet(/databases/$(database)/documents/polls/$(pollId), 'ballot', 'secret') == 'named';
+      return docGet(pollPath(pollId), 'ballot', 'secret') == 'named';
     }
     // POLLS NEXT-LEVEL P3 — one entry of a points ballot: a map
     // naming one of the poll's own options (treasury heads) and an
@@ -2784,9 +2860,12 @@ service cloud.firestore {
     // for a loop, the pollMultiVoteAnchorOk idiom). Keys beyond
     // optionId/points inside an entry are inert — the counter
     // reads those two fields only — so they are not pinned.
+    function pollOptKeys(pdata) {
+      return pdata.get('options', {}).keys();
+    }
     function pollAllocOk(pdata, allocs, i) {
       return i >= allocs.size()
-        || (allocs[i].get('optionId', '') in pdata.get('options', {}).keys()
+        || (allocs[i].get('optionId', '') in pollOptKeys(pdata)
             && allocs[i].get('points', -1) is int
             && allocs[i].get('points', -1) >= 0
             && allocs[i].get('points', -1) <= 100);
@@ -2796,8 +2875,11 @@ service cloud.firestore {
     function pollAllocPts(allocs, i) {
       return i < allocs.size() ? allocs[i].get('points', 0) : 0;
     }
+    function pollKeys(k) {
+      return reqKeys().hasOnly([k, 'votedAt']);
+    }
     function pollBallotOk(pollId) {
-      let pdata = docData(/databases/$(database)/documents/polls/$(pollId));
+      let pdata = docData(pollPath(pollId));
       let kind = pdata.get('kind', 'choice');
       let ranking = tkNewGet('ranking', []);
       let allocs = tkNewGet('allocations', []);
@@ -2814,21 +2896,21 @@ service cloud.firestore {
         // ballot (one proposed slot picked) — same branch, same
         // anchor; the slot's moment rides the option entry itself.
         && (((kind == 'choice' || kind == 'time')
-              && (tkNewGet('optionId', '') in pdata.get('options', {}).keys())
-              && reqKeys().hasOnly(['optionId', 'votedAt']))
+              && (tkNewGet('optionId', '') in pollOptKeys(pdata))
+              && pollKeys('optionId'))
           || (kind == 'multi'
               && reqOptionIds() is list
               && reqOptionIds().size() >= 1
               && reqOptionIds().size() <= 5
-              && pdata.get('options', {}).keys().hasAll(reqOptionIds())
+              && pollOptKeys(pdata).hasAll(reqOptionIds())
               && (!('abstain' in reqOptionIds())
                   || reqOptionIds().size() == 1)
-              && reqKeys().hasOnly(['optionIds', 'votedAt']))
+              && pollKeys('optionIds'))
           || (kind == 'text'
               && reqText() is string
               && reqText().size() >= 1
               && reqText().size() <= 280
-              && reqKeys().hasOnly(['text', 'votedAt']))
+              && pollKeys('text'))
           // POLLS NEXT-LEVEL P3: the ranked ballot — an ordered
           // list of the poll's own options. No counter can carry a
           // ranking, so the count happens at conclusion from the
@@ -2841,9 +2923,9 @@ service cloud.firestore {
               && ranking is list
               && ranking.size() >= 1
               && ranking.size() <= 8
-              && pdata.get('options', {}).keys().hasAll(ranking)
+              && pollOptKeys(pdata).hasAll(ranking)
               && !('abstain' in ranking)
-              && reqKeys().hasOnly(['ranking', 'votedAt']))
+              && pollKeys('ranking'))
           // POLLS NEXT-LEVEL P3: the points ballot — the voter
           // distributes EXACTLY 100 points across the poll's heads.
           // Per-entry shapes first (pollAllocOk, bounded indices),
@@ -2865,7 +2947,7 @@ service cloud.firestore {
                   + pollAllocPts(allocs, 2) + pollAllocPts(allocs, 3)
                   + pollAllocPts(allocs, 4) + pollAllocPts(allocs, 5)
                   + pollAllocPts(allocs, 6) + pollAllocPts(allocs, 7)) == 100
-              && reqKeys().hasOnly(['allocations', 'votedAt']))
+              && pollKeys('allocations'))
           // POLLS NEXT-LEVEL P2b: the abstention is its own ballot
           // shape — a first-class choice OUTSIDE the option list,
           // accepted only on polls whose creator enabled it
@@ -2875,7 +2957,7 @@ service cloud.firestore {
           || (kind != 'text'
               && tkNewGet('abstain', false) == true
               && pdata.get('allowAbstain', false) == true
-              && reqKeys().hasOnly(['abstain', 'votedAt'])));
+              && pollKeys('abstain')));
     }
     // The caller head shared by every ballot-anchored poll update
     // below (POLLS P2b: factored verbatim from the four use sites —
@@ -3012,7 +3094,7 @@ service cloud.firestore {
         && pollBaseTotal(resource.data) == 0
         && diffKeys()
              .hasOnly(['title', 'description', 'options', 'expiresAt', 'expiresAtTs', 'opensAt', 'opensAtTs', 'resultVisibility', 'allowAbstain', 'updatedAt'])
-        && tkNewGet('resultVisibility', 'afterVote') in ['live', 'afterVote', 'afterClose', 'committee']
+        && pollVisOk()
         && (tkOldGet('kind', 'choice') == 'text'
             || (pollRealOptionCount(reqOptions()) >= 2
                 && pollRealOptionCount(reqOptions()) <= 8));
@@ -3086,7 +3168,7 @@ service cloud.firestore {
             // as writable again, and resultVisibility may move only
             // through pollEditOk (zero ballots cast).
             && tkNewGet('kind', 'choice') in ['choice', 'multi', 'text', 'ranked', 'points', 'time']
-            && tkNewGet('resultVisibility', 'afterVote') in ['live', 'afterVote', 'afterClose', 'committee']
+            && pollVisOk()
             // POLLS NEXT-LEVEL P1: the Decision-grade fields, when
             // carried, must be honest shapes — the class enum, the
             // secrecy enum, and both marks non-negative (a negative
