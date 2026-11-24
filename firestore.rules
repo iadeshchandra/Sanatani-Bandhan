@@ -4662,19 +4662,56 @@ service cloud.firestore {
     // create only by a trustee of the org named in the doc, schema-pinned,
     // createdBy == caller, non-empty title; a broadcast is a sent letter --
     // no updates; delete by superadmin or the org's trustee.
+    // NOTIFICATION WAVE 4 (owner-approved 2026-11-24): OPTIONAL audience
+    // addressing — 'audience' in {'followers','members','staff'} (absent ==
+    // 'followers', the legacy behaviour) + OPTIONAL 'audienceRole' (a staff
+    // role name, only alongside audience == 'staff'). Create-side enum
+    // validation only; reads stay public and receivers resolve the
+    // audience on their own device (the sender never learns who was
+    // excluded).
     match /orgBroadcasts/{broadcastId} {
       allow read: if true;
       allow create: if isOrgTrustee(reqOrgId())
         && reqKeys().hasOnly(
           ['orgId', 'orgName', 'title', 'body', 'createdBy', 'createdByName',
-           'audienceCount', 'createdAt'])
+           'audienceCount', 'createdAt', 'audience', 'audienceRole'])
         && uidIs(tkNewGet('createdBy', ''))
         && reqTitle() != ''
         && tkNewGet('audienceCount', 0) is number
-        && tkNewGet('createdAt', 0) is number;
+        && tkNewGet('createdAt', 0) is number
+        && tkNewGet('audience', 'followers') in ['followers', 'members', 'staff']
+        && (tkNewGet('audienceRole', '') == ''
+          || tkNewGet('audience', '') == 'staff');
       allow update: if false;
       allow delete: if isSuperAdmin()
         || isOrgTrustee(tkOldGet('orgId', ''));
+    }
+
+    // --- platformNotices/{noticeId}: platform announcements from GodMode
+    // (NOTIFICATION WAVE 4 — new collection flagged to the owner and
+    // approved 2026-11-24). The platform's one voice: maintenance
+    // windows, new versions, policy changes. Read by any signed-in user
+    // (each device self-listens and rings its own Suchana once);
+    // writes are SuperAdmin-only — create is schema-pinned (title
+    // non-empty, kind enum, both ms clocks numeric), update may flip
+    // ONLY 'active' (a published notice's words are never rewritten),
+    // delete is SuperAdmin-only. No ordinary-user writes, ever.
+    // ('active' carries no is-bool check: receivers ring only on
+    // active == true exactly, so any non-bool value is inert — the
+    // fail-safe direction — and the check's tokens went to the
+    // compiled-size budget instead. See notify-w4/RULES-DELTA.md.)
+    match /platformNotices/{noticeId} {
+      allow read: if isLoggedIn();
+      allow create: if isSuperAdmin()
+        && reqKeys().hasOnly(
+          ['title', 'body', 'kind', 'createdAt', 'expiresAt', 'active'])
+        && reqTitle() != ''
+        && tkNewGet('kind', '') in ['info', 'important']
+        && tkNewGet('createdAt', 0) is number
+        && tkNewGet('expiresAt', 0) is number;
+      allow update: if isSuperAdmin()
+        && diffKeysOnly(reqData(), resource.data, ['active']);
+      allow delete: if isSuperAdmin();
     }
 
     // --- familyLinks/{uid}: family safety circles (crisis module). ---
