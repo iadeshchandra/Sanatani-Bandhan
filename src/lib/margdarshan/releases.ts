@@ -63,6 +63,15 @@ export interface ReleaseEntry {
 
 export const RELEASES: readonly ReleaseEntry[] = [
   {
+    version: 'v2026.11.24-add99b0',
+    date: '2026-11-24',
+    sections: {
+      new: [
+        { text: { en: 'Polls grow up: rank the options in your order and watch the count go round by round on the certificate; run a 100-points budget poll where everyone shows where the money should lean — the result guides the trustees, it never moves money; ask when shall we meet with real days and times, and turn the winning time into an event in one tap; and see at a glance where your house agrees and where it divides.', hi: 'मतदान और परिपक्व हुए: विकल्पों को अपने क्रम में रखें और प्रमाणपत्र पर चरण-दर-चरण गिनती देखें; 100-अंकों का बजट मतदान चलाएँ जहाँ हर कोई दिखाता है कि धन किधर झुकना चाहिए — परिणाम न्यासियों का मार्गदर्शन करता है, धन कभी नहीं हिलाता; असली दिनों और समयों के साथ पूछें कि हम कब मिलें, और जीतने वाले समय को एक टैप में कार्यक्रम बना दें; और एक नज़र में देखें कि आपका घर कहाँ एकमत है और कहाँ बँटा है।', bn: 'ভোট আরও পরিণত হলো: বিকল্পগুলো নিজের ক্রমে সাজান আর সনদে ধাপে ধাপে গণনা দেখুন; ১০০-পয়েন্টের বাজেট ভোট চালান যেখানে সবাই দেখায় অর্থ কোন দিকে ঝুঁকবে — ফলাফল অছিদের পথ দেখায়, অর্থ কখনো নাড়ায় না; আসল দিন ও সময় দিয়ে জিজ্ঞেস করুন আমরা কখন মিলব, আর জয়ী সময়টিকে এক ট্যাপে অনুষ্ঠান বানিয়ে দিন; এবং এক নজরে দেখুন আপনার ঘর কোথায় একমত আর কোথায় বিভক্ত।' } },
+      ],
+    },
+  },
+  {
     version: 'v2026.11.24-0ad5db6',
     date: '2026-11-24',
     sections: {
