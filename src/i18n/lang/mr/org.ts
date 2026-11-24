@@ -1274,6 +1274,7 @@ export const orgNs: OrgFragment = {
           approvalCancelled: "{actor} यांनी विनंती रद्द केली: {summary}",
           approvalApplied: "{summary} लागू केले गेले",
           approvalApplyFailed: "{summary} मंजूर झाले पण लागू करता आले नाही",
+          auctionBidsOpened: "शिक्कामोर्तब बोल्या उघडल्या: {summary}",
         },
         desk: {
           badge: "सुरक्षा व तपासणी नोंद",

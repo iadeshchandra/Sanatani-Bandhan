@@ -1277,6 +1277,7 @@ export const orgNs: OrgFragment = {
           accountsUnpublished: "{actor} એ {month} ના ખાતા અપ્રકાશિત કર્યા",
           approvalApplied: "{summary} લાગુ થયું",
           approvalApplyFailed: "{summary} મંજૂર થયું પણ લાગુ થઈ શક્યું નહીં",
+          auctionBidsOpened: "સીલબંધ બોલીઓ ખોલવામાં આવી: {summary}",
           approvalApproved: "{actor} એ મંજૂર કર્યું: {summary}",
           approvalCancelled: "{actor} એ વિનંતી રદ કરી: {summary}",
           approvalRejected: "{actor} એ નકાર્યું: {summary}",

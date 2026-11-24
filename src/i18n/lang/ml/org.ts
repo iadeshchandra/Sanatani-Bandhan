@@ -1274,6 +1274,7 @@ export const orgNs: OrgFragment = {
           approvalCancelled: "{actor} അഭ്യർത്ഥന റദ്ദാക്കി: {summary}",
           approvalApplied: "{summary} പ്രയോഗിച്ചു",
           approvalApplyFailed: "{summary} അംഗീകരിച്ചെങ്കിലും പ്രയോഗിക്കാൻ കഴിഞ്ഞില്ല",
+          auctionBidsOpened: "മുദ്രവെച്ച ലേലങ്ങൾ തുറന്നു: {summary}",
         },
         desk: {
           badge: "സുരക്ഷയും ഓഡിറ്റ് ലോഗും",

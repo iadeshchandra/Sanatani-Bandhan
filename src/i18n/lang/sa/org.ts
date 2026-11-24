@@ -1274,6 +1274,7 @@ export const orgNs: OrgFragment = {
           approvalCancelled: "{actor} इत्यनेन अनुरोधः निरस्तः: {summary}",
           approvalApplied: "{summary} प्रयुक्तम् अभवत्",
           approvalApplyFailed: "{summary} स्वीकृतम् अभवत् किन्तु प्रयोक्तुं न शक्तम्",
+          auctionBidsOpened: "मुद्रिताः निलामाः उद्घाटिताः: {summary}",
         },
         desk: {
           badge: "सुरक्षा च लेखापरीक्षाभिलेखः",
