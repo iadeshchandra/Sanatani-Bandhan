@@ -63,6 +63,15 @@ export interface ReleaseEntry {
 
 export const RELEASES: readonly ReleaseEntry[] = [
   {
+    version: 'v2026.11.24-158167f',
+    date: '2026-11-24',
+    sections: {
+      new: [
+        { text: { en: 'Nilam gains sealed lots: for a sealed auction, every bid stays hidden from everyone — other bidders and the committee alike — until the closing moment, when the committee opens them together and the highest bid above the reserve wins through the same checked acceptance as always.', hi: 'नीलाम में अब सीलबंद लॉट: सीलबंद नीलामी में हर बोली समापन क्षण तक सभी से छिपी रहती है — दूसरे बोलीदाताओं और समिति से भी — फिर समिति उन्हें एक साथ खोलती है और आरक्षित मूल्य से ऊपर की सबसे ऊँची बोली हमेशा की जाँची स्वीकृति से जीतती है।', bn: 'নিলামে এখন সিলবদ্ধ লট: সিলবদ্ধ নিলামে প্রতিটি দর সমাপ্তির মুহূর্ত পর্যন্ত সবার কাছ থেকে লুকানো থাকে — অন্য দরদাতা ও কমিটির কাছ থেকেও — তারপর কমিটি একসঙ্গে সেগুলো খোলে এবং সংরক্ষিত মূল্যের ঊর্ধ্বে সর্বোচ্চ দর সবসময়ের যাচাই করা গ্রহণের মাধ্যমে জেতে।' } },
+      ],
+    },
+  },
+  {
     version: 'v2026.11.24-add99b0',
     date: '2026-11-24',
     sections: {
