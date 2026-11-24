@@ -1538,6 +1538,8 @@ export const core: CoreFragment = {
       suchanaFestivalGreetingTitle: "🌸 சுப {festival}!",
       suchanaMorningDigestBody: "உங்கள் மென்மையான காலை சுருக்கம் தயாராக உள்ளது — இன்று தெரிந்து கொள்ள வேண்டிய {count} விஷயங்கள்.",
       suchanaMorningDigestTitle: "🌅 இன்றைய சூசனா",
+      suchanaPlatformNoticeBody: "{title}",
+      suchanaPlatformNoticeTitle: "📣 சனாதனி பந்தன்",
       suchanaTithiReminderBody: "ஒரு புனித அனுஷ்டானம் நெருங்குகிறது — {title}. அமைதியான மனதுடன் தயாராகவும்.",
       suchanaTithiReminderTitle: "📿 {title}",
       walletCommissionDueBody: "உங்கள் நிறைவடைந்த சேவைக்கு {amount} சேவா பங்களிப்பு செலுத்த வேண்டியுள்ளது. அதைத் தீர்ப்பது உங்கள் சரிபார்க்கப்பட்ட பேட்ஜை மின்ன வைக்கிறது.",
