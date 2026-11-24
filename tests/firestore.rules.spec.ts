@@ -2554,3 +2554,152 @@ describe('POLLS NEXT-LEVEL P3 — ranked, points, time (polls)', () => {
     await assertFails(castRanked(memberDb(), 'p3-n', 'user-1', ['opt_0']));
   });
 });
+
+describe('AUCTION A2 — sealed bids (auction_lots/{lotId}/bids)', () => {
+  const LOT = 'lot-a2-1';
+  const FUTURE = 9999999999999;
+  const PAST = 1000;
+  const lotDoc = (over: Record<string, unknown> = {}) => ({
+    workspaceId: 'ws-1',
+    source: { kind: 'standalone', label: 'Brass lamps (12)' },
+    lotClass: 'movables',
+    title: 'Brass lamps, set of twelve',
+    description: 'Store-room surplus',
+    mediaRefs: [],
+    reservePrice: 4000,
+    valuationBasis: { kind: 'committee-estimate', figure: 4500, valuedOn: '2026-11-01' },
+    sanction: null,
+    leaseTermYears: null,
+    status: 'open',
+    history: { draft: { at: 1, by: 'admin-1' } },
+    notice: { auctionAt: FUTURE, auctionPlace: 'Temple hall', emdAmount: 400, objectionDeadline: FUTURE, publishedAt: 1 },
+    affixtures: [],
+    objections: [],
+    registrations: [
+      { id: 'reg-1', name: 'Bidder One', phone: '9000000000', idReference: 'Aadhaar ****1234', relatedParty: false, emdAmount: 400, emdMode: 'cash', receivedAt: 1, bidderUid: 'user-1' },
+      { id: 'reg-2', name: 'Bidder Two', phone: '9000000001', idReference: 'Aadhaar ****5678', relatedParty: false, emdAmount: 400, emdMode: 'cash', receivedAt: 1, bidderUid: 'user-2' },
+    ],
+    outcome: null,
+    settlement: { depositAmount: 0, depositTxId: '', balanceTxId: '' },
+    failReason: null,
+    lotMode: 'sealed',
+    bidderUids: ['user-1', 'user-2'],
+    createdAt: 1,
+    updatedAt: 1,
+    ...over,
+  });
+  const bidDoc = (over: Record<string, unknown> = {}) => ({
+    bidderUid: 'user-1', amount: 5000, createdAt: 1, updatedAt: 1, ...over,
+  });
+  const seedLot = async (over: Record<string, unknown> = {}) => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await context.firestore().collection('auction_lots').doc(LOT).set(lotDoc(over));
+    });
+  };
+  const seedBid = async (uid = 'user-1', over: Record<string, unknown> = {}) => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await context.firestore().collection('auction_lots').doc(LOT).collection('bids').doc(uid).set(bidDoc({ bidderUid: uid, ...over }));
+    });
+  };
+  const staffDb = () => testEnv.authenticatedContext('admin-1').firestore();
+  const acctDb = () => testEnv.authenticatedContext('acct-1').firestore();
+  const bidderDb = () => testEnv.authenticatedContext('user-1').firestore();
+  const bidder2Db = () => testEnv.authenticatedContext('user-2').firestore();
+  const strangerDb = () => testEnv.authenticatedContext('user-9').firestore();
+  const lotRef = (db: any) => db.collection('auction_lots').doc(LOT);
+  const bidRef = (db: any, uid = 'user-1') => lotRef(db).collection('bids').doc(uid);
+
+  it('187. Sealed birth: the mode is an enum, the bidder register is born empty, the A1 shape still births', async () => {
+    const birth = { status: 'draft', notice: null, registrations: [], bidderUids: [] };
+    await assertSucceeds(lotRef(staffDb()).set(lotDoc(birth)));
+    await assertSucceeds(lotRef(staffDb()).set(lotDoc({ ...birth, lotMode: 'hall' })));
+    await assertFails(lotRef(staffDb()).set(lotDoc({ ...birth, lotMode: 'secret' })));
+    await assertFails(lotRef(staffDb()).set(lotDoc({ ...birth, bidderUids: ['user-1'] })));
+    const legacy = lotDoc(birth) as Record<string, unknown>;
+    delete legacy.lotMode; delete legacy.bidderUids;
+    await assertSucceeds(lotRef(staffDb()).set(legacy));
+  });
+
+  it('188. The mode is frozen at launch and the bidder register only grows', async () => {
+    await seedLot();
+    await assertFails(lotRef(staffDb()).update({ lotMode: 'hall', updatedAt: 2 }));
+    await assertSucceeds(lotRef(staffDb()).update({ bidderUids: ['user-1', 'user-2', 'user-9'], updatedAt: 2 }));
+    await assertFails(lotRef(staffDb()).update({ bidderUids: ['user-1'], updatedAt: 3 }));
+  });
+
+  it('189. A registered bidder places a sealed bid inside the window — nobody else can', async () => {
+    await seedLot();
+    await assertSucceeds(bidRef(bidderDb()).set(bidDoc()));
+    await assertFails(bidRef(strangerDb(), 'user-9').set(bidDoc({ bidderUid: 'user-9' })));
+    await assertFails(bidRef(bidderDb(), 'user-2').set(bidDoc({ bidderUid: 'user-2' })));
+    await assertFails(bidRef(bidder2Db(), 'user-2').set(bidDoc({ bidderUid: 'user-1' })));
+    await assertFails(bidRef(bidderDb()).set(bidDoc({ amount: 0 })));
+    await assertFails(bidRef(bidderDb()).set(bidDoc({ note: 'psst' })));
+  });
+
+  it('190. THE SEAL: before the close, not even the committee can read a bid — the bidder reads their own', async () => {
+    await seedLot();
+    await seedBid();
+    await assertSucceeds(bidRef(bidderDb()).get());
+    await assertFails(bidRef(staffDb()).get());
+    await assertFails(bidRef(acctDb()).get());
+    await assertFails(bidRef(bidder2Db()).get());
+    await assertFails(bidRef(strangerDb()).get());
+  });
+
+  it('191. One live bid: the bidder may replace it inside the window — the bidder field itself never moves', async () => {
+    await seedLot();
+    await seedBid();
+    await assertSucceeds(bidRef(bidderDb()).update({ amount: 6500, updatedAt: 2 }));
+    await assertFails(bidRef(bidderDb()).update({ bidderUid: 'user-2', updatedAt: 3 }));
+    await assertFails(bidRef(bidderDb()).update({ amount: -5, updatedAt: 3 }));
+  });
+
+  it('192. Withdrawal: the bidder may take their bid back inside the window', async () => {
+    await seedLot();
+    await seedBid();
+    await assertFails(bidRef(bidder2Db()).delete());
+    await assertSucceeds(bidRef(bidderDb()).delete());
+  });
+
+  it('193. THE OPENING: after the close the bids freeze and the committee may read them', async () => {
+    await seedLot({ notice: { auctionAt: PAST, auctionPlace: 'Temple hall', emdAmount: 400, objectionDeadline: PAST, publishedAt: 1 } });
+    await seedBid();
+    await assertFails(bidRef(bidderDb()).update({ amount: 9000, updatedAt: 2 }));
+    await assertFails(bidRef(bidderDb()).delete());
+    await assertFails(bidRef(bidderDb(), 'user-1').set(bidDoc({ amount: 9000 })));
+    await assertSucceeds(bidRef(staffDb()).get());
+    await assertSucceeds(bidRef(acctDb()).get());
+    await assertSucceeds(bidRef(bidderDb()).get());
+    await assertFails(bidRef(strangerDb()).get());
+    await assertFails(bidRef(bidder2Db()).get());
+  });
+
+  it('194. A hall lot takes no electronic bids at all', async () => {
+    await seedLot({ lotMode: 'hall' });
+    await assertFails(bidRef(bidderDb()).set(bidDoc()));
+    const legacy = lotDoc() as Record<string, unknown>;
+    delete legacy.lotMode;
+    await seedLot(legacy as any);
+    await assertFails(bidRef(bidderDb()).set(bidDoc()));
+  });
+
+  it('195. No window, no bid: before the lot opens and after the close has passed, creation is refused', async () => {
+    await seedLot({ status: 'noticed' });
+    await assertFails(bidRef(bidderDb()).set(bidDoc()));
+    await seedLot({ notice: { auctionAt: PAST, auctionPlace: 'Temple hall', emdAmount: 400, objectionDeadline: PAST, publishedAt: 1 } });
+    await assertFails(bidRef(bidderDb()).set(bidDoc()));
+  });
+
+  it('196. CONTROL: the A1 lifecycle is untouched — hall lots still move, delete still denied', async () => {
+    const legacy = lotDoc({ status: 'draft', notice: null, registrations: [], bidderUids: [] }) as Record<string, unknown>;
+    delete legacy.lotMode; delete legacy.bidderUids;
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await context.firestore().collection('auction_lots').doc(LOT).set(legacy);
+    });
+    await assertSucceeds(lotRef(staffDb()).update({ status: 'approved', updatedAt: 2 }));
+    await assertFails(lotRef(staffDb()).delete());
+    await seedLot();
+    await assertFails(bidRef(staffDb()).delete());
+  });
+});

@@ -28,7 +28,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { collection, onSnapshot, query, where } from 'firebase/firestore';
 import {
-  Gavel, Plus, Printer, ShieldCheck, AlertTriangle, X, CheckCircle2,
+  Gavel, Lock, Plus, Printer, ShieldCheck, AlertTriangle, X, CheckCircle2,
 } from 'lucide-react';
 import { db } from '../../lib/firebase';
 import { useAuthWorkspace } from '../../context/AuthWorkspaceContext';
@@ -43,10 +43,12 @@ import { firestoreApprovalsBackend } from '../../context/data/approvalsStore';
 import {
   REGISTRATIONS_CAP,
   balanceDue,
+  bidderUidsFromRegistrations,
   canTransitionLot,
   createLot,
   earliestAuctionAt,
   fileLotApproval,
+  isSealedLot,
   loadWorkspaceLots,
   lotGateIssues,
   lotStepDigest,
@@ -54,12 +56,22 @@ import {
   patchLot,
   registrationTotals,
   sanctionRequiredFor,
+  sealedCloseMs,
+  sealedWindowState,
   transitionLot,
   type AuctionLot,
   type LotClass,
+  type LotMode,
   type LotOutcome,
   type LotStatus,
 } from '../../lib/auctionLots';
+import {
+  bidOpeningSummary,
+  loadLotBids,
+  rankBids,
+  stampBidsOpened,
+  type SealedBid,
+} from '../../lib/auctionBids';
 
 const inputCls =
   'w-full min-h-[44px] px-3 py-2.5 rounded-xl bg-temple-950/80 border border-temple-800 text-temple-100 placeholder-temple-500 text-sm focus:border-saffron-500 focus:outline-none transition-colors';
@@ -88,6 +100,7 @@ const fmtWhen = (ms?: number): string =>
 interface DraftForm {
   title: string;
   lotClass: LotClass;
+  lotMode: LotMode;
   sourceKind: 'asset' | 'property' | 'standalone';
   sourceRefId: string;
   sourceLabel: string;
@@ -105,7 +118,7 @@ interface DraftForm {
 }
 
 const emptyDraft = (): DraftForm => ({
-  title: '', lotClass: 'rights-lease', sourceKind: 'standalone', sourceRefId: '', sourceLabel: '',
+  title: '', lotClass: 'rights-lease', lotMode: 'hall', sourceKind: 'standalone', sourceRefId: '', sourceLabel: '',
   description: '', mediaRefs: '', reservePrice: '', leaseTermYears: '',
   valuationKind: 'committee-estimate', valuerName: '', valuedOn: todayISO(), valuationFigure: '',
   sanctionAuthority: '', sanctionReference: '', sanctionDate: todayISO(),
@@ -114,6 +127,7 @@ const emptyDraft = (): DraftForm => ({
 const draftFromLot = (lot: AuctionLot): DraftForm => ({
   title: lot.title,
   lotClass: lot.lotClass,
+  lotMode: lot.lotMode ?? 'hall',
   sourceKind: lot.source.kind,
   sourceRefId: lot.source.refId ?? '',
   sourceLabel: lot.source.label,
@@ -159,7 +173,9 @@ export const NilamDesk: React.FC = () => {
   // Notice / registration / objection / outcome form state (per selected lot)
   const [noticeForm, setNoticeForm] = useState({ auctionAt: '', place: '', emd: '', inspectionFrom: '', inspectionTo: '', objectionBy: '' });
   const [affixForm, setAffixForm] = useState({ place: 'temple-board' as (typeof AFFIX_PLACES)[number], note: '', date: todayISO(), photoRef: '' });
-  const [regForm, setRegForm] = useState({ name: '', phone: '', idReference: '', related: false, relationNote: '', emd: '', emdMode: 'cash' as 'cash' | 'dd' | 'transfer', emdReference: '' });
+  const [regForm, setRegForm] = useState({ name: '', phone: '', idReference: '', related: false, relationNote: '', emd: '', emdMode: 'cash' as 'cash' | 'dd' | 'transfer', emdReference: '', bidderUid: '' });
+  const [sealedBids, setSealedBids] = useState<SealedBid[]>([]);
+  const [bidsForLot, setBidsForLot] = useState<string | null>(null);
   const [objForm, setObjForm] = useState({ name: '', contact: '', text: '', receivedOn: todayISO() });
   const [respondText, setRespondText] = useState<Record<string, string>>({});
   const [outcomeForm, setOutcomeForm] = useState({ winnerId: '', amount: '', date: todayISO(), conductor: '', attendance: '', publishName: true });
@@ -244,6 +260,7 @@ export const NilamDesk: React.FC = () => {
         label: sourceLabel || f.title,
       },
       lotClass: f.lotClass,
+      lotMode: f.lotMode,
       title: f.title.trim(),
       description: f.description.trim(),
       mediaRefs: f.mediaRefs.split(',').map((s) => s.trim()).filter(Boolean),
@@ -370,23 +387,55 @@ export const NilamDesk: React.FC = () => {
         emdAmount: Number(regForm.emd) || 0,
         emdMode: regForm.emdMode,
         ...(regForm.emdReference ? { emdReference: regForm.emdReference.trim() } : {}),
+        ...(regForm.bidderUid.trim() ? { bidderUid: regForm.bidderUid.trim() } : {}),
         receivedAt: Date.now(),
       };
-      await patchLot(lot.id, { registrations: [...lot.registrations, reg] }, Date.now());
-      setRegForm({ name: '', phone: '', idReference: '', related: false, relationNote: '', emd: '', emdMode: 'cash', emdReference: '' });
+      const registrations = [...lot.registrations, reg];
+      // The sealed-bidder register is stamped in the same write,
+      // derived from the registrations — the two never disagree.
+      await patchLot(lot.id, {
+        registrations,
+        bidderUids: bidderUidsFromRegistrations(registrations),
+      }, Date.now());
+      setRegForm({ name: '', phone: '', idReference: '', related: false, relationNote: '', emd: '', emdMode: 'cash', emdReference: '', bidderUid: '' });
     });
   };
 
   const patchRegistration = (regId: string, patch: Partial<AuctionLot['registrations'][number]>) => {
     if (!lot) return;
     run(`reg-${regId}`, async () => {
+      const registrations = lot.registrations.map((r) => (r.id === regId ? { ...r, ...patch } : r));
       await patchLot(
         lot.id,
-        { registrations: lot.registrations.map((r) => (r.id === regId ? { ...r, ...patch } : r)) },
+        { registrations, bidderUids: bidderUidsFromRegistrations(registrations) },
         Date.now()
       );
     });
   };
+
+  /* ---------------- A2: the sealed opening ---------------- */
+
+  const openSealedBids = (l: AuctionLot) => {
+    run('open-bids', async () => {
+      await stampBidsOpened(l, actor, Date.now());
+      const bids = await loadLotBids(l.id);
+      setSealedBids(bids);
+      setBidsForLot(l.id);
+    });
+  };
+
+  // An already-opened lot re-reads its bids when the desk returns
+  // to it (the opening itself happened once — the stamp stands).
+  useEffect(() => {
+    if (lot && isSealedLot(lot) && lot.bidsOpenedAt && bidsForLot !== lot.id) {
+      let live = true;
+      void loadLotBids(lot.id)
+        .then((bids) => { if (live) { setSealedBids(bids); setBidsForLot(lot.id); } })
+        .catch(() => undefined);
+      return () => { live = false; };
+    }
+    return undefined;
+  }, [lot?.id, lot?.bidsOpenedAt]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const addObjection = () => {
     if (!lot) return;
@@ -534,6 +583,7 @@ export const NilamDesk: React.FC = () => {
 
   const renderLotDetail = (l: AuctionLot) => {
     const totals = registrationTotals(l);
+    const sealedSummary = isSealedLot(l) && bidsForLot === l.id ? bidOpeningSummary(l, sealedBids) : null;
     const openObjs = openObjectionsOf(l);
     const sanctionNeeded = sanctionRequiredFor(l);
     const approvePending = pendingFor(l, 'approve');
@@ -667,6 +717,7 @@ export const NilamDesk: React.FC = () => {
                 <div key={r.id} className="flex flex-wrap items-center gap-2 rounded-xl bg-temple-950/60 border border-temple-800 px-3 py-2">
                   <span className="text-sm font-bold text-temple-100">{r.name}</span>
                   <span className="text-xs text-temple-400">{r.phone} · {r.idReference}</span>
+                  {r.bidderUid && <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-temple-800 text-temple-300">{t('surfaces.nilam.mode_sealed')}</span>}
                   {r.relatedParty && <span className="text-[11px] font-bold text-amber-300">{t('surfaces.nilam.regRelated')}{r.relationNote ? `: ${r.relationNote}` : ''}</span>}
                   <span className="text-xs text-temple-300">{t('surfaces.nilam.regEmd')}: {inr(r.emdAmount)} ({r.emdMode})</span>
                   {r.barredNote && <span className="text-[11px] font-bold text-red-300">{t('surfaces.nilam.regBarred')}: {r.barredNote}</span>}
@@ -709,6 +760,13 @@ export const NilamDesk: React.FC = () => {
                 </select>
                 <input className={inputCls} placeholder="EMD ref" value={regForm.emdReference}
                   onChange={(e) => setRegForm({ ...regForm, emdReference: e.target.value })} />
+                {isSealedLot(l) && (
+                  <span className="sm:col-span-2 space-y-1">
+                    <input className={inputCls} placeholder={t('surfaces.nilam.regBidderUid')} value={regForm.bidderUid}
+                      onChange={(e) => setRegForm({ ...regForm, bidderUid: e.target.value })} />
+                    <span className="block text-[11px] text-temple-500">{t('surfaces.nilam.regBidderUidHint')}</span>
+                  </span>
+                )}
                 <label className="flex items-center gap-2 text-xs text-temple-200 min-h-[44px]">
                   <input type="checkbox" checked={regForm.related}
                     onChange={(e) => setRegForm({ ...regForm, related: e.target.checked })} />
@@ -759,6 +817,69 @@ export const NilamDesk: React.FC = () => {
                 </button>
               </div>
             </div>
+          </div>
+        )}
+
+        {/* A2 — sealed bids */}
+        {isSealedLot(l) && ['noticed', 'open', 'accepted', 'settled', 'failed'].includes(l.status) && (
+          <div className={cardCls}>
+            <h4 className="font-extrabold text-temple-100 flex items-center gap-2">
+              <Lock size={16} className="text-saffron-500" /> {t('surfaces.nilam.sealedTitle')}
+            </h4>
+            <p className="text-xs text-temple-400">
+              {t('surfaces.nilam.lotRefLabel')}: <strong className="text-temple-200">{l.id}</strong>
+              {sealedCloseMs(l) > 0 ? ` · ${t('surfaces.nilam.sealedClosesAt')}: ${fmtWhen(sealedCloseMs(l))}` : ''}
+            </p>
+            {sealedWindowState(l, Date.now()) === 'not-open' && (
+              <p className="text-sm text-temple-300">{t('surfaces.nilam.sealedNotOpen')}</p>
+            )}
+            {sealedWindowState(l, Date.now()) === 'open' && (
+              <p className="text-sm text-amber-300">{t('surfaces.nilam.sealedWaiting')}</p>
+            )}
+            {sealedWindowState(l, Date.now()) === 'closed' && !l.bidsOpenedAt && (
+              <>
+                <p className="text-sm text-temple-200">{t('surfaces.nilam.sealedClosedAwaiting')}</p>
+                <button type="button" className={btnPrimary} disabled={busy !== ''} onClick={() => openSealedBids(l)}>
+                  {t('surfaces.nilam.sealedOpenAction')}
+                </button>
+              </>
+            )}
+            {l.bidsOpenedAt && (
+              <>
+                <p className="text-xs text-emerald-300 flex items-center gap-1">
+                  <CheckCircle2 size={14} />
+                  {t('surfaces.nilam.sealedOpenedAt')}: {fmtWhen(l.bidsOpenedAt)}
+                  {l.bidsOpenedByName ? ` · ${l.bidsOpenedByName}` : ''}
+                  {' · '}{sealedBids.length} {t('surfaces.nilam.sealedCount')}
+                </p>
+                {sealedBids.length === 0 ? (
+                  <p className="text-sm text-temple-300">{t('surfaces.nilam.sealedNone')}</p>
+                ) : (
+                  <div className="space-y-2">
+                    {rankBids(sealedBids).map((b, i) => {
+                      const reg = l.registrations.find((r) => r.bidderUid === b.bidderUid);
+                      const isWinner = sealedSummary?.winner?.bid.bidderUid === b.bidderUid;
+                      return (
+                        <div key={b.bidderUid} className="flex flex-wrap items-center gap-2 rounded-xl bg-temple-950/60 border border-temple-800 px-3 py-2">
+                          <span className="text-sm font-bold text-temple-100">{i + 1}. {reg?.name ?? b.bidderUid}</span>
+                          <span className="text-sm text-temple-200">{inr(b.amount)}</span>
+                          {i === 0 && <span className="text-[11px] font-bold text-saffron-400">{t('surfaces.nilam.sealedHighest')}</span>}
+                          <span className={`text-[11px] font-bold ${b.amount >= l.reservePrice ? 'text-emerald-300' : 'text-red-300'}`}>
+                            {b.amount >= l.reservePrice ? t('surfaces.nilam.sealedAboveReserve') : t('surfaces.nilam.sealedBelowReserve')}
+                          </span>
+                          {isWinner && l.status === 'open' && !l.outcome && reg && (
+                            <button type="button" className={btnGhost + ' ml-auto'} disabled={busy !== ''}
+                              onClick={() => setOutcomeForm((f) => ({ ...f, winnerId: reg.id, amount: String(b.amount) }))}>
+                              {t('surfaces.nilam.sealedUseWinner')}
+                            </button>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </>
+            )}
           </div>
         )}
 
@@ -907,6 +1028,20 @@ export const NilamDesk: React.FC = () => {
           {CLASSES.map((c) => <option key={c} value={c}>{classLabel(c)}</option>)}
         </select>
       </div>
+      <div className="sm:col-span-2">
+        <label className={labelCls}>{t('surfaces.nilam.modeTitle')}</label>
+        <select className={inputCls} value={draft.lotMode} disabled={!creating}
+          onChange={(e) => setDraft({ ...draft, lotMode: e.target.value as LotMode })}>
+          <option value="hall">{t('surfaces.nilam.mode_hall')}</option>
+          <option value="sealed">{t('surfaces.nilam.mode_sealed')}</option>
+        </select>
+        {draft.lotMode === 'sealed' && (
+          <p className="text-[11px] text-temple-400 mt-1">{t('surfaces.nilam.modeSealedNote')}</p>
+        )}
+        {!creating && (
+          <p className="text-[11px] text-temple-500 mt-1">{t('surfaces.nilam.modeFrozenNote')}</p>
+        )}
+      </div>
       <div>
         <label className={labelCls}>{t('surfaces.nilam.fieldSource')}</label>
         <select className={inputCls} value={draft.sourceKind}
@@ -1023,6 +1158,12 @@ export const NilamDesk: React.FC = () => {
               <p>{t('surfaces.nilam.noticeInspection')}: {l.notice.inspectionFrom || ''} — {l.notice.inspectionTo || ''}</p>
             )}
             <p>{t('surfaces.nilam.noticeObjectionBy')}: <strong>{new Date(l.notice.objectionDeadline).toLocaleDateString('en-IN')}</strong></p>
+            {isSealedLot(l) && (
+              <>
+                <p>{t('surfaces.nilam.lotRefLabel')}: <strong>{l.id}</strong></p>
+                <p>{t('surfaces.nilam.sealedPrintNote')}</p>
+              </>
+            )}
           </>
         )}
         {mode === 'result' && l.outcome && (
@@ -1090,6 +1231,7 @@ export const NilamDesk: React.FC = () => {
             >
               <span className="font-extrabold text-temple-100">{l.title}</span>
               <span className="text-[11px] font-bold px-2 py-1 rounded-full bg-temple-800 text-temple-200">{classLabel(l.lotClass)}</span>
+              {isSealedLot(l) && <span className="text-[11px] font-bold px-2 py-1 rounded-full bg-temple-800 text-temple-200 flex items-center gap-1"><Lock size={11} /> {t('surfaces.nilam.mode_sealed')}</span>}
               <span className="text-[11px] font-bold px-2 py-1 rounded-full bg-saffron-600/20 text-saffron-400">{statusLabel(l.status)}</span>
               <span className="text-xs text-temple-400 ml-auto">{t('surfaces.nilam.fieldReserve')}: {inr(l.reservePrice)}</span>
             </button>

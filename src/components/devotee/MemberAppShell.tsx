@@ -20,6 +20,7 @@ import { PurohitMarketDesk } from '../domain3/PurohitMarketDesk';
 import PurohitPortalUnified from '../domain3/PurohitPortalUnified';
 import SanataniSocialFeed from './SanataniSocialFeed';
 import { MemberPollsSection } from './MemberPolls';
+import { MySealedBidsSection } from './MySealedBids';
 import { PersonalAccountDesk } from '../account/PersonalAccountDesk';
 import DevoteeAccountPortal from '../domain5/DevoteeAccountPortal';
 import YatraNetDesk from '../domain7/YatraNetDesk';
@@ -139,6 +140,7 @@ export default function MemberAppShell() {
               <PillarHeader pillar="social" />
             </div>
             <MemberPollsSection />
+            <MySealedBidsSection />
             <div className="flex-1 min-h-0">
               <SanataniSocialFeed />
             </div>

@@ -51,6 +51,18 @@
  * size guard: 100 registrations × a small record stays far
  * under Firestore's 1 MiB doc limit.
  *
+ * A2 (sealed-then-open) adds the one exception to the no-
+ * subcollection posture, for a reason A1's array cannot serve:
+ * a sealed bid must be unreadable by EVERYONE — the committee
+ * included — until the window closes, and an array on the lot
+ * doc is readable by anyone who can read the lot. Bids therefore
+ * live as one doc per bidder under the lot (lib/auctionBids),
+ * their doc id the bidder's uid, guarded by rules that let only
+ * the bidder touch them before the lot's stored close clock.
+ * The lot itself gains only the launch facts: its mode (frozen),
+ * the sealed-bidder register (the uids of registrations whose
+ * EMD is in — grow-only in rules), and the opening stamp.
+ *
  * The pure half (transitions, gates, clocks, aggregates, the
  * approval snapshots, the public result card inputs) carries no
  * Firestore and is unit-tested; the Firestore half is thin
@@ -163,6 +175,11 @@ export interface LotRegistration {
   name: string;
   phone: string;
   idReference: string;
+  /** A2: the bidder's app account uid, when they will bid from
+   *  the app on a sealed lot. The desk copies it from the
+   *  bidder's own profile at registration; its presence is what
+   *  puts the uid on the lot's sealed-bidder register. */
+  bidderUid?: string;
   /** Related to a trustee/staff member — declared, never hidden. */
   relatedParty: boolean;
   relationNote?: string;
@@ -197,11 +214,35 @@ export interface LotSettlement {
   balanceAmount?: number;
 }
 
+/** How a lot takes its bids — chosen at creation, frozen after
+ *  (the rules pin it like lotClass):
+ *  - 'hall'   — the A1 record: the auction happens in the hall,
+ *               this desk remembers it. No electronic bids exist.
+ *  - 'sealed' — A2: registered bidders submit one sealed bid
+ *               each in the app (lib/auctionBids); the committee
+ *               opens them together after the close clock. */
+export type LotMode = 'hall' | 'sealed';
+
 export interface AuctionLot {
   id: string;
   workspaceId: string;
   source: LotSource;
   lotClass: LotClass;
+  /** A2 launch fact; absent on A1 lots, which read as 'hall'. */
+  lotMode?: LotMode;
+  /** A2: the sealed-bidder register — uids of registrations
+   *  whose bidder will bid from the app. Grow-only in rules;
+   *  derived from the registrations by the desk (never typed
+   *  separately), so the two can never disagree. */
+  bidderUids?: string[];
+  /** A2: the opening stamp — when the committee opened the
+   *  sealed bids, and who. Bookkeeping on the lot (the audit
+   *  chain carries the tamper-evident event); sealing itself
+   *  is enforced by the bid read rules' close clock, never by
+   *  this stamp. */
+  bidsOpenedAt?: number;
+  bidsOpenedBy?: string;
+  bidsOpenedByName?: string;
   title: string;
   description: string;
   /** Photo/document references (existing upload posture — refs only). */
@@ -380,6 +421,67 @@ export function registrationTotals(lot: Pick<AuctionLot, 'registrations'>): Regi
   return { count: regs.length, emdHeld, emdRefunded, refundedCount, relatedCount, barredCount };
 }
 
+/* ------------------------------------------------------------------ */
+/* A2 — the sealed mode's pure law                                     */
+/* ------------------------------------------------------------------ */
+
+export function isSealedLot(lot: Pick<AuctionLot, 'lotMode'>): boolean {
+  return lot.lotMode === 'sealed';
+}
+
+/** The close clock of a sealed lot: the notice's auction moment.
+ *  It is frozen with the notice (the rules freeze the notice at
+ *  publication), so the deadline cannot be quietly moved. 0 when
+ *  the lot carries no notice yet. */
+export function sealedCloseMs(lot: Pick<AuctionLot, 'notice'>): number {
+  return lot.notice?.auctionAt ?? 0;
+}
+
+export type SealedWindowState = 'not-open' | 'open' | 'closed';
+
+/**
+ * Where a sealed lot's bidding window stands, judged from the
+ * record itself (the same facts the rules judge):
+ *  - 'open'   — the lot is 'open', sealed, and the close clock
+ *               has not passed: bids may be placed/replaced/
+ *               withdrawn by their own bidders, and read by NO
+ *               one else;
+ *  - 'closed' — the close clock has passed: bids are frozen and
+ *               the committee may read them (the opening);
+ *  - 'not-open' — anything else (no notice, not yet open, or a
+ *               hall lot): no bid may move.
+ */
+export function sealedWindowState(
+  lot: Pick<AuctionLot, 'lotMode' | 'status' | 'notice'>,
+  now: number
+): SealedWindowState {
+  if (!isSealedLot(lot)) return 'not-open';
+  const close = sealedCloseMs(lot);
+  if (close > 0 && now >= close) return 'closed';
+  if (lot.status === 'open' && close > 0 && now < close) return 'open';
+  return 'not-open';
+}
+
+/** The sealed-bidder register, derived from the registrations:
+ *  the uids of registered bidders who will bid from the app,
+ *  deduped, in registration order. The desk stamps exactly this
+ *  on the lot whenever the register changes, so the rules-side
+ *  list can never disagree with the register it mirrors. */
+export function bidderUidsFromRegistrations(
+  registrations: readonly LotRegistration[]
+): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const r of registrations ?? []) {
+    const uid = (r.bidderUid ?? '').trim();
+    if (uid && !seen.has(uid)) {
+      seen.add(uid);
+      out.push(uid);
+    }
+  }
+  return out;
+}
+
 /** What remains for the winner to pay after the recorded deposit. */
 export function balanceDue(lot: Pick<AuctionLot, 'outcome' | 'settlement'>): number {
   const total = lot.outcome?.winningAmount ?? 0;
@@ -448,12 +550,18 @@ const newLotId = () =>
 const clean = <T,>(v: T): T => JSON.parse(JSON.stringify(v)) as T;
 
 export async function createLot(
-  input: Omit<AuctionLot, 'id' | 'status' | 'history' | 'affixtures' | 'objections' | 'registrations' | 'createdAt' | 'updatedAt'>,
+  input: Omit<AuctionLot, 'id' | 'status' | 'history' | 'affixtures' | 'objections' | 'registrations' | 'createdAt' | 'updatedAt' | 'lotMode' | 'bidderUids'>
+    & { lotMode?: LotMode; bidderUids?: string[] },
   actor: { uid: string; name?: string },
   now: number
 ): Promise<AuctionLot> {
   const lot: AuctionLot = {
     ...input,
+    // A2 launch facts are always written explicitly (the rules
+    // pin the birth shape): hall mode and an empty bidder
+    // register unless the desk chose the sealed mode.
+    lotMode: input.lotMode ?? 'hall',
+    bidderUids: input.bidderUids ?? [],
     // Settlement is a full (empty) map from birth, never null, so the
     // rules can read its tx ids with .get() defaults safely.
     settlement: input.settlement ?? { depositAmount: 0, depositTxId: '', balanceTxId: '' },
