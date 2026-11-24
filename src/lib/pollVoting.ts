@@ -26,7 +26,7 @@
  * before casting.
  */
 import { doc, serverTimestamp, increment, writeBatch, type Firestore } from 'firebase/firestore';
-import type { MyBallot } from './pollLogic';
+import { ABSTAIN_OPTION_ID, type MyBallot, type PollLike } from './pollLogic';
 
 export interface BallotWritePlan {
   /** The ballot doc's fields, minus the votedAt server timestamp. */
@@ -35,10 +35,18 @@ export interface BallotWritePlan {
   optionIncrements: string[];
   /** Turnout always moves by exactly 1. */
   totalVotesIncrement: 1;
+  /** P2b: an abstention also moves the poll's abstention counter by 1. */
+  abstainIncrement?: boolean;
 }
 
 /** The pure shape of a ballot write — what the batch below commits. */
 export function ballotWritePlan(ballot: MyBallot): BallotWritePlan {
+  if (ballot.abstain === true) {
+    // POLLS P2b — the abstention: its own ballot doc, no option
+    // counter moves, turnout +1 and the abstention counter +1
+    // (pollAbstainVoteAnchorOk in firestore.rules).
+    return { ballotDoc: { abstain: true }, optionIncrements: [], totalVotesIncrement: 1, abstainIncrement: true };
+  }
   if (typeof ballot.text === 'string') {
     return { ballotDoc: { text: ballot.text }, optionIncrements: [], totalVotesIncrement: 1 };
   }
@@ -66,6 +74,9 @@ function commitPlan(db: Firestore, pollId: string, uid: string, plan: BallotWrit
   for (const id of plan.optionIncrements) {
     updates[`options.${id}.votes`] = increment(1);
   }
+  if (plan.abstainIncrement) {
+    updates['abstainVotes'] = increment(1);
+  }
   batch.update(doc(db, 'polls', pollId), updates);
   return batch.commit();
 }
@@ -83,4 +94,29 @@ export function castMultiBallot(db: Firestore, pollId: string, uid: string, opti
 /** Free-text ballot (the desk's original handleVoteText batch). */
 export function castTextBallot(db: Firestore, pollId: string, uid: string, text: string): Promise<void> {
   return commitPlan(db, pollId, uid, ballotWritePlan({ text }));
+}
+
+/** The P2b abstention ballot: {abstain: true} + turnout/abstention counters. */
+export function castAbstainBallot(db: Firestore, pollId: string, uid: string): Promise<void> {
+  return commitPlan(db, pollId, uid, ballotWritePlan({ abstain: true }));
+}
+
+/**
+ * Cast an abstention on a poll of EITHER generation, through the
+ * one shared path: a pre-P2b poll carries its abstain entry inside
+ * the options map, so the abstention is a choice ballot naming it
+ * (the P0 anchor carries it); a P2b poll takes the dedicated
+ * abstain ballot. Both doors call this — the write is identical
+ * from the desk and from the member's Polls home.
+ */
+export function castAbstainVote(
+  db: Firestore,
+  pollId: string,
+  uid: string,
+  poll: Pick<PollLike, 'options'>
+): Promise<void> {
+  if (poll.options && poll.options[ABSTAIN_OPTION_ID]) {
+    return castChoiceBallot(db, pollId, uid, ABSTAIN_OPTION_ID);
+  }
+  return castAbstainBallot(db, pollId, uid);
 }

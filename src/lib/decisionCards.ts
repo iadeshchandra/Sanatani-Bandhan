@@ -26,6 +26,7 @@ import {
   pollClass,
   pollIsBinding,
   pollStoredOutcome,
+  pollAbstainVotes,
   ABSTAIN_OPTION_ID,
   type PollLike,
 } from './pollLogic';
@@ -121,11 +122,13 @@ export function pollDecisionCard(
   } else {
     const options = pollOptionList(poll).filter((o) => o.id !== ABSTAIN_OPTION_ID);
     const top = options.reduce((a, b) => (b.votes > (a?.votes ?? -1) ? b : a), options[0]);
-    const abstain = pollOptionList(poll).find((o) => o.id === ABSTAIN_OPTION_ID);
+    // P2b: abstentions read from either model (the counter field,
+    // or the legacy in-map entry) through the one helper.
+    const abstainVotes = pollAbstainVotes(poll);
     const pct = top ? Math.round((top.votes / total) * 100) : 0;
     outcomeLine = top ? `“${top.text}” — ${pct}% of ${total} vote${total === 1 ? '' : 's'}` : 'No votes were cast';
-    if (abstain && abstain.votes > 0) {
-      outcomeLine += ` · ${abstain.votes} abstained`;
+    if (abstainVotes > 0) {
+      outcomeLine += ` · ${abstainVotes} abstained`;
     }
     detailLine = `${total} vote${total === 1 ? '' : 's'} counted openly`;
   }

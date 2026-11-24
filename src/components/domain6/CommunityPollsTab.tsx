@@ -1,16 +1,22 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
-import { collection, query, where, onSnapshot, doc, setDoc, updateDoc, deleteDoc, Timestamp } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, doc, setDoc, updateDoc, deleteDoc, Timestamp, arrayUnion, deleteField } from 'firebase/firestore';
 import { db } from '../../lib/firebase';
 import {
   pollTotalVotes, pollIsOpen, pollKind, pollResultsVisible, pollResultVisibility, pollIsEditable,
   ABSTAIN_OPTION_ID, validateMultiChoice, validateTextResponse, ballotCast,
   pollClass, pollIsBinding, pollBallotMode, pollElectorateCount, computePollOutcome, pollStoredOutcome,
-  POLL_DEFAULT_QUORUM_PCT, POLL_DEFAULT_PASS_PCT,
+  pollPhase, pollHasAbstain, pollAbstainVotes,
+  POLL_DEFAULT_QUORUM_PCT, POLL_DEFAULT_PASS_PCT, POLL_MAX_OPTIONS,
   type MyBallot,
 } from '../../lib/pollLogic';
 import { publishBroadcast } from '../../org/broadcastService';
-import { castChoiceBallot, castMultiBallot, castTextBallot } from '../../lib/pollVoting';
+import { castChoiceBallot, castMultiBallot, castTextBallot, castAbstainVote } from '../../lib/pollVoting';
+import {
+  readPollTemplates, templateFromPoll, templateToShape, newPollTemplateId,
+  nextRunWindow, pollRecurrence,
+  type PollTemplate, type PollRecurrence,
+} from '../../lib/pollTemplates';
 import {
   pollReminderBroadcastBody, pollReminderBroadcastTitle,
 } from '../../lib/memberPolls';
@@ -20,7 +26,7 @@ import {
   X, Loader2, Users, ShieldCheck, Clock, AlertTriangle, 
   WifiOff, HelpCircle, Lightbulb, Lock, BrainCircuit, Heart, Flag,
   CalendarDays, Timer, BellRing, FileText, MessageSquare, Award,
-  ListChecks 
+  ListChecks, CalendarClock, Save, Play, Repeat
 } from 'lucide-react';
 import { useAuthWorkspace } from '../../context/AuthWorkspaceContext';
 import { useLanguage } from '../../context/LanguageContext';
@@ -43,7 +49,20 @@ export const CommunityPollsTab: React.FC = () => {
   const [showGuide, setShowGuide] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   
-  const [polls, setPolls] = useState<any[]>([]);
+  const [mainPolls, setMainPolls] = useState<any[]>([]);
+  // POLLS NEXT-LEVEL P2b — drafts arrive through their OWN listener:
+  // they are committee-only at the rules layer, so they must never
+  // ride the workspace-wide read every member's desk view makes.
+  const [draftPolls, setDraftPolls] = useState<any[]>([]);
+  const polls = useMemo(
+    () => [...mainPolls, ...draftPolls].sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0)),
+    [mainPolls, draftPolls]
+  );
+  // POLLS NEXT-LEVEL P2b — poll templates live on the workspace doc
+  // (lib/pollTemplates). The raw array is kept beside the parsed
+  // list so a delete can write back exactly what was stored.
+  const [templates, setTemplates] = useState<PollTemplate[]>([]);
+  const [templatesRaw, setTemplatesRaw] = useState<unknown[]>([]);
   // EVENTS + POLLS P0 — the ballot box: MY ballot per poll, read from
   // polls/{id}/votes/{myUid} (the only place a vote choice now lives;
   // the poll doc carries counts only). Legacy polls still show my old
@@ -77,6 +96,10 @@ export const CommunityPollsTab: React.FC = () => {
   const [pollForm, setPollForm] = useState({
     title: '', description: '', targetAudience: 'ALL_MEMBERS',
     endDate: '', endTime: '', options: ['', ''],
+    // POLLS NEXT-LEVEL P2b — the scheduled opening (optional): the
+    // poll opens for voting when this moment passes, judged from
+    // the stored clock on every read (no server cron exists).
+    opensDate: '', opensTime: '',
     // EVENTS P1 — the shape + the launch-time result rule.
     kind: 'choice' as 'choice' | 'multi' | 'text',
     abstain: false,
@@ -88,14 +111,30 @@ export const CommunityPollsTab: React.FC = () => {
     binding: false,
     ballot: 'secret' as 'secret' | 'named',
     quorumPct: POLL_DEFAULT_QUORUM_PCT,
-    passPct: POLL_DEFAULT_PASS_PCT
+    passPct: POLL_DEFAULT_PASS_PCT,
+    // POLLS NEXT-LEVEL P2b — the recurrence mark: a poll may be
+    // marked recurring; the mark rides the poll (and its template)
+    // so the desk can offer the one-step re-run next round.
+    recurrence: 'none' as PollRecurrence
   });
+  // POLLS NEXT-LEVEL P2b — set when the form was filled from a
+  // template (or a re-run): the launched poll carries the
+  // provenance.
+  const [pendingTemplate, setPendingTemplate] = useState<{ templateId: string } | null>(null);
+  // POLLS NEXT-LEVEL P2b — the save-as-template dialog (from a poll
+  // card of any phase): a name + the recurrence mark.
+  const [templateSavePoll, setTemplateSavePoll] = useState<any>(null);
+  const [templateForm, setTemplateForm] = useState({ name: '', recurrence: 'none' as PollRecurrence });
 
   // EVENTS P1 — edit-before-first-vote (committee; locked forever
   // once the first ballot lands — pollEditOk in firestore.rules).
   const [editPoll, setEditPoll] = useState<any>(null);
   const [editForm, setEditForm] = useState({
     title: '', description: '', endDate: '', endTime: '',
+    // P2b: the scheduled opening + the abstain choice are editable
+    // under the same zero-ballot discipline. The options list holds
+    // REAL options only — abstain is the toggle, never a row.
+    opensDate: '', opensTime: '', abstain: false,
     options: [] as { id: string; text: string }[],
     resultVisibility: 'afterVote' as 'live' | 'afterVote' | 'afterClose' | 'committee'
   });
@@ -110,18 +149,54 @@ export const CommunityPollsTab: React.FC = () => {
 
   useEffect(() => {
     pushToDataLayer('view_polls', { workspace_type: activeWorkspace?.type || 'Temple' });
-    
+
     if (!activeWorkspace?.id) return;
-    const q = query(collection(db, 'polls'), where('workspaceId', '==', activeWorkspace.id));
+    // P2b: the member-safe read — drafts are excluded by the status
+    // filter (a non-committee reader's query must never return one;
+    // the rules would fail the whole read).
+    const q = query(
+      collection(db, 'polls'),
+      where('workspaceId', '==', activeWorkspace.id),
+      where('status', 'in', ['ACTIVE', 'CONCLUDED'])
+    );
     const unsub = onSnapshot(q, (snapshot) => {
       const pollArray = snapshot.docs.map(doc => ({ id: doc.id, ...(doc.data() as any) }));
       pollArray.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
-      setPolls(pollArray);
+      setMainPolls(pollArray);
       setLoading(false);
     }, (error) => {
       console.warn("Firebase CommunityPollsTab sync:", error.message);
       setLoading(false);
     });
+    return () => unsub();
+  }, [activeWorkspace?.id]);
+
+  // POLLS NEXT-LEVEL P2b — the committee's drafts listener. Only a
+  // manager's desk subscribes; the rules deny the read to everyone
+  // else, and no other surface ever asks for drafts.
+  useEffect(() => {
+    if (!activeWorkspace?.id || !isManagerOrAdmin) { setDraftPolls([]); return; }
+    const q = query(
+      collection(db, 'polls'),
+      where('workspaceId', '==', activeWorkspace.id),
+      where('status', '==', 'DRAFT')
+    );
+    const unsub = onSnapshot(q, (snapshot) => {
+      const arr = snapshot.docs.map(doc => ({ id: doc.id, ...(doc.data() as any) }));
+      arr.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+      setDraftPolls(arr);
+    }, () => setDraftPolls([]));
+    return () => unsub();
+  }, [activeWorkspace?.id, isManagerOrAdmin]);
+
+  // POLLS NEXT-LEVEL P2b — the workspace doc carries the templates.
+  useEffect(() => {
+    if (!activeWorkspace?.id) { setTemplates([]); setTemplatesRaw([]); return; }
+    const unsub = onSnapshot(doc(db, 'workspaces', activeWorkspace.id), (snap) => {
+      const raw = snap.exists() ? (snap.data() as any)?.pollTemplates : undefined;
+      setTemplates(readPollTemplates(raw));
+      setTemplatesRaw(Array.isArray(raw) ? raw : []);
+    }, () => { setTemplates([]); setTemplatesRaw([]); });
     return () => unsub();
   }, [activeWorkspace?.id]);
 
@@ -181,6 +256,7 @@ export const CommunityPollsTab: React.FC = () => {
               ...(data.optionId ? { optionId: data.optionId } : {}),
               ...(Array.isArray(data.optionIds) ? { optionIds: data.optionIds } : {}),
               ...(typeof data.text === 'string' ? { text: data.text } : {}),
+              ...(data.abstain === true ? { abstain: true } : {}),
             };
           } else delete next[p.id];
           return next;
@@ -201,7 +277,12 @@ export const CommunityPollsTab: React.FC = () => {
       const map: Record<string, string[]> = {};
       snap.docs.forEach(d => {
         const data = d.data() as any;
-        map[d.id] = Array.isArray(data.optionIds) ? data.optionIds : data.optionId ? [data.optionId] : [];
+        // P2b: an abstention ballot names the reserved id, so the
+        // audit groups it with the abstentions (named polls only —
+        // this listener never runs for a secret ballot).
+        map[d.id] = data.abstain === true
+          ? [ABSTAIN_OPTION_ID]
+          : Array.isArray(data.optionIds) ? data.optionIds : data.optionId ? [data.optionId] : [];
       });
       setAuditBallots(map);
     }, () => setAuditBallots({}));
@@ -236,42 +317,64 @@ export const CommunityPollsTab: React.FC = () => {
     return legacy ? { optionId: legacy } : null;
   };
 
-  const handleCreatePoll = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!checkGate('events', polls.length)) return; 
+  // POLLS NEXT-LEVEL P2b — one create path, two births: 'launch'
+  // (ACTIVE at once, or scheduled when an opening time is set) and
+  // 'draft' (status DRAFT — the committee's working paper: the
+  // rules make it invisible to voters, no ballot can land on it,
+  // and nothing announces it). A draft may even wait without a
+  // deadline; the deadline is required only to open.
+  const handleCreatePoll = async (e: React.FormEvent | undefined, mode: 'launch' | 'draft' = 'launch') => {
+    if (e) e.preventDefault();
+    if (!checkGate('events', polls.length)) return;
 
     const isText = pollForm.kind === 'text';
     const validOptions = pollForm.options.filter(opt => opt.trim() !== '');
-    // EVENTS P1: the rules cap the options map at 5 entries — an
-    // abstain entry counts toward the five.
-    const maxRealOptions = pollForm.abstain && !isText ? 4 : 5;
+    // POLLS NEXT-LEVEL P2b: the ceiling counts REAL options — 8 of
+    // them (POLL_MAX_OPTIONS). Abstain is a field on the poll now,
+    // never one of the slots.
     if (!isText && validOptions.length < 2) return showToastMsg("A poll requires at least 2 valid options.", "error");
-    if (!isText && validOptions.length > maxRealOptions) return showToastMsg(`At most ${maxRealOptions} options${pollForm.abstain ? ' when the Abstain option is on' : ''}.`, "error");
-    if (!pollForm.title.trim() || !pollForm.endDate) return showToastMsg("Title and End Date are required.", "error");
+    if (!isText && validOptions.length > POLL_MAX_OPTIONS) return showToastMsg(`At most ${POLL_MAX_OPTIONS} options.`, "error");
+    if (!pollForm.title.trim()) return showToastMsg("Title is required.", "error");
+    if (mode === 'launch' && !pollForm.endDate) return showToastMsg("Title and End Date are required.", "error");
 
     setSubmitting(true);
     try {
-      const dateTimeString = pollForm.endTime ? `${pollForm.endDate}T${pollForm.endTime}` : `${pollForm.endDate}T23:59:59`;
-      const expirationMs = new Date(dateTimeString).getTime();
-      if (expirationMs <= Date.now()) throw new Error("The deadline must be in the future.");
+      const now = Date.now();
+      // The deadline twins (P1 law): the UI reads the ms number,
+      // the rules read the Timestamp — built from the same value
+      // and verified to agree before the write. A draft without a
+      // date carries neither twin yet.
+      let expirationMs: number | null = null;
+      let expiresTs: Timestamp | null = null;
+      if (pollForm.endDate) {
+        const dateTimeString = pollForm.endTime ? `${pollForm.endDate}T${pollForm.endTime}` : `${pollForm.endDate}T23:59:59`;
+        expirationMs = new Date(dateTimeString).getTime();
+        if (expirationMs <= now) throw new Error("The deadline must be in the future.");
+        expiresTs = Timestamp.fromMillis(expirationMs);
+        if (expiresTs.toMillis() !== expirationMs) throw new Error("The deadline could not be recorded consistently.");
+      }
+      // The opening twins, same law (P2b). The opening must precede
+      // the deadline; an opening in the past simply means the poll
+      // is open from birth, so it is dropped rather than stored.
+      let opensMs: number | null = null;
+      let opensTs: Timestamp | null = null;
+      if (pollForm.opensDate) {
+        const opensString = pollForm.opensTime ? `${pollForm.opensDate}T${pollForm.opensTime}` : `${pollForm.opensDate}T00:00:00`;
+        const candidate = new Date(opensString).getTime();
+        if (expirationMs !== null && candidate >= expirationMs) throw new Error("The opening time must be before the deadline.");
+        if (candidate > now) {
+          opensMs = candidate;
+          opensTs = Timestamp.fromMillis(candidate);
+          if (opensTs.toMillis() !== candidate) throw new Error("The opening time could not be recorded consistently.");
+        }
+      }
 
       const optionsMap: any = {};
       if (!isText) {
         validOptions.forEach((opt, idx) => {
           optionsMap[`opt_${idx}`] = { text: opt.trim(), votes: 0 };
         });
-        if (pollForm.abstain) {
-          optionsMap[ABSTAIN_OPTION_ID] = { text: t('surfaces.events.abstainOption'), votes: 0, isAbstain: true };
-        }
       }
-
-      // POLLS P1 — the deadline twins must AGREE: the UI reads the
-      // ms number, the rules read the Timestamp. Both are built from
-      // the same value here, and the agreement is verified before
-      // the write — a poll whose twins disagree would show one
-      // deadline and enforce another.
-      const expiresTs = Timestamp.fromMillis(expirationMs);
-      if (expiresTs.toMillis() !== expirationMs) throw new Error("The deadline could not be recorded consistently.");
 
       const isDecision = pollForm.pollClass === 'decision';
       const newPoll: Record<string, unknown> = {
@@ -279,27 +382,38 @@ export const CommunityPollsTab: React.FC = () => {
         title: pollForm.title.trim(),
         description: pollForm.description.trim(),
         targetAudience: pollForm.targetAudience,
-        status: 'ACTIVE',
+        status: mode === 'draft' ? 'DRAFT' : 'ACTIVE',
         createdAt: Date.now(),
         // POLLS P1 — attribution: the display name is derived from
         // the signed-in profile, and the creator's uid is stamped
         // beside it (the rules check it against the caller).
         createdBy: currentUser?.name || 'Admin',
         createdByUid: firebaseUser?.uid || '',
-        expiresAt: expirationMs,
-        // Timestamp twin of the deadline — firestore.rules compare
-        // this (a real timestamp) when verifying expiry/conclusion.
-        expiresAtTs: expiresTs,
+        ...(expirationMs !== null && expiresTs
+          ? { expiresAt: expirationMs, expiresAtTs: expiresTs }
+          : {}),
+        ...(opensMs !== null && opensTs
+          ? { opensAt: opensMs, opensAtTs: opensTs }
+          : {}),
         options: optionsMap,
         // Ballot-box model: the doc carries ONLY this count; each
         // ballot lives in polls/{id}/votes/{uid}. No votedUsers map.
         totalVotes: 0,
+        // POLLS NEXT-LEVEL P2b — abstention: the creator's choice as
+        // a field, and its own counter, born at zero (the rules pin
+        // both; the counter may move only with an abstain ballot).
+        ...(isText ? {} : { allowAbstain: pollForm.abstain, abstainVotes: 0 }),
         // EVENTS P1 — chosen at launch and frozen by the rules: the
         // question's shape and when members may see the results.
         kind: pollForm.kind,
         resultVisibility: pollForm.resultVisibility,
         // POLLS NEXT-LEVEL P1 — the class, labelled before any vote.
         pollClass: pollForm.pollClass,
+        // POLLS NEXT-LEVEL P2b — template provenance, when the form
+        // was filled from a template or a re-run, and the
+        // recurrence mark when this poll itself recurs.
+        ...(pendingTemplate ? { templateId: pendingTemplate.templateId } : {}),
+        ...(pollForm.recurrence !== 'none' ? { recurrence: pollForm.recurrence } : {}),
         ...(isDecision
           ? {
               binding: pollForm.binding,
@@ -310,6 +424,8 @@ export const CommunityPollsTab: React.FC = () => {
                 pollForm.targetAudience === 'MANAGERS' || isText ? 'named' : pollForm.ballot,
               // The frozen electorate: the member register, counted
               // now (pollElectorateCount) — later joins do not move it.
+              // (For a draft this stamp is refreshed at opening, in
+              // the same write that opens it — see handleOpenPoll.)
               eligibleCount: pollElectorateCount(devotees, pollForm.targetAudience),
               quorumPct: Math.min(100, Math.max(0, Math.round(pollForm.quorumPct) || 0)),
               passPct: Math.min(100, Math.max(0, Math.round(pollForm.passPct) || 0))
@@ -319,18 +435,174 @@ export const CommunityPollsTab: React.FC = () => {
 
       const pollRef = doc(collection(db, 'polls'));
       await setDoc(pollRef, newPoll);
-      showToastMsg("Panchayat Poll successfully launched!", 'success');
+      showToastMsg(mode === 'draft' ? t('surfaces.events.draftSaved') : "Panchayat Poll successfully launched!", 'success');
 
       pushToDataLayer('generate_lead', { poll_target: newPoll.targetAudience, options_count: validOptions.length });
 
       setShowCreateModal(false);
-      setPollForm({ title: '', description: '', targetAudience: 'ALL_MEMBERS', endDate: '', endTime: '', options: ['', ''], kind: 'choice', abstain: false, resultVisibility: 'afterVote', pollClass: 'pulse', binding: false, ballot: 'secret', quorumPct: POLL_DEFAULT_QUORUM_PCT, passPct: POLL_DEFAULT_PASS_PCT });
+      setPollForm({ title: '', description: '', targetAudience: 'ALL_MEMBERS', endDate: '', endTime: '', opensDate: '', opensTime: '', options: ['', ''], kind: 'choice', abstain: false, resultVisibility: 'afterVote', pollClass: 'pulse', binding: false, ballot: 'secret', quorumPct: POLL_DEFAULT_QUORUM_PCT, passPct: POLL_DEFAULT_PASS_PCT, recurrence: 'none' });
+      setPendingTemplate(null);
+      setActiveTab(mode === 'draft' ? 'DRAFTS' : 'ACTIVE');
+    } catch (err: any) {
+      console.error(err);
+      showToastMsg(friendlyError(err, t, 'save'), "error");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  // POLLS NEXT-LEVEL P2b — opening a draft: ONE write flips the
+  // status, and for a Decision poll the same write re-stamps the
+  // frozen electorate from the register as it stands NOW (the
+  // rules allow eligibleCount to move only on this transition).
+  const handleOpenPoll = async (poll: any) => {
+    if (!poll.expiresAt || poll.expiresAt <= Date.now()) {
+      showToastMsg(t('surfaces.events.draftNeedsDate'), "error");
+      openEditPoll(poll);
+      return;
+    }
+    setSubmitting(true);
+    try {
+      const updates: Record<string, unknown> = { status: 'ACTIVE' };
+      if (pollClass(poll) === 'decision') {
+        updates.eligibleCount = pollElectorateCount(devotees, poll.targetAudience || 'ALL_MEMBERS');
+      }
+      await updateDoc(doc(db, 'polls', poll.id), updates);
+      showToastMsg(t('surfaces.events.pollOpened'), 'success');
       setActiveTab('ACTIVE');
     } catch (err: any) {
       console.error(err);
       showToastMsg(friendlyError(err, t, 'save'), "error");
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  // POLLS NEXT-LEVEL P2b — templates: save a poll's shape, reuse
+  // it in one step, delete it. Templates live on the workspace doc
+  // (lib/pollTemplates); the rules pin the committee's writes to
+  // that one field.
+  const handleSaveTemplate = async () => {
+    if (!templateSavePoll || !activeWorkspace?.id) return;
+    setSubmitting(true);
+    try {
+      const tpl = templateFromPoll(templateSavePoll, {
+        id: newPollTemplateId(Date.now()),
+        name: templateForm.name.trim() || templateSavePoll.title || '',
+        recurrence: templateForm.recurrence,
+        now: Date.now(),
+        uid: firebaseUser?.uid || '',
+      });
+      await updateDoc(doc(db, 'workspaces', activeWorkspace.id), { pollTemplates: arrayUnion(tpl) });
+      showToastMsg(t('surfaces.events.templateSaved'), 'success');
+      setTemplateSavePoll(null);
+    } catch (err: any) {
+      console.error(err);
+      showToastMsg(friendlyError(err, t, 'save'), "error");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleDeleteTemplate = (tpl: PollTemplate) => {
+    setConfirmDialog({
+      title: t('surfaces.events.templatesTitle'),
+      message: `Delete the template "${tpl.name}"? Polls already launched from it are untouched.`,
+      confirmText: t('actions.deleteRecord') || "DELETE",
+      isDanger: true,
+      onConfirm: async () => {
+        setConfirmDialog(null);
+        try {
+          const nextRaw = templatesRaw.filter(
+            (r: any) => !(r && typeof r === 'object' && r.id === tpl.id)
+          );
+          await updateDoc(doc(db, 'workspaces', activeWorkspace.id), { pollTemplates: nextRaw });
+          showToastMsg(t('surfaces.events.templateDeleted'), 'success');
+        } catch (e: any) { console.error(e); showToastMsg(friendlyError(e, t, 'save'), "error"); }
+      }
+    });
+  };
+
+  const dateInputOf = (ms: number) => {
+    const d = new Date(ms); const pad = (n: number) => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  };
+  const timeInputOf = (ms: number) => {
+    const d = new Date(ms); const pad = (n: number) => String(n).padStart(2, '0');
+    return `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  };
+
+  // Fill the create form from a shape (+ optionally a suggested
+  // window) and open the modal. Recurrence's "run again" is this —
+  // a pre-filled form a person checks and opens themselves.
+  const fillFormFromShape = (
+    shape: ReturnType<typeof templateToShape>,
+    meta: { templateId: string | null; recurrence: PollRecurrence },
+    window: { opensAt: number | null; expiresAt: number } | null
+  ) => {
+    setPollForm({
+      title: shape.title,
+      description: shape.description,
+      targetAudience: shape.targetAudience,
+      endDate: window ? dateInputOf(window.expiresAt) : '',
+      endTime: window ? timeInputOf(window.expiresAt) : '',
+      opensDate: window?.opensAt ? dateInputOf(window.opensAt) : '',
+      opensTime: window?.opensAt ? timeInputOf(window.opensAt) : '',
+      options: shape.kind === 'text' ? ['', ''] : [...shape.options],
+      kind: shape.kind,
+      abstain: shape.abstain,
+      resultVisibility: (['live', 'afterVote', 'afterClose', 'committee'].includes(shape.resultVisibility) ? shape.resultVisibility : 'afterVote') as typeof pollForm.resultVisibility,
+      pollClass: shape.pollClass,
+      binding: shape.binding,
+      ballot: shape.ballot,
+      quorumPct: shape.quorumPct,
+      passPct: shape.passPct,
+      recurrence: meta.recurrence,
+    });
+    setPendingTemplate(meta.templateId ? { templateId: meta.templateId } : null);
+    setShowCreateModal(true);
+  };
+
+  const handleUseTemplate = (tpl: PollTemplate, rerun: boolean) => {
+    let window: { opensAt: number | null; expiresAt: number } | null = null;
+    if (rerun && tpl.recurrence !== 'none') {
+      const last = polls
+        .filter(p => p.templateId === tpl.id && typeof p.expiresAt === 'number')
+        .sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0))[0];
+      if (last) {
+        window = nextRunWindow(tpl.recurrence, typeof last.opensAt === 'number' ? last.opensAt : null, last.expiresAt, Date.now());
+      }
+    }
+    fillFormFromShape(templateToShape(tpl), { templateId: tpl.id, recurrence: tpl.recurrence }, window);
+  };
+
+  // Re-run a recurring poll itself: the next round pre-filled from
+  // this round, dates advanced by its own recurrence mark.
+  const handleRerunPoll = (poll: any) => {
+    const recurrence = pollRecurrence(poll.recurrence);
+    const shape = templateToShape(templateFromPoll(poll, {
+      id: '', name: '', recurrence, now: Date.now(), uid: firebaseUser?.uid || '',
+    }));
+    const window = typeof poll.expiresAt === 'number'
+      ? nextRunWindow(recurrence, typeof poll.opensAt === 'number' ? poll.opensAt : null, poll.expiresAt, Date.now())
+      : null;
+    fillFormFromShape(shape, { templateId: poll.templateId || null, recurrence }, window);
+  };
+
+  // POLLS NEXT-LEVEL P2b — cast an abstention through the shared
+  // write path (lib/pollVoting): the same write from this desk as
+  // from the member's Polls home, for either generation of poll.
+  const handleAbstain = async (poll: any) => {
+    const uid = firebaseUser?.uid;
+    if (!uid) return showToastMsg("Please log in to vote.", "error");
+    if (!pollIsOpen(poll, Date.now())) return showToastMsg("This poll has been concluded.", "error");
+    if (ballotCast(myBallotFor(poll))) return showToastMsg("You have already voted.", "error");
+    try {
+      await castAbstainVote(db, poll.id, uid, poll);
+      showToastMsg(t('surfaces.events.memberPollsAbstained'), 'success');
+    } catch (e: any) {
+      console.error(e);
+      showToastMsg(friendlyError(e, t, 'save'), "error");
     }
   };
 
@@ -445,13 +717,21 @@ export const CommunityPollsTab: React.FC = () => {
   // zero ballots; this form simply never appears once voting begins.
   const openEditPoll = (poll: any) => {
     const exp = poll.expiresAt ? new Date(poll.expiresAt) : null;
+    const opn = poll.opensAt ? new Date(poll.opensAt) : null;
     const pad = (n: number) => String(n).padStart(2, '0');
     setEditForm({
       title: poll.title || '',
       description: poll.description || '',
       endDate: exp ? `${exp.getFullYear()}-${pad(exp.getMonth() + 1)}-${pad(exp.getDate())}` : '',
       endTime: exp ? `${pad(exp.getHours())}:${pad(exp.getMinutes())}` : '',
-      options: Object.keys(poll.options || {}).map(id => ({ id, text: poll.options[id].text || '' })),
+      opensDate: opn ? `${opn.getFullYear()}-${pad(opn.getMonth() + 1)}-${pad(opn.getDate())}` : '',
+      opensTime: opn ? `${pad(opn.getHours())}:${pad(opn.getMinutes())}` : '',
+      // P2b: the abstain entry (legacy polls carry it in the map)
+      // is the toggle now — never an editable option row.
+      abstain: pollHasAbstain(poll),
+      options: Object.keys(poll.options || {})
+        .filter(id => id !== ABSTAIN_OPTION_ID)
+        .map(id => ({ id, text: poll.options[id].text || '' })),
       resultVisibility: (['live', 'afterVote', 'afterClose', 'committee'].includes(poll.resultVisibility) ? poll.resultVisibility : 'afterVote')
     });
     setEditPoll(poll);
@@ -464,33 +744,61 @@ export const CommunityPollsTab: React.FC = () => {
       setEditPoll(null);
       return showToastMsg(t('surfaces.events.editLockedNote'), "error");
     }
-    if (!editForm.title.trim() || !editForm.endDate) return showToastMsg("Title and End Date are required.", "error");
+    // P2b: a live poll needs its deadline; a DRAFT may still wait
+    // without one (it cannot open until a future deadline is set).
+    const isDraftEdit = editPoll.status === 'DRAFT';
+    if (!editForm.title.trim() || (!isDraftEdit && !editForm.endDate)) return showToastMsg("Title and End Date are required.", "error");
     setSubmitting(true);
     try {
-      const dateTimeString = editForm.endTime ? `${editForm.endDate}T${editForm.endTime}` : `${editForm.endDate}T23:59:59`;
-      const expirationMs = new Date(dateTimeString).getTime();
-      if (expirationMs <= Date.now()) throw new Error("The deadline must be in the future.");
-      // POLLS P1 — the deadline twins must agree (see handleCreatePoll).
-      const expiresTs = Timestamp.fromMillis(expirationMs);
-      if (expiresTs.toMillis() !== expirationMs) throw new Error("The deadline could not be recorded consistently.");
+      let expirationMs: number | null = null;
       const updates: Record<string, unknown> = {
         title: editForm.title.trim(),
         description: editForm.description.trim(),
-        expiresAt: expirationMs,
-        expiresAtTs: expiresTs,
         resultVisibility: editForm.resultVisibility
       };
+      if (editForm.endDate) {
+        const dateTimeString = editForm.endTime ? `${editForm.endDate}T${editForm.endTime}` : `${editForm.endDate}T23:59:59`;
+        expirationMs = new Date(dateTimeString).getTime();
+        if (expirationMs <= Date.now()) throw new Error("The deadline must be in the future.");
+        // POLLS P1 — the deadline twins must agree (see handleCreatePoll).
+        const expiresTs = Timestamp.fromMillis(expirationMs);
+        if (expiresTs.toMillis() !== expirationMs) throw new Error("The deadline could not be recorded consistently.");
+        updates.expiresAt = expirationMs;
+        updates.expiresAtTs = expiresTs;
+      } else if (editPoll.expiresAt) {
+        updates.expiresAt = deleteField();
+        updates.expiresAtTs = deleteField();
+      }
+      // P2b — the opening twins, same agreement law as the
+      // deadline's. Clearing the opening removes both twins
+      // (deleteField — the key still counts in the rules diff).
+      if (editForm.opensDate) {
+        const opensString = editForm.opensTime ? `${editForm.opensDate}T${editForm.opensTime}` : `${editForm.opensDate}T00:00:00`;
+        const opensMs = new Date(opensString).getTime();
+        if (expirationMs !== null && opensMs >= expirationMs) throw new Error("The opening time must be before the deadline.");
+        const opensTs = Timestamp.fromMillis(opensMs);
+        if (opensTs.toMillis() !== opensMs) throw new Error("The opening time could not be recorded consistently.");
+        updates.opensAt = opensMs;
+        updates.opensAtTs = opensTs;
+      } else if (editPoll.opensAt) {
+        updates.opensAt = deleteField();
+        updates.opensAtTs = deleteField();
+      }
       if (pollKind(editPoll) !== 'text') {
-        const optionsMap: Record<string, { text: string; votes: number; isAbstain?: boolean }> = {};
+        // P2b: the options map carries REAL options only — a
+        // legacy poll's in-map abstain entry is retired by this
+        // edit, and the choice lives on as the allowAbstain field.
+        const optionsMap: Record<string, { text: string; votes: number }> = {};
         for (const o of editForm.options) {
           if (!o.text.trim()) throw new Error("Every option needs its text.");
-          optionsMap[o.id] = {
-            text: o.text.trim(),
-            votes: 0,
-            ...(editPoll.options?.[o.id]?.isAbstain ? { isAbstain: true } : {})
-          };
+          optionsMap[o.id] = { text: o.text.trim(), votes: 0 };
         }
         updates.options = optionsMap;
+        updates.allowAbstain = editForm.abstain;
+        // (No abstainVotes key here: the edit diff pin does not
+        // carry it. A retired legacy entry had zero votes by the
+        // edit law, and the counter starts itself at the first
+        // abstention — the anchor reads it with a 0 default.)
       }
       await updateDoc(doc(db, 'polls', editPoll.id), updates);
       showToastMsg("Poll updated.", 'success');
@@ -687,7 +995,10 @@ export const CommunityPollsTab: React.FC = () => {
 
   const activePolls = visiblePolls.filter(p => p.status === 'ACTIVE');
   const concludedPolls = visiblePolls.filter(p => p.status === 'CONCLUDED');
-  const displayPolls = activeTab === 'ACTIVE' ? activePolls : concludedPolls;
+  // P2b: drafts are a first-class desk section of their own — not
+  // a hidden flag on the active list.
+  const draftList = visiblePolls.filter(p => p.status === 'DRAFT');
+  const displayPolls = activeTab === 'ACTIVE' ? activePolls : activeTab === 'DRAFTS' ? draftList : concludedPolls;
 
   const renderTimerProgress = (poll: any) => {
     if (!poll.expiresAt) return null;
@@ -752,8 +1063,13 @@ export const CommunityPollsTab: React.FC = () => {
 
     let marginMessage = "No recent concluded polls to analyze.";
     if (concludedPolls.length > 0) {
-      const lastPoll = concludedPolls[0]; 
-      const opts = Object.values(lastPoll.options || {}).sort((a: any, b: any) => b.votes - a.votes) as any[];
+      const lastPoll = concludedPolls[0];
+      // P2b: abstentions are not a candidate — never let the
+      // abstain entry (legacy in-map shape) pose as the winner.
+      const opts = Object.entries(lastPoll.options || {})
+        .filter(([id]) => id !== ABSTAIN_OPTION_ID)
+        .map(([, v]) => v)
+        .sort((a: any, b: any) => b.votes - a.votes) as any[];
       const total = pollTotalVotes(lastPoll);
 
       if (total > 0 && opts.length >= 2) {
@@ -856,6 +1172,14 @@ export const CommunityPollsTab: React.FC = () => {
             >
               <Flag size={14}/> Concluded ({concludedPolls.length})
             </button>
+            {isManagerOrAdmin && (
+              <button
+                onClick={() => setActiveTab('DRAFTS')}
+                className={`flex-1 sm:w-auto px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2 whitespace-nowrap ${activeTab === 'DRAFTS' ? 'bg-white text-stone-900 shadow-sm border border-stone-100' : 'text-stone-500 hover:text-stone-800'}`}
+              >
+                <FileText size={14}/> {t('surfaces.events.tabDrafts')} ({draftList.length})
+              </button>
+            )}
           </div>
 
           {isManagerOrAdmin && (
@@ -953,10 +1277,87 @@ export const CommunityPollsTab: React.FC = () => {
               let winnerIds: string[] = [];
               if (poll.status === 'CONCLUDED' && totalVotes > 0 && showResults && kind !== 'text') {
                  if (storedOutcome) winnerIds = storedOutcome.winnerOptionIds;
-                 else if (options.length > 0) winnerIds = [options.reduce((max, obj) => obj.votes > max.votes ? obj : max, options[0]).id];
+                 else {
+                   // P2b: the derived fallback also excludes the
+                   // abstain entry — an abstention never "wins".
+                   const candidates = options.filter(o => o.id !== ABSTAIN_OPTION_ID);
+                   if (candidates.length > 0) winnerIds = [candidates.reduce((max, obj) => obj.votes > max.votes ? obj : max, candidates[0]).id];
+                 }
               }
               const cls = pollClass(poll);
               const ballotMode = pollBallotMode(poll);
+              // P2b: the phase (draft / scheduled / open / closed),
+              // judged from the record's own clocks.
+              const phase = pollPhase(poll, Date.now());
+              const abstainCount = pollAbstainVotes(poll);
+              const myAbstain = myBallot?.abstain === true || myVote === ABSTAIN_OPTION_ID;
+
+              // POLLS NEXT-LEVEL P2b — the DRAFT card: the
+              // committee's working paper, honest about its state.
+              // No voting surface, no results — just the shape, its
+              // schedule, and the road out (edit, open, template,
+              // delete). Drafts never reach a member's screen.
+              if (poll.status === 'DRAFT') {
+                return (
+                  <div key={poll.id} className="bg-white rounded-3xl p-6 sm:p-8 shadow-sm border border-dashed border-stone-300 ring-1 ring-black/5 flex flex-col justify-between">
+                    <div>
+                      <div className="flex flex-wrap items-center gap-2 mb-4">
+                        <span className="text-[9px] font-black uppercase tracking-widest px-3 py-1.5 rounded-lg border bg-stone-100 text-stone-600 border-stone-300 flex items-center gap-1.5 shadow-sm">
+                          <FileText size={12}/> {t('surfaces.events.draftBadge')}
+                        </span>
+                        <span className={`text-[9px] font-black uppercase tracking-widest px-3 py-1.5 rounded-lg border flex items-center gap-1.5 shadow-sm ${cls === 'decision' ? 'bg-amber-50 text-amber-700 border-amber-200' : 'bg-stone-50 text-stone-500 border-stone-200'}`}>
+                          {cls === 'decision' ? t('surfaces.events.badgeDecision') : t('surfaces.events.badgePulse')}
+                        </span>
+                        {poll.targetAudience === 'MANAGERS' && (
+                          <span className="text-[9px] font-black uppercase tracking-widest px-3 py-1.5 rounded-lg border bg-blue-50 text-blue-600 border-blue-200 flex items-center gap-1.5 shadow-sm">
+                            <ShieldCheck size={12}/> Committee Only
+                          </span>
+                        )}
+                      </div>
+                      <h3 className="text-xl sm:text-2xl font-black text-stone-900 mb-3 leading-tight tracking-tight">{poll.title}</h3>
+                      {poll.description && (
+                        <p className="text-xs font-bold text-stone-500 mb-6 leading-relaxed bg-stone-50 p-4 rounded-xl border border-stone-100 shadow-inner">{poll.description}</p>
+                      )}
+                      {kind !== 'text' && (
+                        <div className="space-y-2 mb-4">
+                          {options.filter(o => o.id !== ABSTAIN_OPTION_ID).map(opt => (
+                            <div key={opt.id} className="w-full p-3.5 rounded-xl border border-stone-100 bg-stone-50/60 flex justify-between items-center">
+                              <span className="text-sm font-black text-stone-600">{opt.text}</span>
+                            </div>
+                          ))}
+                          {pollHasAbstain(poll) && (
+                            <p className="text-[10px] font-black text-stone-500 uppercase tracking-widest pt-1">+ {t('surfaces.events.abstainOption')}</p>
+                          )}
+                        </div>
+                      )}
+                      <p className="text-[11px] font-bold text-stone-500 leading-relaxed">
+                        {t('surfaces.events.draftNote')}
+                      </p>
+                      {(poll.opensAt || poll.expiresAt) && (
+                        <p className="text-[11px] font-bold text-stone-500 mt-2 flex items-center gap-1.5">
+                          <CalendarClock size={13} className="text-saffron-500"/>
+                          {poll.opensAt ? `${t('surfaces.events.opensOnLine').replace('{date}', new Date(poll.opensAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }))} · ` : ''}
+                          {poll.expiresAt ? t('surfaces.events.memberPollsCloses').replace('{date}', new Date(poll.expiresAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })) : t('surfaces.events.draftNeedsDate')}
+                        </p>
+                      )}
+                    </div>
+                    <div className="mt-6 pt-5 border-t border-stone-100 flex flex-wrap items-center gap-2">
+                      <button onClick={() => handleOpenPoll(poll)} disabled={submitting} className="flex-1 sm:flex-none bg-stone-900 hover:bg-black disabled:opacity-40 text-white px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex justify-center items-center gap-1.5 shadow-sm min-h-[44px]">
+                        <Play size={14}/> {t('surfaces.events.openPollBtn')}
+                      </button>
+                      <button onClick={() => openEditPoll(poll)} className="flex-1 sm:flex-none bg-white hover:bg-stone-800 hover:text-white text-stone-700 border border-stone-300 px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex justify-center items-center gap-1.5 shadow-sm min-h-[44px]">
+                        <FileText size={14}/> {t('surfaces.events.editPoll')}
+                      </button>
+                      <button onClick={() => { setTemplateSavePoll(poll); setTemplateForm({ name: poll.title || '', recurrence: pollRecurrence(poll.recurrence) }); }} className="flex-1 sm:flex-none bg-white hover:bg-stone-800 hover:text-white text-stone-700 border border-stone-300 px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex justify-center items-center gap-1.5 shadow-sm min-h-[44px]">
+                        <Save size={14}/> {t('surfaces.events.saveAsTemplateBtn')}
+                      </button>
+                      <button onClick={() => handleDeletePoll(poll)} className="bg-red-50 hover:bg-red-600 hover:text-white text-red-600 border border-red-200 p-2.5 rounded-xl transition-all flex justify-center items-center shadow-sm min-h-[44px]" title="Delete (no votes cast yet)">
+                        <Trash2 size={16}/>
+                      </button>
+                    </div>
+                  </div>
+                );
+              }
 
               return (
                 <div key={poll.id} className={`bg-white rounded-3xl p-6 sm:p-8 shadow-sm border transition-all duration-300 ring-1 ring-black/5 flex flex-col justify-between group ${poll.status === 'ACTIVE' ? 'border-saffron-200 hover:shadow-md hover:border-saffron-300' : 'border-stone-200 opacity-90'}`}>
@@ -968,7 +1369,11 @@ export const CommunityPollsTab: React.FC = () => {
                            {poll.targetAudience === 'MANAGERS' ? <ShieldCheck size={12}/> : <Users size={12}/>} 
                            {poll.targetAudience === 'MANAGERS' ? 'Committee Only' : 'Public Poll'}
                          </span>
-                         {poll.status === 'ACTIVE' ? (
+                         {phase === 'scheduled' ? (
+                           <span className="text-[9px] font-black uppercase tracking-widest px-3 py-1.5 rounded-lg border bg-blue-50 text-blue-600 border-blue-200 flex items-center gap-1.5 shadow-sm">
+                             <CalendarClock size={12}/> {t('surfaces.events.opensOnLine').replace('{date}', new Date(poll.opensAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }))}
+                           </span>
+                         ) : poll.status === 'ACTIVE' ? (
                            <span className="text-[9px] font-black uppercase tracking-widest px-3 py-1.5 rounded-lg border bg-saffron-50 text-saffron-600 border-saffron-200 flex items-center gap-1.5 shadow-sm">
                              <Timer size={12}/> {getCountdown(poll.expiresAt)}
                            </span>
@@ -1006,7 +1411,17 @@ export const CommunityPollsTab: React.FC = () => {
 
                    {/* VOTING SECTION — EVENTS P1 shapes */}
                    <div className="space-y-3 mt-auto">
-                     {kind === 'text' ? (
+                     {phase === 'scheduled' ? (
+                       <div className="bg-blue-50/70 border border-blue-100 rounded-xl p-4 text-center shadow-inner">
+                         <CalendarClock size={16} className="mx-auto text-blue-500 mb-1.5" />
+                         <p className="text-xs font-bold text-blue-900">
+                           {t('surfaces.events.opensOnLine').replace('{date}', new Date(poll.opensAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }))}
+                         </p>
+                         <p className="text-[10px] font-bold text-stone-500 mt-1.5 leading-relaxed">
+                           {t('surfaces.events.scheduleNote')}
+                         </p>
+                       </div>
+                     ) : kind === 'text' ? (
                        poll.status === 'ACTIVE' && !iVoted ? (
                          <div className="space-y-3">
                            <p className="text-[11px] font-bold text-stone-500 leading-relaxed flex items-start gap-1.5">
@@ -1064,6 +1479,15 @@ export const CommunityPollsTab: React.FC = () => {
                                </button>
                              );
                            })}
+                           {poll.allowAbstain === true && (
+                             <button
+                               onClick={() => handleAbstain(poll)}
+                               className="w-full text-left p-4 rounded-xl border-2 border-dashed border-stone-200 hover:border-stone-400 transition-all flex justify-between items-center min-h-[44px]"
+                             >
+                               <span className="text-sm font-black text-stone-500">{t('surfaces.events.abstainOption')}</span>
+                               <span className="text-[9px] font-black text-stone-400 uppercase tracking-widest">{t('surfaces.events.abstainStandAside')}</span>
+                             </button>
+                           )}
                            <button
                              onClick={() => handleVoteMulti(poll.id)}
                              disabled={(multiPick[poll.id] || []).length === 0}
@@ -1073,7 +1497,8 @@ export const CommunityPollsTab: React.FC = () => {
                            </button>
                          </div>
                        ) : (
-                         options.map((opt) => (
+                         <>
+                         {options.map((opt) => (
                            <button
                              key={opt.id}
                              onClick={() => handleVote(poll.id, opt.id)}
@@ -1082,10 +1507,21 @@ export const CommunityPollsTab: React.FC = () => {
                              <span className="text-sm font-black text-stone-700 group-hover/btn:text-saffron-500 transition-colors">{opt.text}</span>
                              <div className="w-5 h-5 rounded-full border-2 border-stone-300 group-hover/btn:border-saffron-500 transition-colors"></div>
                            </button>
-                         ))
+                         ))}
+                         {poll.allowAbstain === true && (
+                           <button
+                             onClick={() => handleAbstain(poll)}
+                             className="w-full text-left p-4 rounded-xl border-2 border-dashed border-stone-200 hover:border-stone-400 hover:bg-stone-50/50 transition-all flex justify-between items-center min-h-[44px]"
+                           >
+                             <span className="text-sm font-black text-stone-500">{t('surfaces.events.abstainOption')}</span>
+                             <span className="text-[9px] font-black text-stone-400 uppercase tracking-widest">{t('surfaces.events.abstainStandAside')}</span>
+                           </button>
+                         )}
+                         </>
                        )
                      ) : showResults ? (
-                       options.map((opt) => {
+                       <>
+                       {options.map((opt) => {
                          const percentage = totalVotes > 0 ? Math.round((opt.votes / totalVotes) * 100) : 0;
                          const isMyChoice = kind === 'multi' ? (myBallot?.optionIds || []).includes(opt.id) : myVote === opt.id;
                          const isWinner = winnerIds.includes(opt.id);
@@ -1114,7 +1550,27 @@ export const CommunityPollsTab: React.FC = () => {
                              </div>
                            </div>
                          );
-                       })
+                       })}
+                       {/* P2b: the abstention row — counted in
+                           turnout, never a candidate: no bar race,
+                           just the count, on its own line. (Legacy
+                           polls render theirs as an option row
+                           above, from the map.) */}
+                       {poll.allowAbstain === true && abstainCount > 0 && (
+                         <div className="w-full bg-stone-50 border border-dashed border-stone-200 rounded-xl p-4 flex justify-between items-center">
+                           <span className="flex items-center gap-2">
+                             <span className="text-sm font-black text-stone-600">{t('surfaces.events.abstainOption')}</span>
+                             {myAbstain && (
+                               <span className="bg-saffron-500 text-white text-[9px] font-black px-2 py-0.5 rounded-md uppercase tracking-widest shadow-sm">Your Vote</span>
+                             )}
+                           </span>
+                           <span className="text-right">
+                             <span className="text-sm font-black text-stone-600">{totalVotes > 0 ? Math.round((abstainCount / totalVotes) * 100) : 0}%</span>
+                             <span className="block text-[9px] font-bold text-stone-500 uppercase tracking-widest mt-0.5">{abstainCount} Votes</span>
+                           </span>
+                         </div>
+                       )}
+                       </>
                      ) : (
                        <div className="bg-stone-50 border border-stone-100 rounded-xl p-4 text-center shadow-inner">
                          <Lock size={16} className="mx-auto text-stone-600 mb-1.5" />
@@ -1201,16 +1657,31 @@ export const CommunityPollsTab: React.FC = () => {
                            )}
                            {poll.status === 'ACTIVE' && (
                              <>
-                               <button onClick={() => handleSendReminder(poll)} className="flex-1 sm:flex-none bg-saffron-50 hover:bg-saffron-600 hover:text-white text-saffron-600 border border-saffron-200 px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex justify-center items-center gap-1.5 shadow-sm hover:shadow-md" title="Remind members who have not voted — their own app checks their ballot privately">
-                                 <BellRing size={14}/> Remind
-                               </button>
-                               <button onClick={() => setWaPollId(waPollId === poll.id ? null : poll.id)} aria-expanded={waPollId === poll.id} className="flex-1 sm:flex-none bg-emerald-50 hover:bg-emerald-600 hover:text-white text-emerald-700 border border-emerald-200 px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex justify-center items-center gap-1.5 shadow-sm hover:shadow-md" title={t('surfaces.events.pollWaTitle')}>
-                                 <MessageSquare size={14}/> {t('surfaces.events.pollWaBtn')}
-                               </button>
+                               {phase === 'open' && (
+                                 <>
+                                   <button onClick={() => handleSendReminder(poll)} className="flex-1 sm:flex-none bg-saffron-50 hover:bg-saffron-600 hover:text-white text-saffron-600 border border-saffron-200 px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex justify-center items-center gap-1.5 shadow-sm hover:shadow-md" title="Remind members who have not voted — their own app checks their ballot privately">
+                                     <BellRing size={14}/> Remind
+                                   </button>
+                                   <button onClick={() => setWaPollId(waPollId === poll.id ? null : poll.id)} aria-expanded={waPollId === poll.id} className="flex-1 sm:flex-none bg-emerald-50 hover:bg-emerald-600 hover:text-white text-emerald-700 border border-emerald-200 px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex justify-center items-center gap-1.5 shadow-sm hover:shadow-md" title={t('surfaces.events.pollWaTitle')}>
+                                     <MessageSquare size={14}/> {t('surfaces.events.pollWaBtn')}
+                                   </button>
+                                 </>
+                               )}
                                <button onClick={() => { setConcludeData({ id: poll.id, title: poll.title, note: '' }); setShowConcludeModal(true); }} className="flex-1 sm:flex-none bg-stone-100 hover:bg-stone-800 hover:text-white text-stone-600 border border-stone-200 px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex justify-center items-center gap-1.5 shadow-sm hover:shadow-md">
                                  <Lock size={14}/> Conclude
                                </button>
                              </>
+                           )}
+                           {/* P2b: save this poll's shape as a template,
+                               and re-run it when it carries a
+                               recurrence mark. */}
+                           <button onClick={() => { setTemplateSavePoll(poll); setTemplateForm({ name: poll.title || '', recurrence: pollRecurrence(poll.recurrence) }); }} className="flex-1 sm:flex-none bg-white hover:bg-stone-800 hover:text-white text-stone-700 border border-stone-300 px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex justify-center items-center gap-1.5 shadow-sm hover:shadow-md" title={t('surfaces.events.saveAsTemplateBtn')}>
+                             <Save size={14}/> {t('surfaces.events.saveAsTemplateBtn')}
+                           </button>
+                           {pollRecurrence(poll.recurrence) !== 'none' && (
+                             <button onClick={() => handleRerunPoll(poll)} className="flex-1 sm:flex-none bg-white hover:bg-stone-800 hover:text-white text-stone-700 border border-stone-300 px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex justify-center items-center gap-1.5 shadow-sm hover:shadow-md" title={t('surfaces.events.rerunNote')}>
+                               <Repeat size={14}/> {t('surfaces.events.rerunBtn')}
+                             </button>
                            )}
                            {pollTotalVotes(poll) === 0 && (
                              <button onClick={() => handleDeletePoll(poll)} className="bg-red-50 hover:bg-red-600 hover:text-white text-red-600 border border-red-200 p-2.5 rounded-xl transition-all flex justify-center items-center shadow-sm hover:shadow-md" title="Delete (no votes cast yet)">
@@ -1296,7 +1767,44 @@ export const CommunityPollsTab: React.FC = () => {
              </div>
 
              <div className="overflow-y-auto pr-2 scrollbar-hide pb-4">
-               <form onSubmit={handleCreatePoll} className="space-y-6">
+               <form onSubmit={(e) => handleCreatePoll(e, 'launch')} className="space-y-6">
+                 {/* POLLS NEXT-LEVEL P2b — the workspace's templates:
+                     one tap fills this form from a saved shape. A
+                     recurring template also offers the re-run, with
+                     the next window suggested from its last round. */}
+                 {templates.length > 0 && (
+                   <div className="bg-stone-50 border border-stone-200 rounded-2xl p-4 shadow-inner">
+                     <p className="text-[10px] font-black text-stone-500 uppercase tracking-widest mb-3 flex items-center gap-1.5">
+                       <Save size={12}/> {t('surfaces.events.templatesTitle')}
+                     </p>
+                     <div className="space-y-2">
+                       {templates.map(tpl => (
+                         <div key={tpl.id} className="flex items-center gap-2 bg-white border border-stone-200 rounded-xl px-3 py-2.5 shadow-sm">
+                           <span className="flex-1 min-w-0">
+                             <span className="block text-xs font-black text-stone-800 truncate">{tpl.name}</span>
+                             <span className="block text-[10px] font-bold text-stone-500 truncate">{tpl.title}</span>
+                           </span>
+                           {tpl.recurrence !== 'none' && (
+                             <span className="text-[9px] font-black uppercase tracking-widest px-2 py-1 rounded-md bg-blue-50 text-blue-600 border border-blue-200 flex items-center gap-1 shrink-0">
+                               <Repeat size={10}/> {tpl.recurrence === 'monthly' ? t('surfaces.events.recurrenceMonthlyOpt') : tpl.recurrence === 'quarterly' ? t('surfaces.events.recurrenceQuarterlyOpt') : t('surfaces.events.recurrenceYearlyOpt')}
+                             </span>
+                           )}
+                           <button type="button" onClick={() => handleUseTemplate(tpl, false)} className="shrink-0 bg-stone-900 hover:bg-black text-white px-3 py-2 rounded-lg text-[9px] font-black uppercase tracking-widest min-h-[36px]">
+                             {t('surfaces.events.templateUseBtn')}
+                           </button>
+                           {tpl.recurrence !== 'none' && (
+                             <button type="button" onClick={() => handleUseTemplate(tpl, true)} className="shrink-0 bg-white hover:bg-stone-800 hover:text-white text-stone-700 border border-stone-300 px-3 py-2 rounded-lg text-[9px] font-black uppercase tracking-widest min-h-[36px]" title={t('surfaces.events.rerunNote')}>
+                               {t('surfaces.events.rerunBtn')}
+                             </button>
+                           )}
+                           <button type="button" onClick={() => handleDeleteTemplate(tpl)} className="shrink-0 p-2 text-red-400 hover:text-red-600 bg-red-50 hover:bg-red-100 rounded-lg border border-red-100 min-h-[36px]" title={t('surfaces.events.templateDeleteBtn')}>
+                             <Trash2 size={13}/>
+                           </button>
+                         </div>
+                       ))}
+                     </div>
+                   </div>
+                 )}
                  <div>
                    <label className="block text-[10px] font-black text-stone-500 uppercase tracking-widest mb-1.5">Poll Question / Title *</label>
                    <input 
@@ -1323,6 +1831,21 @@ export const CommunityPollsTab: React.FC = () => {
                      <input type="time" value={pollForm.endTime} onChange={e=>setPollForm({...pollForm, endTime: e.target.value})} className="w-full p-4 bg-stone-50 border border-stone-200 rounded-xl text-sm font-bold focus:bg-white focus:border-saffron-500 outline-none transition-all shadow-sm text-stone-700 cursor-pointer" />
                    </div>
                  </div>
+                 {/* POLLS NEXT-LEVEL P2b — the scheduled opening.
+                     Honest by construction: the note says plainly
+                     that the app applies the times when it opens —
+                     there is no server clock behind this. */}
+                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                   <div>
+                     <label className="block text-[10px] font-black text-stone-500 uppercase tracking-widest mb-1.5 flex items-center gap-1"><CalendarClock size={12}/> {t('surfaces.events.scheduleOpensLabel')}</label>
+                     <input type="date" value={pollForm.opensDate} onChange={e=>setPollForm({...pollForm, opensDate: e.target.value})} className="w-full p-4 bg-stone-50 border border-stone-200 rounded-xl text-sm font-bold focus:bg-white focus:border-saffron-500 outline-none transition-all shadow-sm text-stone-700 cursor-pointer" />
+                   </div>
+                   <div>
+                     <label className="block text-[10px] font-black text-stone-500 uppercase tracking-widest mb-1.5 flex items-center gap-1"><Clock size={12}/> Time (Optional)</label>
+                     <input type="time" value={pollForm.opensTime} onChange={e=>setPollForm({...pollForm, opensTime: e.target.value})} className="w-full p-4 bg-stone-50 border border-stone-200 rounded-xl text-sm font-bold focus:bg-white focus:border-saffron-500 outline-none transition-all shadow-sm text-stone-700 cursor-pointer" />
+                   </div>
+                 </div>
+                 <p className="text-[11px] font-bold text-stone-600 leading-relaxed -mt-2">{t('surfaces.events.scheduleNote')}</p>
                  <div>
                    <label className="block text-[10px] font-black text-stone-500 uppercase tracking-widest mb-1.5 flex items-center gap-1.5"><ShieldCheck size={12}/> Voting Audience</label>
                    <select
@@ -1449,6 +1972,25 @@ export const CommunityPollsTab: React.FC = () => {
                    </select>
                  </div>
 
+                 {/* POLLS NEXT-LEVEL P2b — the recurrence mark. It
+                     promises a one-step re-run, never an automatic
+                     opening (the note says so, in plain words). */}
+                 <div>
+                   <label className="block text-[10px] font-black text-stone-500 uppercase tracking-widest mb-1.5 flex items-center gap-1.5"><Repeat size={12}/> {t('surfaces.events.recurrenceLabel')}</label>
+                   <select
+                     value={pollForm.recurrence} onChange={e=>setPollForm({...pollForm, recurrence: e.target.value as PollRecurrence})}
+                     className="w-full p-4 bg-stone-50 border border-stone-200 rounded-xl text-sm font-bold focus:bg-white focus:border-saffron-500 outline-none transition-all appearance-none cursor-pointer shadow-sm"
+                   >
+                     <option value="none">{t('surfaces.events.recurrenceNoneOpt')}</option>
+                     <option value="monthly">{t('surfaces.events.recurrenceMonthlyOpt')}</option>
+                     <option value="quarterly">{t('surfaces.events.recurrenceQuarterlyOpt')}</option>
+                     <option value="yearly">{t('surfaces.events.recurrenceYearlyOpt')}</option>
+                   </select>
+                   {pollForm.recurrence !== 'none' && (
+                     <p className="text-[11px] font-bold text-stone-600 mt-2 leading-relaxed">{t('surfaces.events.rerunNote')}</p>
+                   )}
+                 </div>
+
                  {pollForm.kind !== 'text' && (
                  <div className="border-t border-stone-100 pt-5 mt-2">
                    <label className="block text-[10px] font-black text-stone-500 uppercase tracking-widest mb-3">Voting Options *</label>
@@ -1470,7 +2012,7 @@ export const CommunityPollsTab: React.FC = () => {
                        </div>
                      ))}
                    </div>
-                   {pollForm.options.length < (pollForm.abstain ? 4 : 5) && (
+                   {pollForm.options.length < POLL_MAX_OPTIONS && (
                      <button type="button" onClick={handleAddOption} className="mt-4 text-[10px] font-black text-saffron-500 uppercase tracking-widest flex items-center justify-center w-full gap-1 hover:text-saffron-700 transition-colors bg-saffron-50 hover:bg-saffron-100 p-3.5 rounded-xl border border-saffron-200 shadow-sm">
                        <Plus size={14}/> Add Another Option
                      </button>
@@ -1478,10 +2020,16 @@ export const CommunityPollsTab: React.FC = () => {
                  </div>
                  )}
 
-                 <div className="pt-4 mt-2 border-t border-stone-100">
+                 <div className="pt-4 mt-2 border-t border-stone-100 space-y-3">
                    <button type="submit" disabled={submitting} className="w-full bg-stone-900 hover:bg-black text-white font-black py-4 rounded-2xl text-xs uppercase tracking-widest flex justify-center items-center gap-2 shadow-xl hover:shadow-2xl transition-all hover:-translate-y-0.5 disabled:opacity-50 disabled:transform-none">
                      {submitting ? <Loader2 size={18} className="animate-spin" /> : <><CheckCircle2 size={18}/> LAUNCH POLL OFFICIALLY</>}
                    </button>
+                   {/* P2b: the draft road — the same form, saved as
+                       the committee's working paper instead. */}
+                   <button type="button" onClick={() => handleCreatePoll(undefined, 'draft')} disabled={submitting} className="w-full bg-white hover:bg-stone-100 text-stone-700 border border-stone-300 font-black py-4 rounded-2xl text-xs uppercase tracking-widest flex justify-center items-center gap-2 shadow-sm transition-all disabled:opacity-50 min-h-[44px]">
+                     <Save size={16}/> {t('surfaces.events.draftSaveBtn')}
+                   </button>
+                   <p className="text-[11px] font-bold text-stone-600 leading-relaxed text-center">{t('surfaces.events.draftNote')}</p>
                  </div>
                </form>
              </div>
@@ -1518,13 +2066,37 @@ export const CommunityPollsTab: React.FC = () => {
                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                    <div>
                      <label className="block text-[10px] font-black text-stone-500 uppercase tracking-widest mb-1.5 flex items-center gap-1"><CalendarDays size={12}/> End Date *</label>
-                     <input type="date" required value={editForm.endDate} onChange={e=>setEditForm({...editForm, endDate: e.target.value})} className="w-full p-4 bg-stone-50 border border-stone-200 rounded-xl text-sm font-bold focus:bg-white focus:border-saffron-500 outline-none transition-all shadow-sm text-stone-700 cursor-pointer" />
+                     <input type="date" required={editPoll.status !== 'DRAFT'} value={editForm.endDate} onChange={e=>setEditForm({...editForm, endDate: e.target.value})} className="w-full p-4 bg-stone-50 border border-stone-200 rounded-xl text-sm font-bold focus:bg-white focus:border-saffron-500 outline-none transition-all shadow-sm text-stone-700 cursor-pointer" />
                    </div>
                    <div>
                      <label className="block text-[10px] font-black text-stone-500 uppercase tracking-widest mb-1.5 flex items-center gap-1"><Clock size={12}/> Time (Optional)</label>
                      <input type="time" value={editForm.endTime} onChange={e=>setEditForm({...editForm, endTime: e.target.value})} className="w-full p-4 bg-stone-50 border border-stone-200 rounded-xl text-sm font-bold focus:bg-white focus:border-saffron-500 outline-none transition-all shadow-sm text-stone-700 cursor-pointer" />
                    </div>
                  </div>
+                 {/* P2b: the scheduled opening is editable under the
+                     same zero-ballot law — clear the date to open
+                     the poll as soon as it launches. */}
+                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                   <div>
+                     <label className="block text-[10px] font-black text-stone-500 uppercase tracking-widest mb-1.5 flex items-center gap-1"><CalendarClock size={12}/> {t('surfaces.events.scheduleOpensLabel')}</label>
+                     <input type="date" value={editForm.opensDate} onChange={e=>setEditForm({...editForm, opensDate: e.target.value})} className="w-full p-4 bg-stone-50 border border-stone-200 rounded-xl text-sm font-bold focus:bg-white focus:border-saffron-500 outline-none transition-all shadow-sm text-stone-700 cursor-pointer" />
+                   </div>
+                   <div>
+                     <label className="block text-[10px] font-black text-stone-500 uppercase tracking-widest mb-1.5 flex items-center gap-1"><Clock size={12}/> Time (Optional)</label>
+                     <input type="time" value={editForm.opensTime} onChange={e=>setEditForm({...editForm, opensTime: e.target.value})} className="w-full p-4 bg-stone-50 border border-stone-200 rounded-xl text-sm font-bold focus:bg-white focus:border-saffron-500 outline-none transition-all shadow-sm text-stone-700 cursor-pointer" />
+                   </div>
+                 </div>
+                 {pollKind(editPoll) !== 'text' && (
+                   <label className="flex items-center gap-3 bg-stone-50 border border-stone-200 rounded-xl p-4 cursor-pointer shadow-sm">
+                     <input
+                       type="checkbox"
+                       checked={editForm.abstain}
+                       onChange={e=>setEditForm({...editForm, abstain: e.target.checked})}
+                       className="w-4 h-4 accent-orange-500"
+                     />
+                     <span className="text-sm font-bold text-stone-700">{t('surfaces.events.abstainToggle')}</span>
+                   </label>
+                 )}
                  {pollKind(editPoll) !== 'text' && (
                    <div>
                      <label className="block text-[10px] font-black text-stone-500 uppercase tracking-widest mb-3">Voting Options *</label>
@@ -1594,6 +2166,56 @@ export const CommunityPollsTab: React.FC = () => {
                  </button>
                </div>
             </form>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* POLLS NEXT-LEVEL P2b — save-as-template: the shape only.
+          No votes, no results, no outcome ever ride into a
+          template — the dialog says what a template is. */}
+      {templateSavePoll && createPortal(
+        <div className="fixed inset-0 bg-stone-900/80 backdrop-blur-sm z-[10000] flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md p-6 sm:p-8 animate-in zoom-in-95 ring-1 ring-white/20 border-t-4 border-saffron-500">
+            <div className="flex justify-between items-center mb-6 border-b border-stone-100 pb-4">
+              <h3 className="text-xl font-black text-stone-900 flex items-center gap-2 tracking-tight">
+                 <Save className="text-saffron-500" size={24}/> {t('surfaces.events.saveAsTemplateBtn')}
+              </h3>
+              <button onClick={() => setTemplateSavePoll(null)} className="bg-stone-100 hover:bg-stone-200 p-2.5 rounded-full text-stone-500 transition-colors shadow-sm"><X size={16}/></button>
+            </div>
+            <div className="space-y-5">
+              <p className="text-xs font-bold text-stone-500 leading-relaxed">
+                {t('surfaces.events.templateShapeNote')}
+              </p>
+              <div>
+                <label className="block text-[10px] font-black text-stone-500 uppercase tracking-widest mb-1.5">{t('surfaces.events.templateNameLabel')}</label>
+                <input
+                  type="text" value={templateForm.name} onChange={e=>setTemplateForm({...templateForm, name: e.target.value})}
+                  className="w-full p-4 bg-stone-50 border border-stone-200 rounded-xl text-sm font-bold focus:bg-white focus:border-saffron-500 outline-none transition-all shadow-sm"
+                />
+              </div>
+              <div>
+                <label className="block text-[10px] font-black text-stone-500 uppercase tracking-widest mb-1.5 flex items-center gap-1.5"><Repeat size={12}/> {t('surfaces.events.recurrenceLabel')}</label>
+                <select
+                  value={templateForm.recurrence} onChange={e=>setTemplateForm({...templateForm, recurrence: e.target.value as PollRecurrence})}
+                  className="w-full p-4 bg-stone-50 border border-stone-200 rounded-xl text-sm font-bold focus:bg-white focus:border-saffron-500 outline-none transition-all appearance-none cursor-pointer shadow-sm"
+                >
+                  <option value="none">{t('surfaces.events.recurrenceNoneOpt')}</option>
+                  <option value="monthly">{t('surfaces.events.recurrenceMonthlyOpt')}</option>
+                  <option value="quarterly">{t('surfaces.events.recurrenceQuarterlyOpt')}</option>
+                  <option value="yearly">{t('surfaces.events.recurrenceYearlyOpt')}</option>
+                </select>
+                {templateForm.recurrence !== 'none' && (
+                  <p className="text-[11px] font-bold text-stone-600 mt-2 leading-relaxed">{t('surfaces.events.rerunNote')}</p>
+                )}
+              </div>
+              <div className="flex gap-3 pt-2">
+                <button type="button" onClick={() => setTemplateSavePoll(null)} className="flex-1 bg-stone-100 hover:bg-stone-200 text-stone-700 font-black py-4 rounded-xl text-xs uppercase tracking-widest transition-colors shadow-sm min-h-[44px]">{t('actions.cancel') || 'Cancel'}</button>
+                <button type="button" onClick={handleSaveTemplate} disabled={submitting} className="flex-[2] font-black py-4 rounded-xl text-xs uppercase tracking-widest text-white shadow-md transition-all hover:-translate-y-0.5 bg-stone-900 hover:bg-black disabled:opacity-50 flex items-center justify-center gap-2 min-h-[44px]">
+                  {submitting ? <Loader2 size={16} className="animate-spin"/> : <><Save size={16}/> {t('surfaces.events.saveAsTemplateBtn')}</>}
+                </button>
+              </div>
+            </div>
           </div>
         </div>,
         document.body
@@ -1701,6 +2323,39 @@ export const CommunityPollsTab: React.FC = () => {
                     </div>
                   );
                })}
+               {/* P2b: the abstentions of a NEW-model poll — their
+                   own group, since abstain is no longer an option
+                   row. (Legacy polls show theirs as the abstain
+                   option row above.) Named polls name them here
+                   like any ballot; secret polls show the count. */}
+               {auditPoll.allowAbstain === true && (
+                 <div className="border border-dashed border-stone-300 rounded-2xl overflow-hidden shadow-sm">
+                   <div className="bg-stone-50 p-4 border-b border-stone-200 flex justify-between items-center">
+                     <span className="text-sm font-black text-stone-600">{t('surfaces.events.abstainOption')}</span>
+                     <span className="text-[10px] font-black bg-white px-2.5 py-1 rounded-md border border-stone-200 text-stone-500 uppercase tracking-widest shadow-sm">{pollAbstainVotes(auditPoll)} Votes</span>
+                   </div>
+                   {pollBallotMode(auditPoll) === 'named' && pollKind(auditPoll) !== 'text' && (
+                     <div className="p-2 bg-white">
+                       {Object.keys(auditBallots).filter(uid => (auditBallots[uid] || []).includes(ABSTAIN_OPTION_ID)).length > 0 ? (
+                         <div className="divide-y divide-stone-50">
+                           {Object.keys(auditBallots).filter(uid => (auditBallots[uid] || []).includes(ABSTAIN_OPTION_ID)).map(uid => {
+                             const member = devotees.find(m => m.id === uid || (m as any).userId === uid);
+                             const displayName = member ? ((member as any).name || (member as any).fullName || 'Member') : 'Member';
+                             return (
+                               <div key={uid} className="p-3 flex items-center justify-between hover:bg-stone-50 rounded-xl transition-colors">
+                                 <span className="text-sm font-bold text-stone-900">{displayName}</span>
+                                 <span className="text-[10px] font-black text-stone-600 uppercase tracking-widest">Ballot recorded</span>
+                               </div>
+                             );
+                           })}
+                         </div>
+                       ) : (
+                         <p className="text-[10px] font-bold text-stone-600 p-4 text-center italic uppercase tracking-widest">No abstentions yet.</p>
+                       )}
+                     </div>
+                   )}
+                 </div>
+               )}
             </div>
           </div>
         </div>,

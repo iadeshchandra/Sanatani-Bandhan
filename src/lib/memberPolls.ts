@@ -45,6 +45,7 @@
 import {
   ballotCast,
   pollIsOpen,
+  pollPhase,
   pollStoredOutcome,
   POLL_BOARD_ROLES,
   type MyBallot,
@@ -82,6 +83,8 @@ export interface MemberPollEntry {
   myBallot: MyBallot | null;
   hasVoted: boolean;
   open: boolean;
+  /** P2b: announced but not yet open — its opening time is ahead. */
+  scheduled: boolean;
 }
 
 /** Is this role a board role in the poll electorate's sense? */
@@ -129,6 +132,11 @@ export function assembleMemberPolls(input: {
     const polls = input.pollsByWorkspace[workspaceId] || [];
     for (const poll of polls) {
       if (!poll || !poll.id) continue;
+      // P2b: a draft NEVER reaches the member door — it is the
+      // committee's working paper (the rules deny the read to
+      // non-committee members; a board member's own door applies
+      // the same law at the display layer).
+      if (poll.status === 'DRAFT') continue;
       if (!pollVisibleToMember(poll, role)) continue;
       const myBallot = input.myBallots[poll.id] ?? null;
       entries.push({
@@ -140,6 +148,7 @@ export function assembleMemberPolls(input: {
         myBallot,
         hasVoted: ballotCast(myBallot),
         open: pollIsOpen(poll, input.now),
+        scheduled: pollPhase(poll, input.now) === 'scheduled',
       });
     }
   }
@@ -150,11 +159,14 @@ export function assembleMemberPolls(input: {
     pollStoredOutcome(e.poll)?.concludedAt ?? e.poll.createdAt ?? 0;
 
   entries.sort((a, b) => {
-    const rank = (e: MemberPollEntry) => (e.open && !e.hasVoted ? 0 : e.open ? 1 : 2);
+    // Awaiting my vote → open → scheduled (announced, opening
+    // ahead) → concluded, newest first.
+    const rank = (e: MemberPollEntry) =>
+      e.open && !e.hasVoted ? 0 : e.open ? 1 : e.scheduled ? 2 : 3;
     const ra = rank(a);
     const rb = rank(b);
     if (ra !== rb) return ra - rb;
-    if (ra === 2) return concludedAt(b) - concludedAt(a);
+    if (ra === 3) return concludedAt(b) - concludedAt(a);
     return deadline(a) - deadline(b);
   });
   return entries;

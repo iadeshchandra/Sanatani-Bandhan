@@ -28,12 +28,12 @@ import { useLanguage } from '../../context/LanguageContext';
 import { useToast } from '../../context/ToastContext';
 import { friendlyError } from '../../lib/friendlyError';
 import {
-  ABSTAIN_OPTION_ID, computePollOutcome, pollClass, pollIsBinding, pollIsOpen,
+  ABSTAIN_OPTION_ID, computePollOutcome, pollAbstainVotes, pollClass, pollIsBinding, pollIsOpen,
   pollKind, pollResultsVisible, pollResultVisibility, pollStoredOutcome,
   pollTotalVotes, validateMultiChoice, validateTextResponse,
   type MyBallot,
 } from '../../lib/pollLogic';
-import { castChoiceBallot, castMultiBallot, castTextBallot } from '../../lib/pollVoting';
+import { castAbstainVote, castChoiceBallot, castMultiBallot, castTextBallot } from '../../lib/pollVoting';
 import {
   assembleMemberPolls, memberPollsAwaitingCount,
   type MemberPollDoc, type MemberPollEntry,
@@ -78,10 +78,17 @@ function useMemberPolls() {
   const [ballotDocs, setBallotDocs] = useState<Record<string, MyBallot | null>>({});
 
   // Polls of every workspace I belong to (one listener per workspace).
+  // P2b: drafts are committee-only at the rules layer — the status
+  // filter keeps them out of this read entirely (an unfiltered
+  // query returning one would fail the whole listener).
   useEffect(() => {
     const unsubs = memberships.map((m) =>
       onSnapshot(
-        query(collection(db, 'polls'), where('workspaceId', '==', m.workspaceId)),
+        query(
+          collection(db, 'polls'),
+          where('workspaceId', '==', m.workspaceId),
+          where('status', 'in', ['ACTIVE', 'CONCLUDED'])
+        ),
         (snap) => {
           const arr = snap.docs.map((d) => ({ id: d.id, ...(d.data() as any) }) as MemberPollDoc);
           arr.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
@@ -111,6 +118,7 @@ function useMemberPolls() {
                 ...(data.optionId ? { optionId: data.optionId } : {}),
                 ...(Array.isArray(data.optionIds) ? { optionIds: data.optionIds } : {}),
                 ...(typeof data.text === 'string' ? { text: data.text } : {}),
+                ...(data.abstain === true ? { abstain: true } : {}),
               }
             : null,
         }));
@@ -177,7 +185,7 @@ function useMemberPolls() {
 const PollVoteCard: React.FC<{ entry: MemberPollEntry; uid: string | null }> = ({ entry, uid }) => {
   const { t } = useLanguage();
   const { showToast } = useToast();
-  const { poll, workspaceName, myBallot, hasVoted, open, isBoard } = entry;
+  const { poll, workspaceName, myBallot, hasVoted, open, scheduled, isBoard } = entry;
   const [multiPick, setMultiPick] = useState<string[]>([]);
   const [textDraft, setTextDraft] = useState('');
   const [casting, setCasting] = useState(false);
@@ -189,11 +197,17 @@ const PollVoteCard: React.FC<{ entry: MemberPollEntry; uid: string | null }> = (
   const showResults = pollResultsVisible(poll, { hasVoted, isCommittee: isBoard }, Date.now());
   const visRule = pollResultVisibility(poll);
   const storedOutcome = poll.status === 'CONCLUDED' ? pollStoredOutcome(poll) : null;
+  const abstainCount = pollAbstainVotes(poll);
+  const myAbstain = myBallot?.abstain === true || myBallot?.optionId === ABSTAIN_OPTION_ID;
 
   let winnerIds: string[] = [];
   if (poll.status === 'CONCLUDED' && totalVotes > 0 && showResults && kind !== 'text') {
     if (storedOutcome) winnerIds = storedOutcome.winnerOptionIds;
-    else if (options.length > 0) winnerIds = [options.reduce((max, o) => (o.votes > max.votes ? o : max), options[0]).id];
+    else {
+      // P2b: an abstention never "wins" the derived fallback either.
+      const candidates = options.filter((o) => o.id !== ABSTAIN_OPTION_ID);
+      if (candidates.length > 0) winnerIds = [candidates.reduce((max, o) => (o.votes > max.votes ? o : max), candidates[0]).id];
+    }
   }
 
   const fail = (e: any) => showToast(friendlyError(e, t, 'save'), 'error');
@@ -249,6 +263,18 @@ const PollVoteCard: React.FC<{ entry: MemberPollEntry; uid: string | null }> = (
     } catch (e) { fail(e); } finally { setCasting(false); }
   };
 
+  // P2b: the abstention — through the SAME shared write path the
+  // desk uses (castAbstainVote), so the member's abstention is
+  // byte-identical to a desk abstention on either poll generation.
+  const castAbstain = async () => {
+    if (casting || !guardCast()) return;
+    setCasting(true);
+    try {
+      await castAbstainVote(db, poll.id, uid as string, poll);
+      showToast(t('surfaces.events.memberPollsAbstained'), 'success');
+    } catch (e) { fail(e); } finally { setCasting(false); }
+  };
+
   const togglePick = (optionId: string) => {
     setMultiPick((cur) => {
       if (optionId === ABSTAIN_OPTION_ID) return cur.includes(optionId) ? [] : [optionId];
@@ -271,7 +297,11 @@ const PollVoteCard: React.FC<{ entry: MemberPollEntry; uid: string | null }> = (
           {poll.targetAudience === 'MANAGERS' ? <ShieldCheck size={12} /> : <Users size={12} />}
           {poll.targetAudience === 'MANAGERS' ? t('surfaces.events.memberPollsBoardOnly') : t('surfaces.events.memberPollsPublic')}
         </span>
-        {open ? (
+        {scheduled ? (
+          <span className="text-[9px] font-black uppercase tracking-widest px-2.5 py-1.5 rounded-lg border bg-blue-50 text-blue-700 border-blue-200 flex items-center gap-1.5">
+            <Clock size={12} /> {t('surfaces.events.memberPollsScheduled').replace('{date}', poll.opensAt ? new Date(poll.opensAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' }) : '')}
+          </span>
+        ) : open ? (
           <span className="text-[9px] font-black uppercase tracking-widest px-2.5 py-1.5 rounded-lg border bg-saffron-50 text-saffron-700 border-saffron-200 flex items-center gap-1.5">
             <Clock size={12} /> {closesLine ? t('surfaces.events.memberPollsCloses').replace('{date}', closesLine) : t('surfaces.events.memberPollsOpen')}
           </span>
@@ -302,7 +332,17 @@ const PollVoteCard: React.FC<{ entry: MemberPollEntry; uid: string | null }> = (
       )}
 
       <div className="space-y-2.5">
-        {kind === 'text' ? (
+        {scheduled ? (
+          <div className="bg-blue-50/70 border border-blue-100 rounded-xl p-4 text-center">
+            <Clock size={16} className="mx-auto text-blue-500 mb-1.5" />
+            <p className="text-xs font-bold text-blue-900">
+              {t('surfaces.events.memberPollsScheduled').replace('{date}', poll.opensAt ? new Date(poll.opensAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : '')}
+            </p>
+            <p className="text-[10px] font-bold text-temple-500 mt-1.5 leading-relaxed">
+              {t('surfaces.events.scheduleNote')}
+            </p>
+          </div>
+        ) : kind === 'text' ? (
           open && !hasVoted ? (
             <div className="space-y-2.5">
               <p className="text-[11px] font-bold text-temple-500 leading-relaxed flex items-start gap-1.5">
@@ -355,6 +395,16 @@ const PollVoteCard: React.FC<{ entry: MemberPollEntry; uid: string | null }> = (
                   </button>
                 );
               })}
+              {poll.allowAbstain === true && (
+                <button
+                  onClick={() => void castAbstain()}
+                  disabled={casting}
+                  className="w-full text-left p-4 rounded-xl border-2 border-dashed border-temple-200 hover:border-temple-400 transition-all flex justify-between items-center min-h-[44px] disabled:opacity-50"
+                >
+                  <span className="text-sm font-black text-temple-500">{t('surfaces.events.abstainOption')}</span>
+                  <span className="text-[9px] font-black text-temple-400 uppercase tracking-widest">{t('surfaces.events.abstainStandAside')}</span>
+                </button>
+              )}
               <button
                 onClick={() => void castMulti()}
                 disabled={multiPick.length === 0 || casting}
@@ -364,7 +414,8 @@ const PollVoteCard: React.FC<{ entry: MemberPollEntry; uid: string | null }> = (
               </button>
             </div>
           ) : (
-            options.map((opt) => (
+            <>
+            {options.map((opt) => (
               <button
                 key={opt.id}
                 onClick={() => void castChoice(opt.id)}
@@ -374,10 +425,22 @@ const PollVoteCard: React.FC<{ entry: MemberPollEntry; uid: string | null }> = (
                 <span className="text-sm font-black text-temple-700">{opt.text}</span>
                 <span className="w-5 h-5 rounded-full border-2 border-temple-300"></span>
               </button>
-            ))
+            ))}
+            {poll.allowAbstain === true && (
+              <button
+                onClick={() => void castAbstain()}
+                disabled={casting}
+                className="w-full text-left p-4 rounded-xl border-2 border-dashed border-temple-200 hover:border-temple-400 transition-all flex justify-between items-center min-h-[44px] disabled:opacity-50"
+              >
+                <span className="text-sm font-black text-temple-500">{t('surfaces.events.abstainOption')}</span>
+                <span className="text-[9px] font-black text-temple-400 uppercase tracking-widest">{t('surfaces.events.abstainStandAside')}</span>
+              </button>
+            )}
+            </>
           )
         ) : showResults ? (
-          options.map((opt) => {
+          <>
+          {options.map((opt) => {
             const percentage = totalVotes > 0 ? Math.round((opt.votes / totalVotes) * 100) : 0;
             const isMyChoice = kind === 'multi' ? (myBallot?.optionIds || []).includes(opt.id) : myBallot?.optionId === opt.id;
             const isWinner = winnerIds.includes(opt.id);
@@ -405,7 +468,24 @@ const PollVoteCard: React.FC<{ entry: MemberPollEntry; uid: string | null }> = (
                 </div>
               </div>
             );
-          })
+          })}
+          {/* P2b: the abstention row — in the turnout, never in
+              the race. Legacy polls render theirs as an option
+              row above, from the map. */}
+          {poll.allowAbstain === true && abstainCount > 0 && (
+            <div className="w-full bg-temple-50 border border-dashed border-temple-200 rounded-xl p-3.5 flex justify-between items-center">
+              <span className="flex items-center gap-2">
+                <span className="text-sm font-black text-temple-600">{t('surfaces.events.abstainOption')}</span>
+                {myAbstain && (
+                  <span className="bg-saffron-500 text-white text-[9px] font-black px-2 py-0.5 rounded-md uppercase tracking-widest">
+                    {t('surfaces.events.memberPollsYourVote')}
+                  </span>
+                )}
+              </span>
+              <span className="text-sm font-black text-temple-600">{totalVotes > 0 ? Math.round((abstainCount / totalVotes) * 100) : 0}%</span>
+            </div>
+          )}
+          </>
         ) : (
           <div className="bg-temple-50 border border-temple-100 rounded-xl p-4 text-center">
             <Lock size={16} className="mx-auto text-temple-500 mb-1.5" />
@@ -418,7 +498,7 @@ const PollVoteCard: React.FC<{ entry: MemberPollEntry; uid: string | null }> = (
             </p>
             {hasVoted && (
               <p className="text-[10px] font-black text-green-600 uppercase tracking-widest mt-1.5 flex items-center justify-center gap-1">
-                <CheckCircle2 size={12} /> {t('surfaces.events.memberPollsVoted')}
+                <CheckCircle2 size={12} /> {myAbstain ? t('surfaces.events.memberPollsAbstained') : t('surfaces.events.memberPollsVoted')}
               </p>
             )}
           </div>
@@ -463,7 +543,7 @@ const PollVoteCard: React.FC<{ entry: MemberPollEntry; uid: string | null }> = (
         {t('surfaces.events.memberPollsVotes').replace('{count}', String(totalVotes))}
         {hasVoted && (
           <span className="text-green-600 normal-case tracking-normal text-[11px]">
-            · {t('surfaces.events.memberPollsVoted')}
+            · {myAbstain ? t('surfaces.events.memberPollsAbstained') : t('surfaces.events.memberPollsVoted')}
           </span>
         )}
       </p>
@@ -483,7 +563,10 @@ export const MemberPollsSection: React.FC = () => {
   const awaiting = memberPollsAwaitingCount(entries);
   const openCount = entries.filter((e) => e.open).length;
   const openEntries = entries.filter((e) => e.open);
-  const concludedEntries = entries.filter((e) => !e.open);
+  // P2b: scheduled polls get their own shelf — announced, opening
+  // ahead — instead of posing as concluded.
+  const scheduledEntries = entries.filter((e) => e.scheduled);
+  const concludedEntries = entries.filter((e) => !e.open && !e.scheduled);
 
   if (entries.length === 0) return null;
 
@@ -559,6 +642,23 @@ export const MemberPollsSection: React.FC = () => {
                     </h3>
                     <div className="space-y-6">
                       {groupByOrg(openEntries).map(([wsId, group]) => (
+                        <div key={wsId} className="space-y-3">
+                          <p className="text-xs font-black text-temple-700">
+                            {group.name || t('surfaces.events.memberPollsOrgFallback')}
+                          </p>
+                          {group.items.map((e) => <PollVoteCard key={e.poll.id} entry={e} uid={uid} />)}
+                        </div>
+                      ))}
+                    </div>
+                  </section>
+                )}
+                {scheduledEntries.length > 0 && (
+                  <section>
+                    <h3 className="text-[11px] font-black text-temple-400 uppercase tracking-widest mb-3">
+                      {t('surfaces.events.memberPollsScheduledSection')}
+                    </h3>
+                    <div className="space-y-6">
+                      {groupByOrg(scheduledEntries).map(([wsId, group]) => (
                         <div key={wsId} className="space-y-3">
                           <p className="text-xs font-black text-temple-700">
                             {group.name || t('surfaces.events.memberPollsOrgFallback')}

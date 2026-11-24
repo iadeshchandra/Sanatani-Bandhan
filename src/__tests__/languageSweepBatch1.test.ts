@@ -177,7 +177,12 @@ describe('surfaces + vibe dict completeness (en/hi/bn authored)', () => {
     // GodMode platform-notice frame) in all 10 languages, taking
     // the pin to 1354. en/hi/bn authored; ta/te/mr/gu/kn/ml/sa are
     // labelled drafts (proofread follow-up).
-    expect(keysOf(en).length).toBe(1354);
+    // POLLS NEXT-LEVEL P2b (2026-11-24) adds 30 surfaces.events keys
+    // (drafts, scheduling, templates + recurrence, the abstain
+    // field: tabDrafts…memberPollsAbstained) in all 10 languages,
+    // taking the pin to 1384. en/hi/bn authored; ta/te/mr/gu/kn/ml/sa
+    // are careful drafts (proofread follow-up).
+    expect(keysOf(en).length).toBe(1384);
     for (const bucket of Object.keys(en)) {
       for (const leaf of Object.keys(en[bucket])) {
         for (const dict of [en, hi, bn]) {

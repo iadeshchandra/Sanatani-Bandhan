@@ -41,6 +41,14 @@ export interface PollLike {
   passPct?: number;
   createdByUid?: string;
   outcome?: PollOutcome;
+  // POLLS NEXT-LEVEL P2b — the schedule, the abstain field pair and
+  // the template provenance. All optional: pre-P2b polls carry none
+  // of them (their abstain, if any, lives in the options map).
+  opensAt?: number;
+  allowAbstain?: boolean;
+  abstainVotes?: number;
+  templateId?: string;
+  recurrence?: string;
 }
 
 /** Total ballots counted on a poll, across both data models. */
@@ -60,13 +68,39 @@ export function pollOptionList(p: PollLike): { id: string; text: string; votes: 
 }
 
 /**
- * Voting is open only while the poll is ACTIVE and its deadline is in
- * the future — the deadline is read from the record itself, never
- * from whether someone has visited to flip the status.
+ * POLLS NEXT-LEVEL P2b — the poll's phase, judged from the record
+ * itself (status + the two clocks), never from whether someone has
+ * visited to flip a status:
+ *  - 'draft'     — status DRAFT: the committee's working paper,
+ *                  invisible to voters (the rules gate the read);
+ *  - 'scheduled' — ACTIVE with an opening time still ahead: the
+ *                  poll exists and is announced, but no ballot can
+ *                  land (the rules gate that too);
+ *  - 'open'      — ACTIVE, opening reached, deadline ahead;
+ *  - 'closed'    — CONCLUDED, or ACTIVE past its deadline (the
+ *                  desk's auto-conclusion reading).
+ * Scheduling is honest client-side clock evaluation: there is no
+ * server cron on this plan, and nothing here claims one — the
+ * phase is recomputed from the stored clocks on every read.
+ */
+export type PollPhase = 'draft' | 'scheduled' | 'open' | 'closed';
+
+export function pollPhase(p: PollLike, now: number): PollPhase {
+  if (p.status === 'DRAFT') return 'draft';
+  if (p.status !== 'ACTIVE') return 'closed';
+  if (typeof p.opensAt === 'number' && p.opensAt > 0 && now < p.opensAt) return 'scheduled';
+  if (typeof p.expiresAt === 'number' && p.expiresAt > 0 && now >= p.expiresAt) return 'closed';
+  return 'open';
+}
+
+/**
+ * Voting is open only while the poll is ACTIVE, its opening time
+ * (when set) has been reached, and its deadline is in the future —
+ * the clocks are read from the record itself, never from whether
+ * someone has visited to flip the status.
  */
 export function pollIsOpen(p: PollLike, now: number): boolean {
-  if (p.status !== 'ACTIVE') return false;
-  return !(typeof p.expiresAt === 'number' && p.expiresAt > 0 && now >= p.expiresAt);
+  return pollPhase(p, now) === 'open';
 }
 
 /* ------------------------------------------------------------------ */
@@ -93,14 +127,46 @@ export function pollKind(p: PollLike): PollKind {
 /**
  * The reserved option id of the abstain choice. An abstention is a
  * real position in committee life ("I have no view / I stand aside"),
- * counted in turnout but never a candidate answer. It lives in the
- * options map like any option (flagged `isAbstain` on its entry), so
- * the P0 anchored counters carry it without special cases.
+ * counted in turnout but never a candidate answer.
+ *
+ * POLLS NEXT-LEVEL P2b — abstain is now a first-class ballot choice
+ * OUTSIDE the option list: a poll launched with abstaining enabled
+ * carries `allowAbstain: true` and counts abstentions on their own
+ * counter (`abstainVotes`); the ballot is its own doc shape
+ * ({abstain: true}) with its own rules anchor. Polls launched
+ * before P2b carry the abstain entry inside the options map
+ * (flagged `isAbstain`) — that shape stays fully readable and
+ * votable forever; the helpers below read both.
  */
 export const ABSTAIN_OPTION_ID = 'abstain';
 
+/** Option-count law (mirrored in firestore.rules, create + edit). */
+export const POLL_MIN_OPTIONS = 2;
+export const POLL_MAX_OPTIONS = 8;
+/** A multi ballot may name at most this many picks (the rules anchor's bounded checks). */
+export const POLL_MAX_MULTI_PICKS = 5;
+
 export function pollHasAbstain(p: PollLike): boolean {
-  return Boolean(p.options && p.options[ABSTAIN_OPTION_ID]);
+  return p.allowAbstain === true || Boolean(p.options && p.options[ABSTAIN_OPTION_ID]);
+}
+
+/** The poll's REAL options — the candidate answers, abstain never among them. */
+export function pollRealOptions(p: PollLike): { id: string; text: string; votes: number }[] {
+  return pollOptionList(p).filter((o) => o.id !== ABSTAIN_OPTION_ID);
+}
+
+/** How many real options the poll carries (the ceiling counts these). */
+export function pollOptionCount(p: PollLike): number {
+  return pollRealOptions(p).length;
+}
+
+/**
+ * Abstentions counted on a poll, from either model: the P2b
+ * counter field, or the legacy in-map entry's votes.
+ */
+export function pollAbstainVotes(p: PollLike): number {
+  if (typeof p.abstainVotes === 'number' && Number.isFinite(p.abstainVotes)) return p.abstainVotes;
+  return p.options?.[ABSTAIN_OPTION_ID]?.votes || 0;
 }
 
 /**
@@ -149,22 +215,29 @@ export function pollResultsVisible(
  * Edit discipline (P1): a poll may be edited by its committee ONLY
  * before the first ballot is cast — a typo must not cost a relaunch,
  * and a voted-on question must never silently change. Mirrored in
- * firestore.rules (`pollEditOk`).
+ * firestore.rules (`pollEditOk`). P2b: a draft is editable by the
+ * same law (it has no ballots by construction), as is a scheduled
+ * poll whose opening is still ahead.
  */
 export function pollIsEditable(p: PollLike, now: number): boolean {
-  return pollIsOpen(p, now) && pollTotalVotes(p) === 0;
+  if (pollTotalVotes(p) !== 0) return false;
+  const phase = pollPhase(p, now);
+  return phase === 'draft' || phase === 'scheduled' || phase === 'open';
 }
 
-/** A voter's own ballot under the P1 shapes. */
+/** A voter's own ballot under the P1 shapes (+ the P2b abstention). */
 export interface MyBallot {
   optionId?: string;
   optionIds?: string[];
   text?: string;
+  /** P2b: the abstention ballot — its own shape, outside the option list. */
+  abstain?: boolean;
 }
 
 /** Has this ballot actually cast anything? (Drives "you voted" state across shapes.) */
 export function ballotCast(b: MyBallot | null | undefined): boolean {
   if (!b) return false;
+  if (b.abstain === true) return true;
   if (typeof b.text === 'string' && b.text.trim().length > 0) return true;
   if (Array.isArray(b.optionIds) && b.optionIds.length > 0) return true;
   return typeof b.optionId === 'string' && b.optionId.length > 0;
@@ -177,7 +250,7 @@ export function ballotCast(b: MyBallot | null | undefined): boolean {
  */
 export function validateMultiChoice(p: PollLike, optionIds: string[]): string | null {
   if (!Array.isArray(optionIds) || optionIds.length === 0) return 'empty';
-  if (optionIds.length > 5) return 'too-many';
+  if (optionIds.length > POLL_MAX_MULTI_PICKS) return 'too-many';
   const seen = new Set<string>();
   for (const id of optionIds) {
     if (seen.has(id)) return 'duplicate';
@@ -317,6 +390,12 @@ export interface PollOutcome {
 export function computePollOutcome(p: PollLike, now: number): PollOutcome {
   const tallies: Record<string, number> = {};
   for (const o of pollOptionList(p)) tallies[o.id] = o.votes;
+  // P2b: abstentions live on their own counter now — the recorded
+  // tally keeps them under the reserved key either way, so every
+  // consumer (desk, certificate, Transparency Board) reads one
+  // shape for both generations of poll.
+  const abstainCount = pollAbstainVotes(p);
+  if (abstainCount > 0 || p.allowAbstain === true) tallies[ABSTAIN_OPTION_ID] = abstainCount;
   const totalVotes = pollTotalVotes(p);
   const candidates = pollOptionList(p).filter((o) => o.id !== ABSTAIN_OPTION_ID);
   const topVotes = candidates.reduce((m, o) => Math.max(m, o.votes), 0);

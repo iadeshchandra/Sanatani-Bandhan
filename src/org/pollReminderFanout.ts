@@ -62,7 +62,16 @@ async function fetchMembershipEdges(uid: string): Promise<MembershipEdge[]> {
 
 async function fetchOrgPolls(orgId: string): Promise<MemberPollDoc[]> {
   try {
-    const snap = await getDocs(query(collection(db, 'polls'), where('workspaceId', '==', orgId)));
+    // P2b: drafts are committee-only at the rules layer — keep them
+    // out of this read so a member's reminder pass never fails on
+    // one (reminders concern open polls in any case).
+    const snap = await getDocs(
+      query(
+        collection(db, 'polls'),
+        where('workspaceId', '==', orgId),
+        where('status', 'in', ['ACTIVE', 'CONCLUDED'])
+      )
+    );
     const out: MemberPollDoc[] = [];
     snap.forEach((d) => out.push({ id: d.id, ...(d.data() as Record<string, unknown>) } as MemberPollDoc));
     return out;
@@ -81,6 +90,7 @@ async function fetchOwnBallot(pollId: string, uid: string): Promise<MyBallot | n
       ...(typeof data.optionId === 'string' ? { optionId: data.optionId } : {}),
       ...(Array.isArray(data.optionIds) ? { optionIds: data.optionIds as string[] } : {}),
       ...(typeof data.text === 'string' ? { text: data.text } : {}),
+      ...(data.abstain === true ? { abstain: true } : {}),
     };
   } catch {
     return null;

@@ -51,8 +51,17 @@ export const DecisionCards: React.FC<Props> = ({ workspaceId, isCommittee }) => 
       const out: DecisionCard[] = [];
       const docs: Record<string, any> = {};
       try {
+        // P2b: drafts are committee-only at the rules layer — this
+        // public board must never let one into its read, or the
+        // whole query would fail for a public viewer. (Cards are
+        // built only from concluded / deadline-passed polls anyway.)
         const pollsSnap = await getDocs(
-          query(collection(db, 'polls'), where('workspaceId', '==', workspaceId), limit(50))
+          query(
+            collection(db, 'polls'),
+            where('workspaceId', '==', workspaceId),
+            where('status', 'in', ['ACTIVE', 'CONCLUDED']),
+            limit(50)
+          )
         );
         pollsSnap.docs.forEach((d) => {
           const docData = { id: d.id, ...(d.data() as object) };

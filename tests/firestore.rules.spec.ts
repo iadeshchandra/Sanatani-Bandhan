@@ -2107,3 +2107,228 @@ describe('NOTIFICATION WAVE 4 — platform notices + broadcast audience', () => 
     await assertFails(bcRef(superDb()).set(bcDoc({ audience: 'followers', audienceRole: 'Trustee' })));
   });
 });
+
+describe('POLLS NEXT-LEVEL P2b — drafts, scheduling, templates, abstain (polls)', () => {
+  const now = Date.now();
+  const FUTURE = now + 86400000;
+  const PAST = now - 3600000;
+  const OUTCOME = {
+    tallies: { opt_0: 3, opt_1: 1 },
+    totalVotes: 4,
+    turnout: 40,
+    quorumMet: true,
+    verdict: 'carried',
+    winnerOptionIds: ['opt_0'],
+    concludedAt: now,
+  };
+
+  // A P2b launch-shaped poll doc: Decision-grade, abstention
+  // offered as a field (allowAbstain) with its counter born at 0.
+  const p2bDoc = (over: Record<string, unknown> = {}) => ({
+    workspaceId: 'ws-1',
+    title: 'Repair the hall roof this year?',
+    description: '',
+    targetAudience: 'ALL_MEMBERS',
+    status: 'ACTIVE',
+    createdAt: now,
+    createdBy: 'Admin One',
+    createdByUid: 'admin-1',
+    expiresAt: FUTURE,
+    expiresAtTs: firebase.firestore.Timestamp.fromMillis(FUTURE),
+    options: { opt_0: { text: 'Yes', votes: 0 }, opt_1: { text: 'No', votes: 0 } },
+    totalVotes: 0,
+    kind: 'choice',
+    resultVisibility: 'afterClose',
+    pollClass: 'decision',
+    binding: true,
+    ballot: 'secret',
+    eligibleCount: 10,
+    quorumPct: 25,
+    passPct: 50,
+    allowAbstain: true,
+    abstainVotes: 0,
+    ...over,
+  });
+
+  const opts = (n: number) => {
+    const map: Record<string, unknown> = {};
+    for (let i = 0; i < n; i++) map[`opt_${i}`] = { text: `Option ${i + 1}`, votes: 0 };
+    return map;
+  };
+
+  const seedPoll = async (id: string, doc: Record<string, unknown>) => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await context.firestore().collection('polls').doc(id).set(doc);
+    });
+  };
+
+  const committeeDb = () => testEnv.authenticatedContext('admin-1').firestore();
+  const memberDb = () => testEnv.authenticatedContext('user-1').firestore();
+  const mgrDb = () => testEnv.authenticatedContext('mgr-1').firestore();
+
+  // The app's choice-ballot batch (pollVoting.commitPlan): the
+  // ballot doc under the caller's own uid + the anchored +1s.
+  const castChoice = (db: any, pollId: string, uid: string) => {
+    const batch = db.batch();
+    batch.set(db.collection('polls').doc(pollId).collection('votes').doc(uid), {
+      optionId: 'opt_0',
+      votedAt: firebase.firestore.FieldValue.serverTimestamp(),
+    });
+    batch.update(db.collection('polls').doc(pollId), {
+      totalVotes: firebase.firestore.FieldValue.increment(1),
+      'options.opt_0.votes': firebase.firestore.FieldValue.increment(1),
+    });
+    return batch.commit();
+  };
+
+  // The app's abstain batch: {abstain: true} + turnout and the
+  // abstention counter move; no option counter ever moves.
+  const castAbstain = (db: any, pollId: string, uid: string) => {
+    const batch = db.batch();
+    batch.set(db.collection('polls').doc(pollId).collection('votes').doc(uid), {
+      abstain: true,
+      votedAt: firebase.firestore.FieldValue.serverTimestamp(),
+    });
+    batch.update(db.collection('polls').doc(pollId), {
+      totalVotes: firebase.firestore.FieldValue.increment(1),
+      abstainVotes: firebase.firestore.FieldValue.increment(1),
+    });
+    return batch.commit();
+  };
+
+  it('167. a draft is born committee-only: members cannot read it, the committee can', async () => {
+    await assertSucceeds(committeeDb().collection('polls').doc('p2b-a').set(p2bDoc({ status: 'DRAFT' })));
+    await assertFails(memberDb().collection('polls').doc('p2b-a').get());
+    await assertSucceeds(committeeDb().collection('polls').doc('p2b-a').get());
+    // A dateless draft (the desk may save one with no dates at all)
+    // is equally lawful at birth.
+    const dateless = p2bDoc({ status: 'DRAFT' });
+    delete (dateless as Record<string, unknown>).expiresAt;
+    delete (dateless as Record<string, unknown>).expiresAtTs;
+    await assertSucceeds(committeeDb().collection('polls').doc('p2b-a2').set(dateless));
+  });
+
+  it('168. a ballot cast on a draft is refused', async () => {
+    await seedPoll('p2b-b', p2bDoc({ status: 'DRAFT' }));
+    await assertFails(castChoice(memberDb(), 'p2b-b', 'user-1'));
+  });
+
+  it('169. a ballot before the scheduled opening is refused; at/after opening it lands', async () => {
+    await seedPoll('p2b-c', p2bDoc({
+      opensAt: FUTURE,
+      opensAtTs: firebase.firestore.Timestamp.fromMillis(FUTURE),
+    }));
+    await assertFails(castChoice(memberDb(), 'p2b-c', 'user-1'));
+    await seedPoll('p2b-c2', p2bDoc({
+      opensAt: PAST,
+      opensAtTs: firebase.firestore.Timestamp.fromMillis(PAST),
+    }));
+    await assertSucceeds(castChoice(memberDb(), 'p2b-c2', 'user-1'));
+  });
+
+  it('170. eight real options launch; nine are refused', async () => {
+    await assertSucceeds(committeeDb().collection('polls').doc('p2b-d').set(p2bDoc({ options: opts(8) })));
+    await assertFails(committeeDb().collection('polls').doc('p2b-e').set(p2bDoc({ options: opts(9) })));
+  });
+
+  it('171. the reserved abstain entry never consumes an option slot (8 real + abstain launches)', async () => {
+    await assertSucceeds(committeeDb().collection('polls').doc('p2b-f')
+      .set(p2bDoc({ options: { ...opts(8), abstain: { text: 'Abstain', votes: 0 } } })));
+  });
+
+  it('172. the abstain ballot shape is pinned and gated on the poll offering abstention', async () => {
+    await seedPoll('p2b-g', p2bDoc());
+    await assertSucceeds(castAbstain(memberDb(), 'p2b-g', 'user-1'));
+    // The poll does not offer abstention -> the ballot is refused.
+    await seedPoll('p2b-h', p2bDoc({ allowAbstain: false }));
+    await assertFails(castAbstain(memberDb(), 'p2b-h', 'user-1'));
+    // A ballot that claims abstention AND names an option is not
+    // the abstain shape at all.
+    await seedPoll('p2b-h2', p2bDoc());
+    const db = memberDb();
+    const batch = db.batch();
+    batch.set(db.collection('polls').doc('p2b-h2').collection('votes').doc('user-1'), {
+      abstain: true,
+      optionId: 'opt_0',
+      votedAt: firebase.firestore.FieldValue.serverTimestamp(),
+    });
+    batch.update(db.collection('polls').doc('p2b-h2'), {
+      totalVotes: firebase.firestore.FieldValue.increment(1),
+      abstainVotes: firebase.firestore.FieldValue.increment(1),
+    });
+    await assertFails(batch.commit());
+  });
+
+  it('173. the abstain anchor moves turnout + abstentions only — an option-inflating batch fails', async () => {
+    await seedPoll('p2b-i', p2bDoc());
+    await assertSucceeds(castAbstain(memberDb(), 'p2b-i', 'user-1'));
+    const snap = await committeeDb().collection('polls').doc('p2b-i').get();
+    expect(snap.data()?.totalVotes).toBe(1);
+    expect(snap.data()?.abstainVotes).toBe(1);
+    expect(snap.data()?.options?.opt_0?.votes).toBe(0);
+
+    await seedPoll('p2b-j', p2bDoc());
+    const db = memberDb();
+    const batch = db.batch();
+    batch.set(db.collection('polls').doc('p2b-j').collection('votes').doc('user-1'), {
+      abstain: true,
+      votedAt: firebase.firestore.FieldValue.serverTimestamp(),
+    });
+    batch.update(db.collection('polls').doc('p2b-j'), {
+      totalVotes: firebase.firestore.FieldValue.increment(1),
+      abstainVotes: firebase.firestore.FieldValue.increment(1),
+      'options.opt_0.votes': firebase.firestore.FieldValue.increment(1),
+    });
+    await assertFails(batch.commit());
+  });
+
+  it('174. a draft edits, then opens with the electorate re-stamp — the stamp is immovable elsewhere', async () => {
+    await seedPoll('p2b-k', p2bDoc({ status: 'DRAFT', eligibleCount: 7 }));
+    await assertSucceeds(committeeDb().collection('polls').doc('p2b-k')
+      .update({ title: 'Repair the hall roof next year?' }));
+    await assertSucceeds(committeeDb().collection('polls').doc('p2b-k')
+      .update({ status: 'ACTIVE', eligibleCount: 12 }));
+    // On an ACTIVE poll, no manage write may move the electorate.
+    await seedPoll('p2b-l', p2bDoc());
+    await assertFails(committeeDb().collection('polls').doc('p2b-l')
+      .update({ adminNote: 'Noted.', eligibleCount: 99 }));
+  });
+
+  it('175. CONTROL: conclude + the write-once outcome behave exactly as P1 left them', async () => {
+    await seedPoll('p2b-m', p2bDoc());
+    await assertSucceeds(committeeDb().collection('polls').doc('p2b-m')
+      .update({ status: 'CONCLUDED', outcome: OUTCOME }));
+    await seedPoll('p2b-n', p2bDoc({ status: 'CONCLUDED', outcome: OUTCOME }));
+    await assertFails(committeeDb().collection('polls').doc('p2b-n')
+      .update({ outcome: { ...OUTCOME, verdict: 'not-carried' } }));
+  });
+
+  it('176. a board member (Manager) may write ONLY pollTemplates on the workspace doc', async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await context.firestore().collection('users').doc('mgr-1')
+        .set({ workspaceId: 'ws-1', role: 'MANAGER' });
+    });
+    await assertSucceeds(mgrDb().collection('workspaces').doc('ws-1').update({
+      pollTemplates: [{ id: 'tpl-1', name: 'Monthly seva roster', savedAt: now, shape: { title: 'Roster' } }],
+      updatedAt: now,
+    }));
+    // The same hand may not rename the workspace in the same write.
+    await assertFails(mgrDb().collection('workspaces').doc('ws-1').update({
+      pollTemplates: [],
+      name: 'Renamed',
+    }));
+  });
+
+  it('177. a plain member may not write pollTemplates', async () => {
+    await assertFails(memberDb().collection('workspaces').doc('ws-1').update({
+      pollTemplates: [],
+      updatedAt: now,
+    }));
+  });
+
+  it('178. CONTROL: a member still cannot vote twice', async () => {
+    await seedPoll('p2b-o', p2bDoc());
+    await assertSucceeds(castChoice(memberDb(), 'p2b-o', 'user-1'));
+    await assertFails(castChoice(memberDb(), 'p2b-o', 'user-1'));
+  });
+});

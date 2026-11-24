@@ -37,6 +37,7 @@ import {
   pollIsOpen,
   pollKind,
   pollOptionList,
+  pollPhase,
   pollStoredOutcome,
   type MyBallot,
   type PollLike,
@@ -144,6 +145,14 @@ export function pickPollLifecycleNotices(input: {
     const workspaceId = typeof poll.workspaceId === 'string' ? poll.workspaceId : '';
     if (!workspaceId) continue;
     if (!pollVisibleToMember(poll, input.roleByWorkspace[workspaceId])) continue;
+
+    // P2b: drafts and not-yet-open scheduled polls are not news.
+    // A draft is the committee's working paper; a scheduled poll's
+    // "opened" bell belongs to the moment it actually opens (this
+    // watcher re-reads on its cadence, and the phase flips then).
+    // Without this, a not-open poll would be misread as concluded.
+    const phase = pollPhase(poll, input.now);
+    if (phase === 'draft' || phase === 'scheduled') continue;
 
     const hasVoted = ballotCast(input.myBallots[poll.id] ?? null);
     const open = pollIsOpen(poll, input.now);

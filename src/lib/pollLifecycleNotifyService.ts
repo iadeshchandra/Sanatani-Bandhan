@@ -89,8 +89,17 @@ async function myMemberships(
 
 async function fetchPolls(workspaceId: string): Promise<MemberPollDoc[]> {
   try {
+    // P2b: drafts are committee-only at the rules layer — an
+    // unfiltered query that returned one would fail wholesale for
+    // a non-committee member, silencing ALL of this watcher's news
+    // for that workspace. The status filter keeps drafts out of
+    // every member's read (the picker's phase law skips them too).
     const snap = await getDocs(
-      query(collection(db, 'polls'), where('workspaceId', '==', workspaceId)),
+      query(
+        collection(db, 'polls'),
+        where('workspaceId', '==', workspaceId),
+        where('status', 'in', ['ACTIVE', 'CONCLUDED'])
+      ),
     );
     const out: MemberPollDoc[] = [];
     snap.forEach((d) => out.push({ id: d.id, ...(d.data() as Record<string, unknown>) } as MemberPollDoc));
@@ -110,6 +119,7 @@ async function fetchOwnBallot(pollId: string, uid: string): Promise<MyBallot | n
       ...(typeof data.optionId === 'string' ? { optionId: data.optionId } : {}),
       ...(Array.isArray(data.optionIds) ? { optionIds: data.optionIds as string[] } : {}),
       ...(typeof data.text === 'string' ? { text: data.text } : {}),
+      ...(data.abstain === true ? { abstain: true } : {}),
     };
   } catch {
     return null;
@@ -162,7 +172,7 @@ async function runCheck(
               ? 'pollOpened'
               : n.stage === 'closing'
                 ? 'pollClosing'
-                : 'pollConcluded',
+                : 'pollResult',
           orgId: ms.workspaceId,
           orgName: ms.workspaceName || 'Your organisation',
           pollId: n.poll.id,
