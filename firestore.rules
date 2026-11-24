@@ -1122,7 +1122,15 @@ service cloud.firestore {
       allow update: if (isOwner()
           && tkDiff(['planId', 'limitsBypassed', 'updatedAt']))
         || ((demoWriteOk(workspaceId) || hasRole(workspaceId, R_TRUSTEE()))
-          && !diffKeys().hasAny(['adminPinHash', 'adminPin']));
+          && !diffKeys().hasAny(['adminPinHash', 'adminPin']))
+        // POLLS NEXT-LEVEL P2b: poll templates live on the workspace
+        // doc (where workspace configuration already lives) as a
+        // pollTemplates array — question shapes only, never votes.
+        // The full poll committee (R_BOARD, incl. Manager — the set
+        // that may create polls) manages them through this
+        // field-pinned path and gains no other workspace write.
+        || (hasRole(workspaceId, R_BOARD())
+          && tkDiff(['pollTemplates', 'updatedAt']));
       allow delete: if isSuperAdmin();
     }
 
@@ -2755,6 +2763,13 @@ service cloud.firestore {
     function pollKindOf(pollId) {
       return docGet(/databases/$(database)/documents/polls/$(pollId), 'kind', 'choice');
     }
+    // POLLS NEXT-LEVEL P2b: the REAL option count. The option
+    // ceiling counts real options only — the reserved abstain
+    // entry (pre-P2b polls carry it inside the options map) never
+    // consumes one of the slots.
+    function pollRealOptionCount(opts) {
+      return opts.size() - (opts.keys().hasAny(['abstain']) ? 1 : 0);
+    }
     // POLLS NEXT-LEVEL P1: was the poll launched as a NAMED ballot?
     // The field is create-only (no update path may touch it), so the
     // secrecy choice is frozen at launch — exactly like kind and
@@ -2769,6 +2784,9 @@ service cloud.firestore {
         && pdata.get('status', '') == 'ACTIVE'
         && (pdata.get('targetAudience', 'ALL_MEMBERS') != 'MANAGERS'
             || pollCommittee(pdata.get('workspaceId', null)))
+        // POLLS NEXT-LEVEL P2b: the scheduled opening is a rules
+        // gate, not a display habit — no ballot lands before it.
+        && (pdata.get('opensAtTs', null) == null || request.time >= pdata.get('opensAtTs', null))
         && (pdata.get('expiresAtTs', null) == null || request.time < pdata.get('expiresAtTs', null))
         // EVENTS P1: the ballot's shape follows the poll's own shape.
         && ((kind == 'choice'
@@ -2786,7 +2804,23 @@ service cloud.firestore {
               && reqText() is string
               && reqText().size() >= 1
               && reqText().size() <= 280
-              && reqKeys().hasOnly(['text', 'votedAt'])));
+              && reqKeys().hasOnly(['text', 'votedAt']))
+          // POLLS NEXT-LEVEL P2b: the abstention is its own ballot
+          // shape — a first-class choice OUTSIDE the option list,
+          // accepted only on polls whose creator enabled it
+          // (allowAbstain). Legacy polls, whose abstain entry lives
+          // inside the options map, keep taking abstentions through
+          // the choice branch above, exactly as before.
+          || (kind != 'text'
+              && tkNewGet('abstain', false) == true
+              && pdata.get('allowAbstain', false) == true
+              && reqKeys().hasOnly(['abstain', 'votedAt'])));
+    }
+    // The caller head shared by every ballot-anchored poll update
+    // below (POLLS P2b: factored verbatim from the four use sites —
+    // the diet method; the expansion is character-identical).
+    function pollVoteHeadOk() {
+      return (demoWriteOk(docWs()) || isTenantMember(docWs())) && wsImmutable();
     }
     function pollVoteAnchorOk(pollId) {
       let vp = /databases/$(database)/documents/polls/$(pollId)/votes/$(request.auth.uid);
@@ -2859,21 +2893,42 @@ service cloud.firestore {
         && tkNewGet('totalVotes', 0) == pollBaseTotal(resource.data) + 1
         && tkDiff(['totalVotes', 'updatedAt']);
     }
+    // POLLS NEXT-LEVEL P2b — the abstention anchor: an abstain
+    // ballot moves ONLY the turnout counter and the poll's own
+    // abstention counter (abstainVotes), each by exactly one, in
+    // the same batch as the caller's NEW abstain ballot. The diff
+    // pin forbids the options map from moving at all — an
+    // abstention can never inflate a candidate.
+    function pollAbstainVoteAnchorOk(pollId) {
+      let vp = /databases/$(database)/documents/polls/$(pollId)/votes/$(request.auth.uid);
+      return !exists(vp) && existsAfter(vp)
+        && resStatus() == 'ACTIVE'
+        && reqStatus() == 'ACTIVE'
+        && afterDocGet(vp, 'abstain', false) == true
+        && tkNewGet('totalVotes', 0) == pollBaseTotal(resource.data) + 1
+        && tkNewGet('abstainVotes', 0) == tkOldGet('abstainVotes', 0) + 1
+        && tkDiff(['totalVotes', 'abstainVotes', 'updatedAt']);
+    }
     // EVENTS P1 — edit-before-first-vote: the committee (guarded by
     // the caller, like pollManageOk) may repair a launched poll ONLY
     // while no ballot exists — pollBaseTotal == 0 is the count of
     // record. The shape (kind), the audience and the workspace are
     // NOT editable here; relaunch for those.
     function pollEditOk() {
-      return resStatus() == 'ACTIVE'
-        && reqStatus() == 'ACTIVE'
+      // POLLS NEXT-LEVEL P2b: a DRAFT edits under the same
+      // zero-ballot discipline (a draft has no ballots by
+      // construction), and the schedule twins + the abstain choice
+      // join the repairable fields — all still frozen forever once
+      // the first ballot lands.
+      return (resStatus() == 'ACTIVE' || resStatus() == 'DRAFT')
+        && reqStatus() == resStatus()
         && pollBaseTotal(resource.data) == 0
         && diffKeys()
-             .hasOnly(['title', 'description', 'options', 'expiresAt', 'expiresAtTs', 'resultVisibility', 'updatedAt'])
+             .hasOnly(['title', 'description', 'options', 'expiresAt', 'expiresAtTs', 'opensAt', 'opensAtTs', 'resultVisibility', 'allowAbstain', 'updatedAt'])
         && tkNewGet('resultVisibility', 'afterVote') in ['live', 'afterVote', 'afterClose', 'committee']
         && (tkOldGet('kind', 'choice') == 'text'
-            || (reqOptions().size() >= 2
-                && reqOptions().size() <= 5));
+            || (pollRealOptionCount(reqOptions()) >= 2
+                && pollRealOptionCount(reqOptions()) <= 8));
     }
     // Committee management: conclude (early or at deadline) and the
     // official note. Nothing else on the doc may change here.
@@ -2882,14 +2937,23 @@ service cloud.firestore {
     // already-concluded poll, and never over an existing outcome
     // (write-once: the record of the decision cannot be rewritten).
     function pollManageOk() {
-      return diffKeys()
+      // POLLS NEXT-LEVEL P2b: opening a draft (DRAFT → ACTIVE) is
+      // its own branch — the electorate stamp may ride ONLY that
+      // write (a Decision draft's frozen electorate is the
+      // register as it stands when voting begins, never a number
+      // rewritten mid-poll), and nothing else may move with it.
+      return (resStatus() == 'DRAFT'
+              && reqStatus() == 'ACTIVE'
+              && diffKeys()
+                   .hasOnly(['status', 'eligibleCount', 'updatedAt']))
+        || (diffKeys()
                .hasOnly(['status', 'adminNote', 'outcome', 'updatedAt'])
-        && (reqStatus() == resStatus()
-            || (resStatus() == 'ACTIVE'
-                && reqStatus() == 'CONCLUDED'))
-        && (!diffKeys().hasAny(['outcome'])
-            || (reqStatus() == 'CONCLUDED'
-                && !('outcome' in resource.data)));
+            && (reqStatus() == resStatus()
+                || (resStatus() == 'ACTIVE'
+                    && reqStatus() == 'CONCLUDED'))
+            && (!diffKeys().hasAny(['outcome'])
+                || (reqStatus() == 'CONCLUDED'
+                    && !('outcome' in resource.data))));
     }
     // Deadline truth no longer waits for a manager's visit: ANY member
     // of the poll's workspace may land the conclusion once the stored
@@ -2905,23 +2969,31 @@ service cloud.firestore {
 
     // Polls — scoped to the poll's OWN workspace (see ballot-box note).
     match /polls/{pollId} {
-      allow read: if demoPublicRead(docWs()) || isSuperAdmin()
+      // POLLS NEXT-LEVEL P2b: a DRAFT is the committee's working
+      // paper — invisible to voters at the rules layer, not merely
+      // unrendered (the trailing conjunct gates every branch).
+      allow read: if (demoPublicRead(docWs()) || isSuperAdmin()
         || (isTenantMember(docWs())
             && (tkOldGet('targetAudience', 'ALL_MEMBERS') != 'MANAGERS'
-                || pollCommittee(docWs())));
+                || pollCommittee(docWs()))))
+        && (resStatus() != 'DRAFT'
+            || pollCommittee(docWs()) || isSuperAdmin());
       allow create: if demoWriteOk(newDocWs())
         || (pollCommittee(newDocWs())
-            && reqStatus() == 'ACTIVE'
+            && reqStatus() in ['ACTIVE', 'DRAFT']
             && tkNewGet('totalVotes', 0) == 0
+            && tkNewGet('abstainVotes', 0) == 0
             && tkNewGet('votedUsers', {}).size() == 0
             && tkNewGet('targetAudience', '') in ['ALL_MEMBERS', 'MANAGERS']
-            // EVENTS P1: text polls carry no options at all; choice
-            // and multi keep the P0 2–5 law (an abstain entry counts
-            // toward the five).
+            // EVENTS P1: text polls carry no options at all.
+            // POLLS NEXT-LEVEL P2b: choice and multi carry 2–8
+            // REAL options — the reserved abstain entry never
+            // consumes a slot (pollRealOptionCount), and new polls
+            // carry abstention as a field, not an option at all.
             && (tkNewGet('kind', 'choice') == 'text'
                 ? reqOptions().size() == 0
-                : (reqOptions().size() >= 2
-                   && reqOptions().size() <= 5))
+                : (pollRealOptionCount(reqOptions()) >= 2
+                   && pollRealOptionCount(reqOptions()) <= 8))
             // EVENTS P1: the shape and the result-visibility rule are
             // chosen AT LAUNCH. No update path below ever lists kind
             // as writable again, and resultVisibility may move only
@@ -2945,13 +3017,16 @@ service cloud.firestore {
                   'createdAt', 'createdBy', 'expiresAt', 'expiresAtTs', 'options',
                   'totalVotes', 'votedUsers', 'kind', 'resultVisibility',
                   'pollClass', 'binding', 'ballot', 'eligibleCount', 'quorumPct',
-                  'passPct', 'createdByUid']));
-      allow update: if ((demoWriteOk(docWs()) || isTenantMember(docWs()))
-            && wsImmutable() && pollVoteAnchorOk(pollId))
-        || ((demoWriteOk(docWs()) || isTenantMember(docWs()))
-            && wsImmutable() && pollMultiVoteAnchorOk(pollId))
-        || ((demoWriteOk(docWs()) || isTenantMember(docWs()))
-            && wsImmutable() && pollTextVoteAnchorOk(pollId))
+                  'passPct', 'createdByUid',
+                  // POLLS NEXT-LEVEL P2b: the schedule twins, the
+                  // abstain choice + counter, and the template
+                  // provenance (informational — no rule reads them).
+                  'opensAt', 'opensAtTs', 'allowAbstain', 'abstainVotes',
+                  'templateId', 'recurrence']));
+      allow update: if (pollVoteHeadOk() && pollVoteAnchorOk(pollId))
+        || (pollVoteHeadOk() && pollMultiVoteAnchorOk(pollId))
+        || (pollVoteHeadOk() && pollTextVoteAnchorOk(pollId))
+        || (pollVoteHeadOk() && pollAbstainVoteAnchorOk(pollId))
         || (pollCommittee(docWs()) && wsImmutable() && pollEditOk())
         || (pollCommittee(docWs()) && wsImmutable() && pollManageOk())
         || (isTenantMember(docWs()) && wsImmutable() && pollAutoConcludeOk());
