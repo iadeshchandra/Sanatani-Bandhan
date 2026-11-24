@@ -1273,6 +1273,7 @@ export const orgNs: OrgFragment = {
           approvalCancelled: "{actor} ने अनुरोध रद्द किया: {summary}",
           approvalApplied: "{summary} लागू हो गया",
           approvalApplyFailed: "{summary} स्वीकृत हुआ पर लागू नहीं हो सका",
+          auctionBidsOpened: "मुहरबंद बोलियाँ खोली गईं: {summary}",
         },
         desk: {
           badge: "सुरक्षा और ऑडिट लॉग",

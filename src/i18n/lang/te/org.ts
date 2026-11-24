@@ -1274,6 +1274,7 @@ export const orgNs: OrgFragment = {
           approvalCancelled: "{actor} అభ్యర్థనను రద్దు చేశారు: {summary}",
           approvalApplied: "{summary} వర్తించబడింది",
           approvalApplyFailed: "{summary} ఆమోదించబడింది కానీ వర్తించలేకపోయింది",
+          auctionBidsOpened: "సీల్ చేసిన వేలాలు తెరవబడ్డాయి: {summary}",
         },
         desk: {
           badge: "భద్రత & ఆడిట్ లాగ్",

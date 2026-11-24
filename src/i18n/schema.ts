@@ -2828,6 +2828,7 @@ export interface TranslationSchema {
           approvalCancelled: string;
           approvalApplied: string;
           approvalApplyFailed: string;
+          auctionBidsOpened: string;
         };
         desk: {
           badge: string;

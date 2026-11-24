@@ -1273,6 +1273,7 @@ export const orgNs: OrgFragment = {
           approvalCancelled: "{actor} cancelled the request: {summary}",
           approvalApplied: "{summary} was applied",
           approvalApplyFailed: "{summary} was approved but could not be applied",
+          auctionBidsOpened: "Sealed bids were opened: {summary}",
         },
         desk: {
           badge: "Security & Audit Log",
