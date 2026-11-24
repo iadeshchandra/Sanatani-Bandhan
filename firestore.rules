@@ -2777,9 +2777,30 @@ service cloud.firestore {
     function pollBallotNamed(pollId) {
       return docGet(/databases/$(database)/documents/polls/$(pollId), 'ballot', 'secret') == 'named';
     }
+    // POLLS NEXT-LEVEL P3 — one entry of a points ballot: a map
+    // naming one of the poll's own options (treasury heads) and an
+    // integer share of the voter's 100 points. An index beyond the
+    // list's end passes vacuously (bounded-index checks stand in
+    // for a loop, the pollMultiVoteAnchorOk idiom). Keys beyond
+    // optionId/points inside an entry are inert — the counter
+    // reads those two fields only — so they are not pinned.
+    function pollAllocOk(pdata, allocs, i) {
+      return i >= allocs.size()
+        || (allocs[i].get('optionId', '') in pdata.get('options', {}).keys()
+            && allocs[i].get('points', -1) is int
+            && allocs[i].get('points', -1) >= 0
+            && allocs[i].get('points', -1) <= 100);
+    }
+    // The points at one allocations index, 0 beyond the list's end —
+    // the pieces of the exactly-100 sum (pollBallotOk).
+    function pollAllocPts(allocs, i) {
+      return i < allocs.size() ? allocs[i].get('points', 0) : 0;
+    }
     function pollBallotOk(pollId) {
       let pdata = docData(/databases/$(database)/documents/polls/$(pollId));
       let kind = pdata.get('kind', 'choice');
+      let ranking = tkNewGet('ranking', []);
+      let allocs = tkNewGet('allocations', []);
       return (isTenantMember(pdata.get('workspaceId', null)) || demoWriteOk(pdata.get('workspaceId', null)))
         && pdata.get('status', '') == 'ACTIVE'
         && (pdata.get('targetAudience', 'ALL_MEMBERS') != 'MANAGERS'
@@ -2789,7 +2810,10 @@ service cloud.firestore {
         && (pdata.get('opensAtTs', null) == null || request.time >= pdata.get('opensAtTs', null))
         && (pdata.get('expiresAtTs', null) == null || request.time < pdata.get('expiresAtTs', null))
         // EVENTS P1: the ballot's shape follows the poll's own shape.
-        && ((kind == 'choice'
+        // POLLS NEXT-LEVEL P3: a time poll's ballot IS a choice
+        // ballot (one proposed slot picked) — same branch, same
+        // anchor; the slot's moment rides the option entry itself.
+        && (((kind == 'choice' || kind == 'time')
               && (tkNewGet('optionId', '') in pdata.get('options', {}).keys())
               && reqKeys().hasOnly(['optionId', 'votedAt']))
           || (kind == 'multi'
@@ -2805,6 +2829,43 @@ service cloud.firestore {
               && reqText().size() >= 1
               && reqText().size() <= 280
               && reqKeys().hasOnly(['text', 'votedAt']))
+          // POLLS NEXT-LEVEL P3: the ranked ballot — an ordered
+          // list of the poll's own options. No counter can carry a
+          // ranking, so the count happens at conclusion from the
+          // ballot papers (pollCountedVoteAnchorOk + the committee
+          // read below). Rules cannot detect a duplicated id in a
+          // list; the client refuses one, and the counter dedupes
+          // (first occurrence wins) — one voter, one ballot doc,
+          // so no amplification is possible.
+          || (kind == 'ranked'
+              && ranking is list
+              && ranking.size() >= 1
+              && ranking.size() <= 8
+              && pdata.get('options', {}).keys().hasAll(ranking)
+              && !('abstain' in ranking)
+              && reqKeys().hasOnly(['ranking', 'votedAt']))
+          // POLLS NEXT-LEVEL P3: the points ballot — the voter
+          // distributes EXACTLY 100 points across the poll's heads.
+          // Per-entry shapes first (pollAllocOk, bounded indices),
+          // then the sum: a ballot whose points do not total 100
+          // is refused here, server-side, never merely displayed.
+          || (kind == 'points'
+              && allocs is list
+              && allocs.size() >= 1
+              && allocs.size() <= 8
+              && pollAllocOk(pdata, allocs, 0)
+              && pollAllocOk(pdata, allocs, 1)
+              && pollAllocOk(pdata, allocs, 2)
+              && pollAllocOk(pdata, allocs, 3)
+              && pollAllocOk(pdata, allocs, 4)
+              && pollAllocOk(pdata, allocs, 5)
+              && pollAllocOk(pdata, allocs, 6)
+              && pollAllocOk(pdata, allocs, 7)
+              && (pollAllocPts(allocs, 0) + pollAllocPts(allocs, 1)
+                  + pollAllocPts(allocs, 2) + pollAllocPts(allocs, 3)
+                  + pollAllocPts(allocs, 4) + pollAllocPts(allocs, 5)
+                  + pollAllocPts(allocs, 6) + pollAllocPts(allocs, 7)) == 100
+              && reqKeys().hasOnly(['allocations', 'votedAt']))
           // POLLS NEXT-LEVEL P2b: the abstention is its own ballot
           // shape — a first-class choice OUTSIDE the option list,
           // accepted only on polls whose creator enabled it
@@ -2909,6 +2970,32 @@ service cloud.firestore {
         && tkNewGet('abstainVotes', 0) == tkOldGet('abstainVotes', 0) + 1
         && tkDiff(['totalVotes', 'abstainVotes', 'updatedAt']);
     }
+    // POLLS NEXT-LEVEL P3 — the counted-ballot anchor, shared by
+    // the two shapes no counter can carry (ranked + points): the
+    // ballot moves ONLY the turnout counter, and the options map
+    // must stay identical (equality, the text anchor's idiom) —
+    // there are no candidate counters to inflate; the poll's own
+    // committee counts the ballot papers at conclusion and the
+    // result is stored once, write-once, like every outcome. The
+    // ballot-shape conjuncts sit to the RIGHT of existsAfter(vp),
+    // the house pattern, so ballot-less writes fail cleanly.
+    function pollCountedVoteAnchorOk(pollId) {
+      let vp = /databases/$(database)/documents/polls/$(pollId)/votes/$(request.auth.uid);
+      let kind = tkOldGet('kind', 'choice');
+      return !exists(vp) && existsAfter(vp)
+        && resStatus() == 'ACTIVE'
+        && reqStatus() == 'ACTIVE'
+        && kind in ['ranked', 'points']
+        && ((kind == 'ranked'
+             && afterDocGet(vp, 'ranking', []) is list
+             && afterDocGet(vp, 'ranking', []).size() >= 1)
+          || (kind == 'points'
+             && afterDocGet(vp, 'allocations', []) is list
+             && afterDocGet(vp, 'allocations', []).size() >= 1))
+        && reqOptions() == tkOldGet('options', {})
+        && tkNewGet('totalVotes', 0) == pollBaseTotal(resource.data) + 1
+        && tkDiff(['totalVotes', 'updatedAt']);
+    }
     // EVENTS P1 — edit-before-first-vote: the committee (guarded by
     // the caller, like pollManageOk) may repair a launched poll ONLY
     // while no ballot exists — pollBaseTotal == 0 is the count of
@@ -2998,7 +3085,7 @@ service cloud.firestore {
             // chosen AT LAUNCH. No update path below ever lists kind
             // as writable again, and resultVisibility may move only
             // through pollEditOk (zero ballots cast).
-            && tkNewGet('kind', 'choice') in ['choice', 'multi', 'text']
+            && tkNewGet('kind', 'choice') in ['choice', 'multi', 'text', 'ranked', 'points', 'time']
             && tkNewGet('resultVisibility', 'afterVote') in ['live', 'afterVote', 'afterClose', 'committee']
             // POLLS NEXT-LEVEL P1: the Decision-grade fields, when
             // carried, must be honest shapes — the class enum, the
@@ -3027,6 +3114,7 @@ service cloud.firestore {
         || (pollVoteHeadOk() && pollMultiVoteAnchorOk(pollId))
         || (pollVoteHeadOk() && pollTextVoteAnchorOk(pollId))
         || (pollVoteHeadOk() && pollAbstainVoteAnchorOk(pollId))
+        || (pollVoteHeadOk() && pollCountedVoteAnchorOk(pollId))
         || (pollCommittee(docWs()) && wsImmutable() && pollEditOk())
         || (pollCommittee(docWs()) && wsImmutable() && pollManageOk())
         || (isTenantMember(docWs()) && wsImmutable() && pollAutoConcludeOk());
@@ -3052,7 +3140,17 @@ service cloud.firestore {
           // them (the create form says so in plain words; a secret
           // ballot remains a choice poll, whose named reveal stays
           // committee-gated exactly as in P0).
-          || (pollKindOf(pollId) == 'text' && pollCommittee(pollWs(pollId))));
+          || (pollKindOf(pollId) == 'text' && pollCommittee(pollWs(pollId)))
+          // POLLS NEXT-LEVEL P3: ranked and points ballots are
+          // COUNTED by the poll's own committee from the ballot
+          // papers (the scrutineer model — no counter can carry a
+          // ranking or an allocation). The same announced posture
+          // as text: the create form says so in plain words, the
+          // desk logs the count-view opening, and the published
+          // record shows rounds and totals — never a name beside
+          // a choice. Nobody else's read changes.
+          || (pollKindOf(pollId) in ['ranked', 'points']
+              && pollCommittee(pollWs(pollId))));
         allow create: if uidIs(voterUid) && pollBallotOk(pollId);
         allow update, delete: if false;
       }
