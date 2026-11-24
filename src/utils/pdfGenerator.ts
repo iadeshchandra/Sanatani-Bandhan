@@ -1389,7 +1389,10 @@ export const generatePollReportPdf = (
   void devotees; // kept for signature compatibility — the certificate lists counts, never voters
   const doc = new jsPDF();
   const isDecision = poll?.pollClass === 'decision';
-  const kind = poll?.kind === 'multi' || poll?.kind === 'text' ? poll.kind : 'choice';
+  const kind =
+    poll?.kind === 'multi' || poll?.kind === 'text' || poll?.kind === 'ranked' || poll?.kind === 'points' || poll?.kind === 'time'
+      ? poll.kind
+      : 'choice';
   const outcome = poll?.outcome && typeof poll.outcome === 'object' ? poll.outcome : null;
   const totalVotes: number =
     typeof outcome?.totalVotes === 'number' ? outcome.totalVotes
@@ -1422,9 +1425,11 @@ export const generatePollReportPdf = (
     ? `Decision poll · ${poll?.binding === true ? 'Binding' : 'Advisory'}`
     : 'Pulse poll · Advisory';
   const ballotLine =
-    poll?.ballot === 'named' || poll?.targetAudience === 'MANAGERS' || kind === 'text'
-      ? 'Named ballot — ballots are held in the committee audit record'
-      : 'Secret ballot — no ballot is linked to a voter on this certificate';
+    kind === 'ranked' || kind === 'points'
+      ? 'Counted ballot — the committee counted the ballot papers at the close'
+      : poll?.ballot === 'named' || poll?.targetAudience === 'MANAGERS' || kind === 'text'
+        ? 'Named ballot — ballots are held in the committee audit record'
+        : 'Secret ballot — no ballot is linked to a voter on this certificate';
   doc.text(`${standing} | Audience: ${poll?.targetAudience === 'MANAGERS' ? 'Committee' : 'All members'}`, 14, y); y += 6;
   doc.text(ballotLine, 14, y); y += 6;
   doc.text(`Status: ${poll?.status || 'CONCLUDED'}${concludedMs ? ` | Concluded: ${new Date(concludedMs).toLocaleDateString(appLocale())}` : ''}`, 14, y); y += 10;
@@ -1436,13 +1441,88 @@ export const generatePollReportPdf = (
     doc.setFontSize(10);
     doc.setTextColor(107, 114, 128);
     doc.text('Written responses are read by the committee; they are not reproduced on this certificate.', 14, y); y += 10;
+  } else if (kind === 'points') {
+    // P3 — the points certificate: points of preference per head,
+    // and the standing line that the result allocates preference,
+    // never funds.
+    const pointsTotal: number =
+      typeof outcome?.pointsTotal === 'number'
+        ? outcome.pointsTotal
+        : Object.keys(poll?.options || {}).reduce((s, id) => s + tallyOf(id, 0), 0);
+    const rows = Object.keys(poll?.options || {}).map((id) => {
+      const o = poll.options[id];
+      const pts = tallyOf(id, 0);
+      const share = pointsTotal > 0 ? `${Math.round((pts / pointsTotal) * 100)}%` : '—';
+      const isWinner = Array.isArray(outcome?.winnerOptionIds) && outcome.winnerOptionIds.includes(id);
+      return [o?.text || id, String(pts), share, isWinner ? 'Leading' : ''];
+    });
+    autoTable(doc, {
+      startY: y,
+      head: [['Head', 'Points', 'Share of points placed', '']],
+      body: rows.length > 0 ? rows : [['No options recorded', '0', '—', '']],
+      theme: 'striped',
+      styles: { fontSize: 9 },
+      headStyles: { fillColor: [180, 83, 9], textColor: 255 },
+    });
+    y = (doc as any).lastAutoTable.finalY + 8;
+    doc.setFontSize(10);
+    doc.setTextColor(107, 114, 128);
+    doc.text(`Total points placed: ${pointsTotal}`, 14, y); y += 6;
+    doc.text('These points record the house\u2019s preference. They guide the trustees \u2014 they do not move money.', 14, y); y += 10;
+    doc.setTextColor(31, 41, 55);
+  } else if (kind === 'ranked') {
+    // P3 — the ranked certificate: first preferences in the table,
+    // then the whole count, round by round — the count shows its
+    // work, exactly as it was recorded in the outcome.
+    const rows = Object.keys(poll?.options || {}).map((id) => {
+      const o = poll.options[id];
+      const votes = tallyOf(id, 0);
+      const share = totalVotes > 0 ? `${Math.round((votes / totalVotes) * 100)}%` : '—';
+      const isWinner = Array.isArray(outcome?.winnerOptionIds) && outcome.winnerOptionIds.includes(id);
+      return [o?.text || id, String(votes), share, isWinner ? 'Leading' : ''];
+    });
+    autoTable(doc, {
+      startY: y,
+      head: [['Option', 'First preferences', 'Share of ballots cast', '']],
+      body: rows.length > 0 ? rows : [['No options recorded', '0', '—', '']],
+      theme: 'striped',
+      styles: { fontSize: 9 },
+      headStyles: { fillColor: [180, 83, 9], textColor: 255 },
+    });
+    y = (doc as any).lastAutoTable.finalY + 8;
+    const rounds: any[] = Array.isArray(outcome?.rounds) ? outcome.rounds : [];
+    if (rounds.length > 0) {
+      doc.setFontSize(11);
+      doc.text('How the count went', 14, y); y += 7;
+      doc.setFontSize(10);
+      doc.setTextColor(107, 114, 128);
+      rounds.forEach((r: any, i: number) => {
+        const line = Object.entries(r?.tallies || {})
+          .map(([id, v]) => `${poll?.options?.[id]?.text || id} ${v}`)
+          .join(' · ');
+        doc.text(doc.splitTextToSize(`Round ${i + 1}: ${line}`, 180), 14, y);
+        y += 6 * Math.max(1, Math.ceil(`Round ${i + 1}: ${line}`.length / 95));
+        if (Array.isArray(r?.eliminated) && r.eliminated.length > 0) {
+          doc.text(`Drops out: ${r.eliminated.map((id: string) => poll?.options?.[id]?.text || id).join(', ')}`, 14, y); y += 6;
+        }
+        if (typeof r?.exhausted === 'number' && r.exhausted > 0) {
+          doc.text(`${r.exhausted} ballot${r.exhausted === 1 ? '' : 's'} had no choice left`, 14, y); y += 6;
+        }
+      });
+      y += 4;
+      doc.setTextColor(31, 41, 55);
+    }
   } else {
     const rows = Object.keys(poll?.options || {}).map((id) => {
       const o = poll.options[id];
       const votes = tallyOf(id, o?.votes || 0);
       const share = totalVotes > 0 ? `${Math.round((votes / totalVotes) * 100)}%` : '—';
       const isWinner = Array.isArray(outcome?.winnerOptionIds) && outcome.winnerOptionIds.includes(id);
-      return [o?.text || id, String(votes), share, isWinner ? 'Leading' : ''];
+      const label =
+        kind === 'time' && typeof o?.slotAt === 'number'
+          ? `${o?.text || id} — ${new Date(o.slotAt).toLocaleString('en-IN', { weekday: 'short', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' })}`
+          : o?.text || id;
+      return [label, String(votes), share, isWinner ? 'Leading' : ''];
     });
     autoTable(doc, {
       startY: y,

@@ -2332,3 +2332,225 @@ describe('POLLS NEXT-LEVEL P2b — drafts, scheduling, templates, abstain (polls
     await assertFails(castChoice(memberDb(), 'p2b-o', 'user-1'));
   });
 });
+
+describe('POLLS NEXT-LEVEL P3 — ranked, points, time (polls)', () => {
+  const now = Date.now();
+  const FUTURE = now + 86400000;
+
+  // The P2b launch shape with the kind swapped: Decision-grade,
+  // abstention as a field. Counted kinds are 'named' by the app's
+  // create (the committee counts the papers); time is a counter
+  // kind and keeps the creator's secrecy choice.
+  const p3Doc = (over: Record<string, unknown> = {}) => ({
+    workspaceId: 'ws-1',
+    title: 'Which hall design should we build?',
+    description: '',
+    targetAudience: 'ALL_MEMBERS',
+    status: 'ACTIVE',
+    createdAt: now,
+    createdBy: 'Admin One',
+    createdByUid: 'admin-1',
+    expiresAt: FUTURE,
+    expiresAtTs: firebase.firestore.Timestamp.fromMillis(FUTURE),
+    options: {
+      opt_0: { text: 'Design A', votes: 0 },
+      opt_1: { text: 'Design B', votes: 0 },
+      opt_2: { text: 'Design C', votes: 0 },
+    },
+    totalVotes: 0,
+    kind: 'ranked',
+    resultVisibility: 'afterClose',
+    pollClass: 'decision',
+    binding: false,
+    ballot: 'named',
+    eligibleCount: 10,
+    quorumPct: 25,
+    passPct: 50,
+    allowAbstain: true,
+    abstainVotes: 0,
+    ...over,
+  });
+
+  const seedPoll = async (id: string, doc: Record<string, unknown>) => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await context.firestore().collection('polls').doc(id).set(doc);
+    });
+  };
+
+  const committeeDb = () => testEnv.authenticatedContext('admin-1').firestore();
+  const memberDb = () => testEnv.authenticatedContext('user-1').firestore();
+
+  // The app's counted batches (pollVoting.commitPlan): the ballot
+  // doc under the caller's own uid + turnout +1 — NO option
+  // counter ever moves (pollCountedVoteAnchorOk).
+  const castRanked = (db: any, pollId: string, uid: string, ranking: string[]) => {
+    const batch = db.batch();
+    batch.set(db.collection('polls').doc(pollId).collection('votes').doc(uid), {
+      ranking,
+      votedAt: firebase.firestore.FieldValue.serverTimestamp(),
+    });
+    batch.update(db.collection('polls').doc(pollId), {
+      totalVotes: firebase.firestore.FieldValue.increment(1),
+    });
+    return batch.commit();
+  };
+
+  const castPoints = (db: any, pollId: string, uid: string, allocations: unknown[]) => {
+    const batch = db.batch();
+    batch.set(db.collection('polls').doc(pollId).collection('votes').doc(uid), {
+      allocations,
+      votedAt: firebase.firestore.FieldValue.serverTimestamp(),
+    });
+    batch.update(db.collection('polls').doc(pollId), {
+      totalVotes: firebase.firestore.FieldValue.increment(1),
+    });
+    return batch.commit();
+  };
+
+  const castChoiceOn = (db: any, pollId: string, uid: string) => {
+    const batch = db.batch();
+    batch.set(db.collection('polls').doc(pollId).collection('votes').doc(uid), {
+      optionId: 'opt_0',
+      votedAt: firebase.firestore.FieldValue.serverTimestamp(),
+    });
+    batch.update(db.collection('polls').doc(pollId), {
+      totalVotes: firebase.firestore.FieldValue.increment(1),
+      'options.opt_0.votes': firebase.firestore.FieldValue.increment(1),
+    });
+    return batch.commit();
+  };
+
+  it('179. a ranked poll launches, a ranked ballot lands, and the options map stays frozen', async () => {
+    await assertSucceeds(committeeDb().collection('polls').doc('p3-a').set(p3Doc()));
+    await assertSucceeds(castRanked(memberDb(), 'p3-a', 'user-1', ['opt_2', 'opt_0']));
+    const snap = await committeeDb().collection('polls').doc('p3-a').get();
+    expect(snap.data()?.totalVotes).toBe(1);
+    expect(snap.data()?.options?.opt_0?.votes).toBe(0);
+    expect(snap.data()?.options?.opt_2?.votes).toBe(0);
+    // One voter, one ballot — the counted anchor refuses a second.
+    await assertFails(castRanked(memberDb(), 'p3-a', 'user-1', ['opt_1']));
+  });
+
+  it('180. a ranked ballot naming a stranger, the abstain id, or nothing is refused', async () => {
+    await seedPoll('p3-b', p3Doc());
+    await assertFails(castRanked(memberDb(), 'p3-b', 'user-1', ['opt_9']));
+    await assertFails(castRanked(memberDb(), 'p3-b', 'user-1', ['abstain']));
+    await assertFails(castRanked(memberDb(), 'p3-b', 'user-1', []));
+  });
+
+  it('181. a points ballot summing to exactly 100 lands; 90 and an over-100 entry are refused', async () => {
+    await seedPoll('p3-c', p3Doc({ kind: 'points', title: 'Where should the money lean?' }));
+    await assertSucceeds(castPoints(memberDb(), 'p3-c', 'user-1', [
+      { optionId: 'opt_0', points: 60 },
+      { optionId: 'opt_1', points: 40 },
+    ]));
+    await seedPoll('p3-d', p3Doc({ kind: 'points' }));
+    await assertFails(castPoints(memberDb(), 'p3-d', 'user-1', [
+      { optionId: 'opt_0', points: 50 },
+      { optionId: 'opt_1', points: 40 },
+    ]));
+    await seedPoll('p3-e', p3Doc({ kind: 'points' }));
+    await assertFails(castPoints(memberDb(), 'p3-e', 'user-1', [
+      { optionId: 'opt_0', points: 101 },
+    ]));
+    // A stranger head is refused even when the sum is 100.
+    await seedPoll('p3-e2', p3Doc({ kind: 'points' }));
+    await assertFails(castPoints(memberDb(), 'p3-e2', 'user-1', [
+      { optionId: 'opt_9', points: 100 },
+    ]));
+  });
+
+  it('182. a counted ballot whose batch inflates an option counter fails whole', async () => {
+    await seedPoll('p3-f', p3Doc());
+    const db = memberDb();
+    const batch = db.batch();
+    batch.set(db.collection('polls').doc('p3-f').collection('votes').doc('user-1'), {
+      ranking: ['opt_0'],
+      votedAt: firebase.firestore.FieldValue.serverTimestamp(),
+    });
+    batch.update(db.collection('polls').doc('p3-f'), {
+      totalVotes: firebase.firestore.FieldValue.increment(1),
+      'options.opt_0.votes': firebase.firestore.FieldValue.increment(1),
+    });
+    await assertFails(batch.commit());
+  });
+
+  it('183. the committee reads counted ballots for the count; a member reads only their own', async () => {
+    await seedPoll('p3-g', p3Doc());
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      const db = context.firestore();
+      await db.collection('polls').doc('p3-g').collection('votes').doc('user-1')
+        .set({ ranking: ['opt_1', 'opt_0'], votedAt: firebase.firestore.Timestamp.fromMillis(now) });
+      await db.collection('polls').doc('p3-g').collection('votes').doc('acct-1')
+        .set({ ranking: ['opt_0'], votedAt: firebase.firestore.Timestamp.fromMillis(now) });
+    });
+    // The count: the poll's own committee may read the papers.
+    await assertSucceeds(committeeDb().collection('polls').doc('p3-g').collection('votes').doc('acct-1').get());
+    await assertSucceeds(committeeDb().collection('polls').doc('p3-g').collection('votes').get());
+    // A member may read their OWN ballot (control) — never another's.
+    await assertSucceeds(memberDb().collection('polls').doc('p3-g').collection('votes').doc('user-1').get());
+    await assertFails(memberDb().collection('polls').doc('p3-g').collection('votes').doc('acct-1').get());
+    await assertFails(memberDb().collection('polls').doc('p3-g').collection('votes').get());
+  });
+
+  it('184. a time poll launches with slots, and its ballot is an ordinary choice ballot', async () => {
+    const slot = (text: string, slotAt: number) => ({ text, votes: 0, slotAt });
+    await assertSucceeds(committeeDb().collection('polls').doc('p3-h').set(p3Doc({
+      kind: 'time',
+      ballot: 'secret',
+      title: 'When shall we hold the satsang?',
+      options: {
+        opt_0: slot('Saturday morning', FUTURE),
+        opt_1: slot('Sunday evening', FUTURE + 86400000),
+      },
+    })));
+    await assertSucceeds(castChoiceOn(memberDb(), 'p3-h', 'user-1'));
+    const snap = await committeeDb().collection('polls').doc('p3-h').get();
+    expect(snap.data()?.options?.opt_0?.votes).toBe(1);
+  });
+
+  it('185. CONTROL: text ballots and abstentions behave exactly as P2b left them', async () => {
+    const textDoc = p3Doc({ kind: 'text', ballot: 'named', options: {} });
+    delete (textDoc as Record<string, unknown>).allowAbstain;
+    delete (textDoc as Record<string, unknown>).abstainVotes;
+    await seedPoll('p3-i', textDoc);
+    const db = memberDb();
+    const batch = db.batch();
+    batch.set(db.collection('polls').doc('p3-i').collection('votes').doc('user-1'), {
+      text: 'More parking near the gate, please.',
+      votedAt: firebase.firestore.FieldValue.serverTimestamp(),
+    });
+    batch.update(db.collection('polls').doc('p3-i'), {
+      totalVotes: firebase.firestore.FieldValue.increment(1),
+    });
+    await assertSucceeds(batch.commit());
+
+    await seedPoll('p3-j', p3Doc({ kind: 'choice', ballot: 'secret' }));
+    const db2 = memberDb();
+    const batch2 = db2.batch();
+    batch2.set(db2.collection('polls').doc('p3-j').collection('votes').doc('user-1'), {
+      abstain: true,
+      votedAt: firebase.firestore.FieldValue.serverTimestamp(),
+    });
+    batch2.update(db2.collection('polls').doc('p3-j'), {
+      totalVotes: firebase.firestore.FieldValue.increment(1),
+      abstainVotes: firebase.firestore.FieldValue.increment(1),
+    });
+    await assertSucceeds(batch2.commit());
+  });
+
+  it('186. the ballot shape follows the kind — cross-shape ballots are refused both ways', async () => {
+    // A choice-shaped ballot on a ranked poll.
+    await seedPoll('p3-k', p3Doc());
+    await assertFails(castChoiceOn(memberDb(), 'p3-k', 'user-1'));
+    // A ranking ballot on a choice poll.
+    await seedPoll('p3-l', p3Doc({ kind: 'choice', ballot: 'secret' }));
+    await assertFails(castRanked(memberDb(), 'p3-l', 'user-1', ['opt_0']));
+    // A points ballot on a ranked poll.
+    await seedPoll('p3-m', p3Doc());
+    await assertFails(castPoints(memberDb(), 'p3-m', 'user-1', [{ optionId: 'opt_0', points: 100 }]));
+    // A ranking ballot on a points poll.
+    await seedPoll('p3-n', p3Doc({ kind: 'points' }));
+    await assertFails(castRanked(memberDb(), 'p3-n', 'user-1', ['opt_0']));
+  });
+});

@@ -41,6 +41,25 @@ export interface BallotWritePlan {
 
 /** The pure shape of a ballot write — what the batch below commits. */
 export function ballotWritePlan(ballot: MyBallot): BallotWritePlan {
+  if (Array.isArray(ballot.ranking)) {
+    // POLLS NEXT-LEVEL P3 — the ranked ballot: the ordered list on
+    // the ballot doc, NO option counter moves (no counter can
+    // carry a ranking); turnout +1 only, anchored by
+    // pollCountedVoteAnchorOk. Counted at conclusion from the
+    // ballot papers by the poll's own committee.
+    return { ballotDoc: { ranking: [...ballot.ranking] }, optionIncrements: [], totalVotesIncrement: 1 };
+  }
+  if (Array.isArray(ballot.allocations)) {
+    // POLLS NEXT-LEVEL P3 — the points ballot: the allocations
+    // list (proven to sum to exactly 100 by pollBallotOk in the
+    // rules, and by validateAllocations before this write);
+    // turnout +1 only, the same counted anchor.
+    return {
+      ballotDoc: { allocations: ballot.allocations.map((a) => ({ optionId: a.optionId, points: a.points })) },
+      optionIncrements: [],
+      totalVotesIncrement: 1,
+    };
+  }
   if (ballot.abstain === true) {
     // POLLS P2b — the abstention: its own ballot doc, no option
     // counter moves, turnout +1 and the abstention counter +1
@@ -94,6 +113,21 @@ export function castMultiBallot(db: Firestore, pollId: string, uid: string, opti
 /** Free-text ballot (the desk's original handleVoteText batch). */
 export function castTextBallot(db: Firestore, pollId: string, uid: string, text: string): Promise<void> {
   return commitPlan(db, pollId, uid, ballotWritePlan({ text }));
+}
+
+/** Ranked ballot (P3): the voter's order, most wanted first. */
+export function castRankedBallot(db: Firestore, pollId: string, uid: string, ranking: string[]): Promise<void> {
+  return commitPlan(db, pollId, uid, ballotWritePlan({ ranking }));
+}
+
+/** Points ballot (P3): the voter's 100 points across the heads. */
+export function castPointsBallot(
+  db: Firestore,
+  pollId: string,
+  uid: string,
+  allocations: { optionId: string; points: number }[]
+): Promise<void> {
+  return commitPlan(db, pollId, uid, ballotWritePlan({ allocations }));
 }
 
 /** The P2b abstention ballot: {abstain: true} + turnout/abstention counters. */

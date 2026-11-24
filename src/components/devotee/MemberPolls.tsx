@@ -28,12 +28,13 @@ import { useLanguage } from '../../context/LanguageContext';
 import { useToast } from '../../context/ToastContext';
 import { friendlyError } from '../../lib/friendlyError';
 import {
-  ABSTAIN_OPTION_ID, computePollOutcome, pollAbstainVotes, pollClass, pollIsBinding, pollIsOpen,
+  ABSTAIN_OPTION_ID, pollAbstainVotes, pollClass, pollCountedKind, pollIsBinding, pollIsOpen,
   pollKind, pollResultsVisible, pollResultVisibility, pollStoredOutcome,
-  pollTotalVotes, validateMultiChoice, validateTextResponse,
+  pollTotalVotes, validateAllocations, validateMultiChoice, validateRanking, validateTextResponse,
   type MyBallot,
 } from '../../lib/pollLogic';
-import { castAbstainVote, castChoiceBallot, castMultiBallot, castTextBallot } from '../../lib/pollVoting';
+import { castAbstainVote, castChoiceBallot, castMultiBallot, castPointsBallot, castRankedBallot, castTextBallot } from '../../lib/pollVoting';
+import { countPollOutcome } from '../../lib/pollCounting';
 import {
   assembleMemberPolls, memberPollsAwaitingCount,
   type MemberPollDoc, type MemberPollEntry,
@@ -119,6 +120,8 @@ function useMemberPolls() {
                 ...(Array.isArray(data.optionIds) ? { optionIds: data.optionIds } : {}),
                 ...(typeof data.text === 'string' ? { text: data.text } : {}),
                 ...(data.abstain === true ? { abstain: true } : {}),
+                ...(Array.isArray(data.ranking) ? { ranking: data.ranking } : {}),
+                ...(Array.isArray(data.allocations) ? { allocations: data.allocations } : {}),
               }
             : null,
         }));
@@ -170,7 +173,11 @@ function useMemberPolls() {
       const p = e.poll;
       if (p.status !== 'CONCLUDED' || pollStoredOutcome(p) || stampTried.current.has(p.id)) return;
       stampTried.current.add(p.id);
-      updateDoc(doc(db, 'polls', p.id), { outcome: computePollOutcome(p, Date.now()) })
+      // P3: lib/pollCounting — a counted kind's outcome MUST be
+      // counted from its ballot papers here (a doc-only compute
+      // would stamp an all-zero outcome, write-once, forever).
+      countPollOutcome(db, p)
+        .then((outcome) => updateDoc(doc(db, 'polls', p.id), { outcome }))
         .catch(() => { /* already stamped, or not ours to stamp */ });
     });
   }, [entries]);
@@ -188,6 +195,9 @@ const PollVoteCard: React.FC<{ entry: MemberPollEntry; uid: string | null }> = (
   const { poll, workspaceName, myBallot, hasVoted, open, scheduled, isBoard } = entry;
   const [multiPick, setMultiPick] = useState<string[]>([]);
   const [textDraft, setTextDraft] = useState('');
+  // P3 — in-progress counted-kind ballots on this card.
+  const [rankPick, setRankPick] = useState<string[]>([]);
+  const [pointsDraft, setPointsDraft] = useState<Record<string, number>>({});
   const [casting, setCasting] = useState(false);
 
   const kind = pollKind(poll);
@@ -203,12 +213,17 @@ const PollVoteCard: React.FC<{ entry: MemberPollEntry; uid: string | null }> = (
   let winnerIds: string[] = [];
   if (poll.status === 'CONCLUDED' && totalVotes > 0 && showResults && kind !== 'text') {
     if (storedOutcome) winnerIds = storedOutcome.winnerOptionIds;
-    else {
+    else if (!pollCountedKind(poll)) {
       // P2b: an abstention never "wins" the derived fallback either.
+      // P3: counted kinds have no derived fallback — only the
+      // recorded count names their winner.
       const candidates = options.filter((o) => o.id !== ABSTAIN_OPTION_ID);
       if (candidates.length > 0) winnerIds = [candidates.reduce((max, o) => (o.votes > max.votes ? o : max), candidates[0]).id];
     }
   }
+  // P3 — the points draft's running total on this card.
+  const pointsPlaced = Object.values(pointsDraft).reduce((s, v) => s + (typeof v === 'number' ? v : 0), 0);
+  const pointsRemaining = 100 - pointsPlaced;
 
   const fail = (e: any) => showToast(friendlyError(e, t, 'save'), 'error');
 
@@ -284,6 +299,40 @@ const PollVoteCard: React.FC<{ entry: MemberPollEntry; uid: string | null }> = (
         : [...withoutAbstain, optionId];
       return next.slice(0, 5);
     });
+  };
+
+  // P3 — tap-to-order for the ranked ballot (the desk's gesture).
+  const toggleRank = (optionId: string) => {
+    setRankPick((cur) => (cur.includes(optionId) ? cur.filter((id) => id !== optionId) : [...cur, optionId]));
+  };
+
+  // P3 — the ranked ballot, through the shared write path: the
+  // same bytes the desk would write for the same ranking.
+  const castRanked = async () => {
+    if (casting || !guardCast()) return;
+    const problem = validateRanking(poll, rankPick);
+    if (problem) { showToast(t('surfaces.events.rankNeedOne'), 'error'); return; }
+    setCasting(true);
+    try {
+      await castRankedBallot(db, poll.id, uid as string, rankPick);
+      showToast(t('surfaces.events.memberPollsVoted'), 'success');
+    } catch (e) { fail(e); } finally { setCasting(false); }
+  };
+
+  // P3 — the points ballot: exactly 100 placed, validated here
+  // and proven again by the rules; the shared write path casts.
+  const castPoints = async () => {
+    if (casting || !guardCast()) return;
+    const allocations = Object.entries(pointsDraft)
+      .filter(([, v]) => typeof v === 'number' && v > 0)
+      .map(([optionId, points]) => ({ optionId, points }));
+    const problem = validateAllocations(poll, allocations);
+    if (problem) { showToast(t('surfaces.events.pointsNeed100'), 'error'); return; }
+    setCasting(true);
+    try {
+      await castPointsBallot(db, poll.id, uid as string, allocations);
+      showToast(t('surfaces.events.memberPollsVoted'), 'success');
+    } catch (e) { fail(e); } finally { setCasting(false); }
   };
 
   const closesLine = poll.expiresAt
@@ -413,6 +462,98 @@ const PollVoteCard: React.FC<{ entry: MemberPollEntry; uid: string | null }> = (
                 {t('surfaces.events.castVote')}
               </button>
             </div>
+          ) : kind === 'ranked' ? (
+            <div className="space-y-2.5">
+              <p className="text-[11px] font-bold text-temple-500">{t('surfaces.events.rankTapToRank')}</p>
+              {options.filter((o) => o.id !== ABSTAIN_OPTION_ID).map((opt) => {
+                const rank = rankPick.indexOf(opt.id);
+                return (
+                  <button
+                    key={opt.id}
+                    onClick={() => toggleRank(opt.id)}
+                    aria-pressed={rank >= 0}
+                    disabled={casting}
+                    className={`w-full text-left p-4 rounded-xl border-2 transition-all flex justify-between items-center min-h-[44px] disabled:opacity-50 ${rank >= 0 ? 'border-saffron-500 bg-saffron-50/60' : 'border-temple-100 hover:border-saffron-300'}`}
+                  >
+                    <span className="text-sm font-black text-temple-700">{opt.text}</span>
+                    <span className={`w-7 h-7 rounded-full border-2 flex items-center justify-center text-xs font-black shrink-0 ${rank >= 0 ? 'bg-saffron-500 border-saffron-500 text-white' : 'border-temple-300 text-temple-300'}`}>
+                      {rank >= 0 ? rank + 1 : '·'}
+                    </span>
+                  </button>
+                );
+              })}
+              {rankPick.length > 0 && (
+                <div className="flex items-center justify-between gap-3 bg-temple-50 border border-temple-100 rounded-xl px-4 py-2">
+                  <p className="text-xs font-bold text-temple-600 min-w-0">
+                    <span className="font-black uppercase tracking-widest text-[10px] text-temple-400 block">{t('surfaces.events.rankYourOrder')}</span>
+                    {rankPick.map((id) => options.find((o) => o.id === id)?.text || id).join(' → ')}
+                  </p>
+                  <button onClick={() => setRankPick([])} className="shrink-0 text-[10px] font-black uppercase tracking-widest text-saffron-600 min-h-[44px] px-2">
+                    {t('surfaces.events.rankReset')}
+                  </button>
+                </div>
+              )}
+              {poll.allowAbstain === true && (
+                <button
+                  onClick={() => void castAbstain()}
+                  disabled={casting}
+                  className="w-full text-left p-4 rounded-xl border-2 border-dashed border-temple-200 hover:border-temple-400 transition-all flex justify-between items-center min-h-[44px] disabled:opacity-50"
+                >
+                  <span className="text-sm font-black text-temple-500">{t('surfaces.events.abstainOption')}</span>
+                  <span className="text-[9px] font-black text-temple-400 uppercase tracking-widest">{t('surfaces.events.abstainStandAside')}</span>
+                </button>
+              )}
+              <button
+                onClick={() => void castRanked()}
+                disabled={rankPick.length === 0 || casting}
+                className="w-full bg-temple-900 hover:bg-black disabled:opacity-40 text-white font-black py-3.5 rounded-xl text-[11px] uppercase tracking-widest min-h-[44px]"
+              >
+                {t('surfaces.events.rankCast')}
+              </button>
+              <p className="text-[10px] font-bold text-temple-500 uppercase tracking-widest">{t('surfaces.events.countedByCommittee')}</p>
+            </div>
+          ) : kind === 'points' ? (
+            <div className="space-y-2.5">
+              <div className="flex items-center justify-between bg-temple-50 border border-temple-100 rounded-xl px-4 py-3">
+                <span className="text-[10px] font-black text-temple-500 uppercase tracking-widest">{t('surfaces.events.pointsYourBudget')}</span>
+                <span className={`text-xs font-black ${pointsRemaining === 0 ? 'text-green-600' : 'text-saffron-600'}`}>
+                  {t('surfaces.events.pointsRemaining').replace('{n}', String(pointsRemaining))}
+                </span>
+              </div>
+              {options.filter((o) => o.id !== ABSTAIN_OPTION_ID).map((opt) => (
+                <div key={opt.id} className="w-full p-4 rounded-xl border-2 border-temple-100 flex justify-between items-center gap-3">
+                  <span className="text-sm font-black text-temple-700 min-w-0">{opt.text}</span>
+                  <input
+                    type="number" min={0} max={100} step={1} inputMode="numeric"
+                    value={pointsDraft[opt.id] ?? 0}
+                    onChange={(e) => {
+                      const v = Math.max(0, Math.min(100, Math.floor(Number(e.target.value) || 0)));
+                      setPointsDraft((prev) => ({ ...prev, [opt.id]: v }));
+                    }}
+                    className="w-24 shrink-0 p-2.5 bg-white border border-temple-200 rounded-lg text-sm font-black text-right focus:border-saffron-500 outline-none"
+                    aria-label={opt.text}
+                  />
+                </div>
+              ))}
+              {poll.allowAbstain === true && (
+                <button
+                  onClick={() => void castAbstain()}
+                  disabled={casting}
+                  className="w-full text-left p-4 rounded-xl border-2 border-dashed border-temple-200 hover:border-temple-400 transition-all flex justify-between items-center min-h-[44px] disabled:opacity-50"
+                >
+                  <span className="text-sm font-black text-temple-500">{t('surfaces.events.abstainOption')}</span>
+                  <span className="text-[9px] font-black text-temple-400 uppercase tracking-widest">{t('surfaces.events.abstainStandAside')}</span>
+                </button>
+              )}
+              <button
+                onClick={() => void castPoints()}
+                disabled={pointsRemaining !== 0 || casting}
+                className="w-full bg-temple-900 hover:bg-black disabled:opacity-40 text-white font-black py-3.5 rounded-xl text-[11px] uppercase tracking-widest min-h-[44px]"
+              >
+                {t('surfaces.events.pointsCast')}
+              </button>
+              <p className="text-[10px] font-bold text-temple-500 uppercase tracking-widest">{t('surfaces.events.countedByCommittee')}</p>
+            </div>
           ) : (
             <>
             {options.map((opt) => (
@@ -422,7 +563,14 @@ const PollVoteCard: React.FC<{ entry: MemberPollEntry; uid: string | null }> = (
                 disabled={casting}
                 className="w-full text-left p-4 rounded-xl border-2 border-temple-100 hover:border-saffron-500 hover:bg-saffron-50/50 transition-all flex justify-between items-center min-h-[44px] disabled:opacity-50"
               >
-                <span className="text-sm font-black text-temple-700">{opt.text}</span>
+                <span>
+                  <span className="text-sm font-black text-temple-700">{opt.text}</span>
+                  {kind === 'time' && typeof opt.slotAt === 'number' && (
+                    <span className="block text-[11px] font-bold text-temple-500 mt-0.5">
+                      {new Date(opt.slotAt).toLocaleString('en-IN', { weekday: 'short', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' })}
+                    </span>
+                  )}
+                </span>
                 <span className="w-5 h-5 rounded-full border-2 border-temple-300"></span>
               </button>
             ))}
@@ -439,6 +587,89 @@ const PollVoteCard: React.FC<{ entry: MemberPollEntry; uid: string | null }> = (
             </>
           )
         ) : showResults ? (
+          <>
+          {pollCountedKind(poll) ? (
+            /* P3 — counted kinds read their recorded outcome;
+               the option counters never moved. */
+            !storedOutcome ? (
+              <div className="bg-temple-50 border border-temple-100 rounded-xl p-4">
+                <p className="text-xs font-bold text-temple-500 leading-relaxed">
+                  {poll.status === 'CONCLUDED' ? t('surfaces.events.awaitingCount') : t('surfaces.events.countedByCommittee')}
+                </p>
+                {myBallot?.ranking && myBallot.ranking.length > 0 && (
+                  <p className="text-xs font-bold text-temple-600 mt-2">
+                    {t('surfaces.events.rankYourOrder')}: {myBallot.ranking.map((id) => options.find((o) => o.id === id)?.text || id).join(' → ')}
+                  </p>
+                )}
+                {myBallot?.allocations && myBallot.allocations.length > 0 && (
+                  <p className="text-xs font-bold text-temple-600 mt-2">
+                    {myBallot.allocations.map((a) => `${options.find((o) => o.id === a.optionId)?.text || a.optionId}: ${a.points}`).join(' · ')}
+                  </p>
+                )}
+              </div>
+            ) : (
+              <div className="space-y-2.5">
+                {kind === 'ranked' && (
+                  <p className="text-[10px] font-black text-temple-500 uppercase tracking-widest">{t('surfaces.events.firstPreferences')}</p>
+                )}
+                {options.filter((o) => o.id !== ABSTAIN_OPTION_ID).map((opt) => {
+                  const tally = storedOutcome.tallies[opt.id] || 0;
+                  const maxTally = Math.max(1, ...options.filter((o) => o.id !== ABSTAIN_OPTION_ID).map((o) => storedOutcome.tallies[o.id] || 0));
+                  const isWinner = winnerIds.includes(opt.id);
+                  const isMine = kind === 'ranked'
+                    ? myBallot?.ranking?.[0] === opt.id
+                    : (myBallot?.allocations || []).some((a) => a.optionId === opt.id && a.points > 0);
+                  return (
+                    <div key={opt.id} className="relative w-full bg-temple-50 border border-temple-100 rounded-xl overflow-hidden">
+                      <div
+                        className={`absolute top-0 left-0 h-full transition-all duration-700 ${isWinner ? 'bg-green-200' : isMine ? 'bg-saffron-200' : 'bg-temple-200'}`}
+                        style={{ width: `${Math.round((tally / maxTally) * 100)}%` }}
+                      ></div>
+                      <div className="relative z-10 p-3.5 flex justify-between items-center">
+                        <span className="flex items-center gap-2">
+                          <span className="text-sm font-black text-temple-800">{opt.text}</span>
+                          {isMine && (
+                            <span className="bg-saffron-500 text-white text-[9px] font-black px-2 py-0.5 rounded-md uppercase tracking-widest">
+                              {t('surfaces.events.memberPollsYourVote')}
+                            </span>
+                          )}
+                          {isWinner && (
+                            <span className="bg-green-600 text-white text-[9px] font-black px-2 py-0.5 rounded-md uppercase tracking-widest flex items-center gap-1">
+                              <Award size={11} /> {t('surfaces.events.memberPollsWinner')}
+                            </span>
+                          )}
+                        </span>
+                        <span className="text-sm font-black text-temple-700">{tally}</span>
+                      </div>
+                    </div>
+                  );
+                })}
+                {kind === 'points' ? (
+                  <>
+                    <p className="text-xs font-bold text-temple-600">
+                      {t('surfaces.events.pointsTotalLabel').replace('{n}', String(storedOutcome.pointsTotal ?? 0))}
+                    </p>
+                    <p className="text-[11px] font-bold text-temple-500 leading-relaxed">{t('surfaces.events.pointsResultNote')}</p>
+                  </>
+                ) : storedOutcome.rounds && storedOutcome.rounds.length > 1 ? (
+                  <p className="text-[11px] font-bold text-temple-500">
+                    {t('surfaces.events.countRounds')}: {storedOutcome.rounds.length}
+                  </p>
+                ) : null}
+                <p className="text-[10px] font-bold text-temple-500 uppercase tracking-widest">{t('surfaces.events.countedFromBallots')}</p>
+                {myBallot?.ranking && myBallot.ranking.length > 0 && (
+                  <p className="text-xs font-bold text-temple-600">
+                    {t('surfaces.events.rankYourOrder')}: {myBallot.ranking.map((id) => options.find((o) => o.id === id)?.text || id).join(' → ')}
+                  </p>
+                )}
+                {myBallot?.allocations && myBallot.allocations.length > 0 && (
+                  <p className="text-xs font-bold text-temple-600">
+                    {t('surfaces.events.memberPollsYourVote')}: {myBallot.allocations.map((a) => `${options.find((o) => o.id === a.optionId)?.text || a.optionId}: ${a.points}`).join(' · ')}
+                  </p>
+                )}
+              </div>
+            )
+          ) : (
           <>
           {options.map((opt) => {
             const percentage = totalVotes > 0 ? Math.round((opt.votes / totalVotes) * 100) : 0;
@@ -469,6 +700,8 @@ const PollVoteCard: React.FC<{ entry: MemberPollEntry; uid: string | null }> = (
               </div>
             );
           })}
+          </>
+          )}
           {/* P2b: the abstention row — in the turnout, never in
               the race. Legacy polls render theirs as an option
               row above, from the map. */}

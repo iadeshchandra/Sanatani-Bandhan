@@ -182,7 +182,13 @@ describe('surfaces + vibe dict completeness (en/hi/bn authored)', () => {
     // field: tabDrafts…memberPollsAbstained) in all 10 languages,
     // taking the pin to 1384. en/hi/bn authored; ta/te/mr/gu/kn/ml/sa
     // are careful drafts (proofread follow-up).
-    expect(keysOf(en).length).toBe(1384);
+    // POLLS NEXT-LEVEL P3 adds 39 surfaces.events keys (ranked
+    // choice, the 100-points budget poll, time polls with the
+    // one-step event, and the read-only "Where we agree" view:
+    // pollKindRanked…agreementNone) in all 10 languages, taking
+    // the pin to 1423. en/hi/bn authored; ta/te/mr/gu/kn/ml/sa
+    // are careful drafts (proofread follow-up).
+    expect(keysOf(en).length).toBe(1423);
     for (const bucket of Object.keys(en)) {
       for (const leaf of Object.keys(en[bucket])) {
         for (const dict of [en, hi, bn]) {

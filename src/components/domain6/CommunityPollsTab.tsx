@@ -4,14 +4,16 @@ import { collection, query, where, onSnapshot, doc, setDoc, updateDoc, deleteDoc
 import { db } from '../../lib/firebase';
 import {
   pollTotalVotes, pollIsOpen, pollKind, pollResultsVisible, pollResultVisibility, pollIsEditable,
-  ABSTAIN_OPTION_ID, validateMultiChoice, validateTextResponse, ballotCast,
-  pollClass, pollIsBinding, pollBallotMode, pollElectorateCount, computePollOutcome, pollStoredOutcome,
-  pollPhase, pollHasAbstain, pollAbstainVotes,
+  ABSTAIN_OPTION_ID, validateMultiChoice, validateTextResponse, validateRanking, validateAllocations, ballotCast,
+  pollClass, pollIsBinding, pollBallotMode, pollElectorateCount, pollStoredOutcome,
+  pollPhase, pollHasAbstain, pollAbstainVotes, pollCountedKind, pollWinningSlot,
   POLL_DEFAULT_QUORUM_PCT, POLL_DEFAULT_PASS_PCT, POLL_MAX_OPTIONS,
   type MyBallot,
 } from '../../lib/pollLogic';
 import { publishBroadcast } from '../../org/broadcastService';
-import { castChoiceBallot, castMultiBallot, castTextBallot, castAbstainVote } from '../../lib/pollVoting';
+import { castChoiceBallot, castMultiBallot, castTextBallot, castAbstainVote, castRankedBallot, castPointsBallot } from '../../lib/pollVoting';
+import { countPollOutcome } from '../../lib/pollCounting';
+import { summariseAgreement, type AgreementBand } from '../../lib/pollAgreement';
 import {
   readPollTemplates, templateFromPoll, templateToShape, newPollTemplateId,
   nextRunWindow, pollRecurrence,
@@ -74,6 +76,16 @@ export const CommunityPollsTab: React.FC = () => {
   // EVENTS P1 — in-progress multi picks + text drafts, per poll.
   const [multiPick, setMultiPick] = useState<Record<string, string[]>>({});
   const [textDraft, setTextDraft] = useState<Record<string, string>>({});
+  // POLLS NEXT-LEVEL P3 — in-progress counted-kind ballots, per
+  // poll: the ranking being tapped into order, and the points
+  // being distributed across the heads.
+  const [rankPick, setRankPick] = useState<Record<string, string[]>>({});
+  const [pointsDraft, setPointsDraft] = useState<Record<string, Record<string, number>>>({});
+  // POLLS NEXT-LEVEL P3 — the org page's upcoming events, read so
+  // a concluded time poll can show whether its winning slot has
+  // already become an event (the deterministic item id is the
+  // dedupe — no marker is ever written onto the poll itself).
+  const [orgUpcoming, setOrgUpcoming] = useState<any[]>([]);
   // Named ballots for the committee audit of a named poll — loaded
   // only while the audit view is open, and the opening is logged.
   // POLLS P1: keyed to the voter's chosen option ids (a multi ballot
@@ -101,7 +113,9 @@ export const CommunityPollsTab: React.FC = () => {
     // the stored clock on every read (no server cron exists).
     opensDate: '', opensTime: '',
     // EVENTS P1 — the shape + the launch-time result rule.
-    kind: 'choice' as 'choice' | 'multi' | 'text',
+    // P3: + ranked (ordered ballot), points (the 100-points budget)
+    // and time (date/time slots) — see lib/pollLogic.
+    kind: 'choice' as 'choice' | 'multi' | 'text' | 'ranked' | 'points' | 'time',
     abstain: false,
     resultVisibility: 'afterVote' as 'live' | 'afterVote' | 'afterClose' | 'committee',
     // POLLS NEXT-LEVEL P1 — the class, and for Decision polls the
@@ -117,6 +131,13 @@ export const CommunityPollsTab: React.FC = () => {
     // so the desk can offer the one-step re-run next round.
     recurrence: 'none' as PollRecurrence
   });
+  // POLLS NEXT-LEVEL P3 — a time poll's options are moments, not
+  // words: each row is a datetime + an optional label. A template
+  // can carry the labels forward, never the moments — a re-run
+  // re-picks its times, honestly.
+  const [slotDrafts, setSlotDrafts] = useState<{ at: string; label: string }[]>([
+    { at: '', label: '' }, { at: '', label: '' },
+  ]);
   // POLLS NEXT-LEVEL P2b — set when the form was filled from a
   // template (or a re-run): the launched poll carries the
   // provenance.
@@ -200,6 +221,18 @@ export const CommunityPollsTab: React.FC = () => {
     return () => unsub();
   }, [activeWorkspace?.id]);
 
+  // POLLS NEXT-LEVEL P3 — the org page's upcoming events (the
+  // time poll's winning slot lands here, through the page's own
+  // event path — see handleCreateEventFromPoll).
+  useEffect(() => {
+    if (!activeWorkspace?.id) { setOrgUpcoming([]); return; }
+    const unsub = onSnapshot(doc(db, 'orgPages', activeWorkspace.id), (snap) => {
+      const data = snap.exists() ? (snap.data() as any) : null;
+      setOrgUpcoming(Array.isArray(data?.upcomingEvents) ? data.upcomingEvents : []);
+    }, () => setOrgUpcoming([]));
+    return () => unsub();
+  }, [activeWorkspace?.id]);
+
   // Deadline truth no longer waits for a manager's visit: ANY signed-in
   // member's client may land the conclusion once the deadline has
   // passed — firestore.rules verify the stored deadline timestamp
@@ -231,8 +264,12 @@ export const CommunityPollsTab: React.FC = () => {
     polls.forEach(p => {
       if (p.status !== 'CONCLUDED' || pollStoredOutcome(p) || outcomeStampTried.current.has(p.id)) return;
       outcomeStampTried.current.add(p.id);
-      const outcome = computePollOutcome(p, Date.now());
-      updateDoc(doc(db, 'polls', p.id), { outcome }).catch(() => { /* already stamped, or not ours to stamp */ });
+      // P3: the count comes from lib/pollCounting — the poll doc's
+      // own counters for counter kinds, the ballot papers for the
+      // counted kinds (ranked/points), counted deterministically.
+      countPollOutcome(db, p)
+        .then((outcome) => updateDoc(doc(db, 'polls', p.id), { outcome }))
+        .catch(() => { /* already stamped, or not ours to stamp */ });
     });
   }, [polls, isManagerOrAdmin]);
 
@@ -257,6 +294,8 @@ export const CommunityPollsTab: React.FC = () => {
               ...(Array.isArray(data.optionIds) ? { optionIds: data.optionIds } : {}),
               ...(typeof data.text === 'string' ? { text: data.text } : {}),
               ...(data.abstain === true ? { abstain: true } : {}),
+              ...(Array.isArray(data.ranking) ? { ranking: data.ranking } : {}),
+              ...(Array.isArray(data.allocations) ? { allocations: data.allocations } : {}),
             };
           } else delete next[p.id];
           return next;
@@ -328,12 +367,31 @@ export const CommunityPollsTab: React.FC = () => {
     if (!checkGate('events', polls.length)) return;
 
     const isText = pollForm.kind === 'text';
+    const isTime = pollForm.kind === 'time';
     const validOptions = pollForm.options.filter(opt => opt.trim() !== '');
+    // POLLS NEXT-LEVEL P3 — a time poll's options are moments:
+    // every filled row must carry a real day+time (its label falls
+    // back to the moment itself, written out). Slots are stored in
+    // the order proposed; the ballot is an ordinary choice ballot.
+    const slotOptions: { text: string; slotAt: number }[] = [];
+    if (isTime) {
+      for (const s of slotDrafts) {
+        if (!s.at) continue;
+        const ms = new Date(s.at).getTime();
+        if (!Number.isFinite(ms)) return showToastMsg(t('surfaces.events.slotNeedsMoment'), "error");
+        slotOptions.push({
+          text: s.label.trim() || new Date(ms).toLocaleString('en-IN', { weekday: 'short', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' }),
+          slotAt: ms,
+        });
+      }
+      if (slotOptions.length < 2) return showToastMsg(t('surfaces.events.slotNeedsMoment'), "error");
+      if (slotOptions.length > POLL_MAX_OPTIONS) return showToastMsg(`At most ${POLL_MAX_OPTIONS} options.`, "error");
+    }
     // POLLS NEXT-LEVEL P2b: the ceiling counts REAL options — 8 of
     // them (POLL_MAX_OPTIONS). Abstain is a field on the poll now,
     // never one of the slots.
-    if (!isText && validOptions.length < 2) return showToastMsg("A poll requires at least 2 valid options.", "error");
-    if (!isText && validOptions.length > POLL_MAX_OPTIONS) return showToastMsg(`At most ${POLL_MAX_OPTIONS} options.`, "error");
+    if (!isText && !isTime && validOptions.length < 2) return showToastMsg("A poll requires at least 2 valid options.", "error");
+    if (!isText && !isTime && validOptions.length > POLL_MAX_OPTIONS) return showToastMsg(`At most ${POLL_MAX_OPTIONS} options.`, "error");
     if (!pollForm.title.trim()) return showToastMsg("Title is required.", "error");
     if (mode === 'launch' && !pollForm.endDate) return showToastMsg("Title and End Date are required.", "error");
 
@@ -370,7 +428,11 @@ export const CommunityPollsTab: React.FC = () => {
       }
 
       const optionsMap: any = {};
-      if (!isText) {
+      if (isTime) {
+        slotOptions.forEach((s, idx) => {
+          optionsMap[`opt_${idx}`] = { text: s.text, votes: 0, slotAt: s.slotAt };
+        });
+      } else if (!isText) {
         validOptions.forEach((opt, idx) => {
           optionsMap[`opt_${idx}`] = { text: opt.trim(), votes: 0 };
         });
@@ -420,8 +482,13 @@ export const CommunityPollsTab: React.FC = () => {
               // The secrecy choice the rules can honour: committee
               // polls and written responses are named by design;
               // a community Decision poll takes the creator's choice.
+              // P3: the counted kinds (ranked/points) are counted
+              // from the ballot papers by the committee — the
+              // record says so ('named'), whatever the class.
               ballot:
-                pollForm.targetAudience === 'MANAGERS' || isText ? 'named' : pollForm.ballot,
+                pollForm.targetAudience === 'MANAGERS' || isText || pollForm.kind === 'ranked' || pollForm.kind === 'points'
+                  ? 'named'
+                  : pollForm.ballot,
               // The frozen electorate: the member register, counted
               // now (pollElectorateCount) — later joins do not move it.
               // (For a draft this stamp is refreshed at opening, in
@@ -441,6 +508,7 @@ export const CommunityPollsTab: React.FC = () => {
 
       setShowCreateModal(false);
       setPollForm({ title: '', description: '', targetAudience: 'ALL_MEMBERS', endDate: '', endTime: '', opensDate: '', opensTime: '', options: ['', ''], kind: 'choice', abstain: false, resultVisibility: 'afterVote', pollClass: 'pulse', binding: false, ballot: 'secret', quorumPct: POLL_DEFAULT_QUORUM_PCT, passPct: POLL_DEFAULT_PASS_PCT, recurrence: 'none' });
+      setSlotDrafts([{ at: '', label: '' }, { at: '', label: '' }]);
       setPendingTemplate(null);
       setActiveTab(mode === 'draft' ? 'DRAFTS' : 'ACTIVE');
     } catch (err: any) {
@@ -559,6 +627,13 @@ export const CommunityPollsTab: React.FC = () => {
       passPct: shape.passPct,
       recurrence: meta.recurrence,
     });
+    // P3: a time template carries its slot LABELS forward; the
+    // moments themselves are always re-picked for the new round.
+    setSlotDrafts(
+      shape.kind === 'time'
+        ? shape.options.map((label) => ({ at: '', label }))
+        : [{ at: '', label: '' }, { at: '', label: '' }]
+    );
     setPendingTemplate(meta.templateId ? { templateId: meta.templateId } : null);
     setShowCreateModal(true);
   };
@@ -713,6 +788,111 @@ export const CommunityPollsTab: React.FC = () => {
     });
   };
 
+  // POLLS NEXT-LEVEL P3 — tap-to-order: tapping an unranked option
+  // appends it as the next preference; tapping a ranked one takes
+  // it back out. The order shown is the order cast.
+  const toggleRank = (pollId: string, optionId: string) => {
+    setRankPick(prev => {
+      const cur = prev[pollId] || [];
+      const next = cur.includes(optionId) ? cur.filter(id => id !== optionId) : [...cur, optionId];
+      return { ...prev, [pollId]: next };
+    });
+  };
+
+  // POLLS NEXT-LEVEL P3 — the ranked ballot, through the shared
+  // write path (lib/pollVoting): the ballot doc carries the order,
+  // turnout moves +1, no option counter moves (the count happens
+  // at conclusion, from the papers — lib/pollCounting).
+  const handleVoteRanked = async (poll: any) => {
+    const uid = firebaseUser?.uid;
+    if (!uid) return showToastMsg("Please log in to vote.", "error");
+    if (!pollIsOpen(poll, Date.now())) return showToastMsg("This poll has been concluded.", "error");
+    if (ballotCast(myBallotFor(poll))) return showToastMsg("You have already voted.", "error");
+    const ranking = rankPick[poll.id] || [];
+    const problem = validateRanking(poll, ranking);
+    if (problem) {
+      return showToastMsg(problem === 'empty' ? t('surfaces.events.rankNeedOne') : "That ranking cannot be cast — please check it.", "error");
+    }
+    try {
+      await castRankedBallot(db, poll.id, uid, ranking);
+      setRankPick(prev => ({ ...prev, [poll.id]: [] }));
+      showToastMsg("Your vote has been recorded.", 'success');
+    } catch (e: any) {
+      console.error(e);
+      showToastMsg(friendlyError(e, t, 'save'), "error");
+    }
+  };
+
+  // POLLS NEXT-LEVEL P3 — the points ballot: the draft must place
+  // exactly 100 points (validateAllocations — the rules prove the
+  // same sum again server-side), then the shared write path casts.
+  const handleVotePoints = async (poll: any) => {
+    const uid = firebaseUser?.uid;
+    if (!uid) return showToastMsg("Please log in to vote.", "error");
+    if (!pollIsOpen(poll, Date.now())) return showToastMsg("This poll has been concluded.", "error");
+    if (ballotCast(myBallotFor(poll))) return showToastMsg("You have already voted.", "error");
+    const draft = pointsDraft[poll.id] || {};
+    const allocations = Object.entries(draft)
+      .filter(([, v]) => typeof v === 'number' && v > 0)
+      .map(([optionId, points]) => ({ optionId, points }));
+    const problem = validateAllocations(poll, allocations);
+    if (problem) {
+      return showToastMsg(
+        problem === 'sum' || problem === 'empty' ? t('surfaces.events.pointsNeed100') : "Those points cannot be cast — please check them.",
+        "error"
+      );
+    }
+    try {
+      await castPointsBallot(db, poll.id, uid, allocations);
+      setPointsDraft(prev => ({ ...prev, [poll.id]: {} }));
+      showToastMsg("Your vote has been recorded.", 'success');
+    } catch (e: any) {
+      console.error(e);
+      showToastMsg(friendlyError(e, t, 'save'), "error");
+    }
+  };
+
+  // POLLS NEXT-LEVEL P3 — a concluded time poll's winning slot
+  // becomes a real event in one step, through the org page's OWN
+  // event path: OrgEventManager's list on orgPages/{orgId} (the
+  // rules gate that write to trustees, as for every page edit).
+  // The item id is deterministic (orgev-poll-<pollId>), so the
+  // step is idempotent — never a duplicate, and no marker field
+  // is needed on the poll. The list's cap of 10 is respected
+  // honestly: a full list asks a person to make room first,
+  // rather than silently dropping someone else's event.
+  const handleCreateEventFromPoll = async (poll: any) => {
+    const slot = pollWinningSlot(poll);
+    if (!slot || !activeWorkspace?.id) return;
+    const itemId = `orgev-poll-${poll.id}`;
+    if (orgUpcoming.some((e: any) => e?.id === itemId)) return;
+    if (orgUpcoming.length >= 10) {
+      return showToastMsg("The organisation page already shows 10 upcoming events — remove one there first.", "error");
+    }
+    setSubmitting(true);
+    try {
+      const item = {
+        id: itemId,
+        title: poll.title || 'Community event',
+        date: dateInputOf(slot.slotAt),
+        time: timeInputOf(slot.slotAt),
+        description: slot.text,
+        tag: 'Poll',
+      };
+      await updateDoc(doc(db, 'orgPages', activeWorkspace.id), {
+        upcomingEvents: [item, ...orgUpcoming].slice(0, 10),
+        autoShareEvents: true,
+        updatedAt: Date.now(),
+      });
+      showToastMsg(t('surfaces.events.eventCreatedFromSlot'), 'success');
+    } catch (err: any) {
+      console.error(err);
+      showToastMsg(friendlyError(err, t, 'save'), "error");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   // EVENTS P1 — edit-before-first-vote. The rules (pollEditOk) verify
   // zero ballots; this form simply never appears once voting begins.
   const openEditPoll = (poll: any) => {
@@ -788,10 +968,17 @@ export const CommunityPollsTab: React.FC = () => {
         // P2b: the options map carries REAL options only — a
         // legacy poll's in-map abstain entry is retired by this
         // edit, and the choice lives on as the allowAbstain field.
-        const optionsMap: Record<string, { text: string; votes: number }> = {};
+        // P3: a time poll's slot moments ride along untouched —
+        // the edit form renames labels, it never moves a moment.
+        const optionsMap: Record<string, { text: string; votes: number; slotAt?: number }> = {};
         for (const o of editForm.options) {
           if (!o.text.trim()) throw new Error("Every option needs its text.");
-          optionsMap[o.id] = { text: o.text.trim(), votes: 0 };
+          const slotAt = (editPoll.options?.[o.id] as any)?.slotAt;
+          optionsMap[o.id] = {
+            text: o.text.trim(),
+            votes: 0,
+            ...(typeof slotAt === 'number' ? { slotAt } : {}),
+          };
         }
         updates.options = optionsMap;
         updates.allowAbstain = editForm.abstain;
@@ -824,9 +1011,11 @@ export const CommunityPollsTab: React.FC = () => {
       // from the poll's frozen counts, and stored on the record in
       // the same write that concludes it (the rules allow the
       // outcome key only on this path, and never a rewrite).
+      // P3: lib/pollCounting counts the counted kinds from their
+      // ballot papers in this same step (the committee's count).
       const poll = polls.find(p => p.id === concludeData.id);
       if (poll && !pollStoredOutcome(poll)) {
-        updates.outcome = computePollOutcome(poll, Date.now());
+        updates.outcome = await countPollOutcome(db, poll);
       }
       await updateDoc(doc(db, 'polls', concludeData.id), updates);
       showToastMsg("Poll concluded and decision published.", 'success');
@@ -956,7 +1145,10 @@ export const CommunityPollsTab: React.FC = () => {
     // of exactly the same kind and is logged the same way.
     // POLLS P1: a Decision poll whose creator chose a named ballot
     // joins the same posture — the reveal is logged identically.
-    if (poll.targetAudience === 'MANAGERS' || pollKind(poll) === 'text' || pollBallotMode(poll) === 'named') {
+    // P3: opening a counted poll's audit sits beside its count —
+    // the committee reads those ballot papers by design, and the
+    // opening is logged the same way.
+    if (poll.targetAudience === 'MANAGERS' || pollKind(poll) === 'text' || pollBallotMode(poll) === 'named' || pollCountedKind(poll)) {
       noteAudit({
         action: 'poll.ballotsRevealed',
         entityType: 'poll',
@@ -995,6 +1187,13 @@ export const CommunityPollsTab: React.FC = () => {
 
   const activePolls = visiblePolls.filter(p => p.status === 'ACTIVE');
   const concludedPolls = visiblePolls.filter(p => p.status === 'CONCLUDED');
+  // POLLS NEXT-LEVEL P3 — "Where we agree": the read-only view
+  // over concluded polls, computed from their recorded outcomes
+  // (lib/pollAgreement). Polls are measured here, never people.
+  const agreementSummary = useMemo(
+    () => summariseAgreement(visiblePolls, Date.now()),
+    [visiblePolls]
+  );
   // P2b: drafts are a first-class desk section of their own — not
   // a hidden flag on the active list.
   const draftList = visiblePolls.filter(p => p.status === 'DRAFT');
@@ -1062,8 +1261,12 @@ export const CommunityPollsTab: React.FC = () => {
     const activeTurnoutRate = totalEligibleActive > 0 ? Math.round((totalVotedActive / totalEligibleActive) * 100) : 0;
 
     let marginMessage = "No recent concluded polls to analyze.";
-    if (concludedPolls.length > 0) {
-      const lastPoll = concludedPolls[0];
+    // P3: counted kinds keep no option counters — their margin
+    // lives in the recorded outcome (the agreement view below),
+    // never in the all-zero options map.
+    const counterConcluded = concludedPolls.filter(p => !pollCountedKind(p));
+    if (counterConcluded.length > 0) {
+      const lastPoll = counterConcluded[0];
       // P2b: abstentions are not a candidate — never let the
       // abstain entry (legacy in-map shape) pose as the winner.
       const opts = Object.entries(lastPoll.options || {})
@@ -1254,6 +1457,57 @@ export const CommunityPollsTab: React.FC = () => {
         </div>
       )}
 
+      {/* POLLS NEXT-LEVEL P3 — "Where we agree": the read-only
+          view over concluded polls, read from their recorded
+          outcomes (lib/pollAgreement). It measures polls, never
+          people — no member is scored, ranked or listed here. */}
+      {activeTab === 'CONCLUDED' && concludedPolls.length > 0 && (
+        <div className="bg-stone-50 border border-stone-200 p-5 sm:p-6 rounded-3xl shadow-inner">
+          <h3 className="text-sm font-black text-stone-900 flex items-center gap-2 uppercase tracking-widest mb-1.5">
+            <Heart size={16} className="text-saffron-500"/> {t('surfaces.events.agreementTitle')}
+          </h3>
+          <p className="text-[11px] font-bold text-stone-500 leading-relaxed mb-4">{t('surfaces.events.agreementIntro')}</p>
+          <div className="flex flex-wrap gap-2 mb-4">
+            {(Object.keys(agreementSummary.census) as AgreementBand[])
+              .filter((band) => agreementSummary.census[band] > 0)
+              .map((band) => (
+                <span key={band} className={`text-[9px] font-black uppercase tracking-widest px-2.5 py-1.5 rounded-lg border ${
+                  band === 'united' ? 'bg-green-50 text-green-700 border-green-200'
+                  : band === 'leaning' ? 'bg-saffron-50 text-saffron-700 border-saffron-200'
+                  : band === 'divided' ? 'bg-red-50 text-red-600 border-red-200'
+                  : 'bg-white text-stone-600 border-stone-200'}`}>
+                  {t(`surfaces.events.agreement${band.charAt(0).toUpperCase()}${band.slice(1)}`)} · {agreementSummary.census[band]}
+                </span>
+              ))}
+          </div>
+          {agreementSummary.rows.length === 0 ? (
+            <p className="text-xs font-bold text-stone-500">{t('surfaces.events.agreementNone')}</p>
+          ) : (
+            <div className="space-y-2">
+              {agreementSummary.rows.map((row) => (
+                <div key={row.pollId} className="bg-white border border-stone-200 rounded-xl px-4 py-3 flex flex-wrap items-center gap-x-3 gap-y-1.5 shadow-sm">
+                  <span className="text-xs font-black text-stone-800 min-w-0 flex-1">{row.title}</span>
+                  <span className={`text-[9px] font-black uppercase tracking-widest px-2 py-1 rounded-md border ${
+                    row.band === 'united' ? 'bg-green-50 text-green-700 border-green-200'
+                    : row.band === 'leaning' ? 'bg-saffron-50 text-saffron-700 border-saffron-200'
+                    : row.band === 'divided' ? 'bg-red-50 text-red-600 border-red-200'
+                    : 'bg-stone-50 text-stone-500 border-stone-200'}`}>
+                    {t(`surfaces.events.agreement${row.band.charAt(0).toUpperCase()}${row.band.slice(1)}`)}
+                  </span>
+                  {row.share !== null && row.leaderText && (
+                    <span className="text-[11px] font-bold text-stone-500">
+                      {t('surfaces.events.agreementShare')
+                        .replace('{pct}', String(Math.round(row.share * 100)))
+                        .replace('{name}', row.leaderText)}
+                    </span>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* POLL CARDS GRID */}
       <div className="flex-1 overflow-y-auto space-y-6 pb-12 scrollbar-hide">
         {displayPolls.length > 0 ? (
@@ -1277,9 +1531,12 @@ export const CommunityPollsTab: React.FC = () => {
               let winnerIds: string[] = [];
               if (poll.status === 'CONCLUDED' && totalVotes > 0 && showResults && kind !== 'text') {
                  if (storedOutcome) winnerIds = storedOutcome.winnerOptionIds;
-                 else {
+                 else if (!pollCountedKind(poll)) {
                    // P2b: the derived fallback also excludes the
                    // abstain entry — an abstention never "wins".
+                   // P3: counted kinds have NO derived fallback —
+                   // their option counters never moved, so only
+                   // the recorded count may name a winner.
                    const candidates = options.filter(o => o.id !== ABSTAIN_OPTION_ID);
                    if (candidates.length > 0) winnerIds = [candidates.reduce((max, obj) => obj.votes > max.votes ? obj : max, candidates[0]).id];
                  }
@@ -1291,6 +1548,15 @@ export const CommunityPollsTab: React.FC = () => {
               const phase = pollPhase(poll, Date.now());
               const abstainCount = pollAbstainVotes(poll);
               const myAbstain = myBallot?.abstain === true || myVote === ABSTAIN_OPTION_ID;
+              // P3 — the points draft's running total for this card.
+              const pointsPlaced = Object.values(pointsDraft[poll.id] || {}).reduce(
+                (s, v) => s + (typeof v === 'number' ? v : 0), 0
+              );
+              const pointsRemaining = 100 - pointsPlaced;
+              // P3 — a time poll's winning slot + whether it is an
+              // event already (deterministic item id on the page).
+              const winningSlot = poll.status === 'CONCLUDED' ? pollWinningSlot(poll) : null;
+              const slotEventMade = winningSlot !== null && orgUpcoming.some((e: any) => e?.id === `orgev-poll-${poll.id}`);
 
               // POLLS NEXT-LEVEL P2b — the DRAFT card: the
               // committee's working paper, honest about its state.
@@ -1323,6 +1589,11 @@ export const CommunityPollsTab: React.FC = () => {
                           {options.filter(o => o.id !== ABSTAIN_OPTION_ID).map(opt => (
                             <div key={opt.id} className="w-full p-3.5 rounded-xl border border-stone-100 bg-stone-50/60 flex justify-between items-center">
                               <span className="text-sm font-black text-stone-600">{opt.text}</span>
+                              {kind === 'time' && typeof opt.slotAt === 'number' && (
+                                <span className="text-[11px] font-bold text-stone-500">
+                                  {new Date(opt.slotAt).toLocaleString('en-IN', { weekday: 'short', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' })}
+                                </span>
+                              )}
                             </div>
                           ))}
                           {pollHasAbstain(poll) && (
@@ -1496,6 +1767,95 @@ export const CommunityPollsTab: React.FC = () => {
                              {t('surfaces.events.castVote')}
                            </button>
                          </div>
+                       ) : kind === 'ranked' ? (
+                         <div className="space-y-3">
+                           <p className="text-[11px] font-bold text-stone-500">{t('surfaces.events.rankTapToRank')}</p>
+                           {options.filter(o => o.id !== ABSTAIN_OPTION_ID).map((opt) => {
+                             const rank = (rankPick[poll.id] || []).indexOf(opt.id);
+                             return (
+                               <button
+                                 key={opt.id}
+                                 onClick={() => toggleRank(poll.id, opt.id)}
+                                 aria-pressed={rank >= 0}
+                                 className={`w-full text-left p-4 rounded-xl border-2 transition-all flex justify-between items-center min-h-[44px] ${rank >= 0 ? 'border-saffron-500 bg-saffron-50/60' : 'border-stone-100 hover:border-saffron-300'}`}
+                               >
+                                 <span className="text-sm font-black text-stone-700">{opt.text}</span>
+                                 <span className={`w-7 h-7 rounded-full border-2 flex items-center justify-center text-xs font-black shrink-0 ${rank >= 0 ? 'bg-saffron-500 border-saffron-500 text-white' : 'border-stone-300 text-stone-300'}`}>
+                                   {rank >= 0 ? rank + 1 : '·'}
+                                 </span>
+                               </button>
+                             );
+                           })}
+                           {(rankPick[poll.id] || []).length > 0 && (
+                             <div className="flex items-center justify-between gap-3 bg-stone-50 border border-stone-100 rounded-xl px-4 py-2">
+                               <p className="text-xs font-bold text-stone-600 min-w-0">
+                                 <span className="font-black uppercase tracking-widest text-[10px] text-stone-500 block">{t('surfaces.events.rankYourOrder')}</span>
+                                 {(rankPick[poll.id] || []).map(id => options.find(o => o.id === id)?.text || id).join(' → ')}
+                               </p>
+                               <button onClick={() => setRankPick(prev => ({ ...prev, [poll.id]: [] }))} className="shrink-0 text-[10px] font-black uppercase tracking-widest text-saffron-600 hover:text-saffron-800 min-h-[44px] px-2">
+                                 {t('surfaces.events.rankReset')}
+                               </button>
+                             </div>
+                           )}
+                           {poll.allowAbstain === true && (
+                             <button
+                               onClick={() => handleAbstain(poll)}
+                               className="w-full text-left p-4 rounded-xl border-2 border-dashed border-stone-200 hover:border-stone-400 transition-all flex justify-between items-center min-h-[44px]"
+                             >
+                               <span className="text-sm font-black text-stone-500">{t('surfaces.events.abstainOption')}</span>
+                               <span className="text-[9px] font-black text-stone-400 uppercase tracking-widest">{t('surfaces.events.abstainStandAside')}</span>
+                             </button>
+                           )}
+                           <button
+                             onClick={() => handleVoteRanked(poll)}
+                             disabled={(rankPick[poll.id] || []).length === 0}
+                             className="w-full bg-stone-900 hover:bg-black disabled:opacity-40 text-white font-black py-3.5 rounded-xl text-[11px] uppercase tracking-widest transition-all shadow-md min-h-[44px]"
+                           >
+                             {t('surfaces.events.rankCast')}
+                           </button>
+                           <p className="text-[10px] font-bold text-stone-500 uppercase tracking-widest">{t('surfaces.events.countedByCommittee')}</p>
+                         </div>
+                       ) : kind === 'points' ? (
+                         <div className="space-y-3">
+                           <div className="flex items-center justify-between bg-stone-50 border border-stone-100 rounded-xl px-4 py-3">
+                             <span className="text-[10px] font-black text-stone-500 uppercase tracking-widest">{t('surfaces.events.pointsYourBudget')}</span>
+                             <span className={`text-xs font-black ${pointsRemaining === 0 ? 'text-green-600' : 'text-saffron-600'}`}>
+                               {t('surfaces.events.pointsRemaining').replace('{n}', String(pointsRemaining))}
+                             </span>
+                           </div>
+                           {options.filter(o => o.id !== ABSTAIN_OPTION_ID).map((opt) => (
+                             <div key={opt.id} className="w-full p-4 rounded-xl border-2 border-stone-100 flex justify-between items-center gap-3">
+                               <span className="text-sm font-black text-stone-700 min-w-0">{opt.text}</span>
+                               <input
+                                 type="number" min={0} max={100} step={1} inputMode="numeric"
+                                 value={pointsDraft[poll.id]?.[opt.id] ?? 0}
+                                 onChange={(e) => {
+                                   const v = Math.max(0, Math.min(100, Math.floor(Number(e.target.value) || 0)));
+                                   setPointsDraft(prev => ({ ...prev, [poll.id]: { ...(prev[poll.id] || {}), [opt.id]: v } }));
+                                 }}
+                                 className="w-24 shrink-0 p-2.5 bg-white border border-stone-200 rounded-lg text-sm font-black text-right focus:border-saffron-500 outline-none"
+                                 aria-label={opt.text}
+                               />
+                             </div>
+                           ))}
+                           {poll.allowAbstain === true && (
+                             <button
+                               onClick={() => handleAbstain(poll)}
+                               className="w-full text-left p-4 rounded-xl border-2 border-dashed border-stone-200 hover:border-stone-400 transition-all flex justify-between items-center min-h-[44px]"
+                             >
+                               <span className="text-sm font-black text-stone-500">{t('surfaces.events.abstainOption')}</span>
+                               <span className="text-[9px] font-black text-stone-400 uppercase tracking-widest">{t('surfaces.events.abstainStandAside')}</span>
+                             </button>
+                           )}
+                           <button
+                             onClick={() => handleVotePoints(poll)}
+                             disabled={pointsRemaining !== 0}
+                             className="w-full bg-stone-900 hover:bg-black disabled:opacity-40 text-white font-black py-3.5 rounded-xl text-[11px] uppercase tracking-widest transition-all shadow-md min-h-[44px]"
+                           >
+                             {t('surfaces.events.pointsCast')}
+                           </button>
+                           <p className="text-[10px] font-bold text-stone-500 uppercase tracking-widest">{t('surfaces.events.countedByCommittee')}</p>
+                         </div>
                        ) : (
                          <>
                          {options.map((opt) => (
@@ -1504,7 +1864,14 @@ export const CommunityPollsTab: React.FC = () => {
                              onClick={() => handleVote(poll.id, opt.id)}
                              className="w-full text-left p-4 rounded-xl border-2 border-stone-100 hover:border-saffron-500 hover:bg-saffron-50/50 hover:shadow-sm transition-all flex justify-between items-center group/btn"
                            >
-                             <span className="text-sm font-black text-stone-700 group-hover/btn:text-saffron-500 transition-colors">{opt.text}</span>
+                             <span>
+                               <span className="text-sm font-black text-stone-700 group-hover/btn:text-saffron-500 transition-colors">{opt.text}</span>
+                               {kind === 'time' && typeof opt.slotAt === 'number' && (
+                                 <span className="block text-[11px] font-bold text-stone-500 mt-0.5">
+                                   {new Date(opt.slotAt).toLocaleString('en-IN', { weekday: 'short', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' })}
+                                 </span>
+                               )}
+                             </span>
                              <div className="w-5 h-5 rounded-full border-2 border-stone-300 group-hover/btn:border-saffron-500 transition-colors"></div>
                            </button>
                          ))}
@@ -1520,6 +1887,113 @@ export const CommunityPollsTab: React.FC = () => {
                          </>
                        )
                      ) : showResults ? (
+                       <>
+                       {pollCountedKind(poll) ? (
+                         /* P3 — counted kinds: the result lives in
+                            the recorded outcome, never in the
+                            options map (its counters never moved). */
+                         !storedOutcome ? (
+                           <div className="bg-stone-50 border border-stone-100 rounded-xl p-4 shadow-inner">
+                             <p className="text-xs font-bold text-stone-500 leading-relaxed">
+                               {poll.status === 'CONCLUDED' ? t('surfaces.events.awaitingCount') : t('surfaces.events.countedByCommittee')}
+                             </p>
+                             {myBallot?.ranking && myBallot.ranking.length > 0 && (
+                               <p className="text-xs font-bold text-stone-600 mt-2">
+                                 {t('surfaces.events.rankYourOrder')}: {myBallot.ranking.map(id => options.find(o => o.id === id)?.text || id).join(' → ')}
+                               </p>
+                             )}
+                             {myBallot?.allocations && myBallot.allocations.length > 0 && (
+                               <p className="text-xs font-bold text-stone-600 mt-2">
+                                 {myBallot.allocations.map(a => `${options.find(o => o.id === a.optionId)?.text || a.optionId}: ${a.points}`).join(' · ')}
+                               </p>
+                             )}
+                           </div>
+                         ) : kind === 'points' ? (
+                           <div className="space-y-3">
+                             {options.filter(o => o.id !== ABSTAIN_OPTION_ID).map((opt) => {
+                               const pts = storedOutcome.tallies[opt.id] || 0;
+                               const maxPts = Math.max(1, ...options.filter(o => o.id !== ABSTAIN_OPTION_ID).map(o => storedOutcome.tallies[o.id] || 0));
+                               const isWinner = winnerIds.includes(opt.id);
+                               return (
+                                 <div key={opt.id} className="relative w-full bg-stone-50 border border-stone-100 rounded-xl overflow-hidden shadow-sm">
+                                   <div className={`absolute top-0 left-0 h-full transition-all duration-1000 ease-out opacity-80 ${isWinner ? 'bg-green-200 border-r-4 border-green-500' : 'bg-stone-200 border-r-4 border-stone-300'}`} style={{ width: `${Math.round((pts / maxPts) * 100)}%` }}></div>
+                                   <div className="relative z-10 p-4 flex justify-between items-center">
+                                     <span className="flex items-center gap-2">
+                                       <span className={`text-sm font-black ${isWinner ? 'text-green-900' : 'text-stone-800'}`}>{opt.text}</span>
+                                       {isWinner && (
+                                         <span className="bg-green-600 text-white text-[9px] font-black px-2 py-0.5 rounded-md uppercase tracking-widest shadow-sm flex items-center gap-1"><Award size={12}/> Winner</span>
+                                       )}
+                                     </span>
+                                     <span className={`text-sm font-black ${isWinner ? 'text-green-800' : 'text-stone-700'}`}>{pts}</span>
+                                   </div>
+                                 </div>
+                               );
+                             })}
+                             <p className="text-xs font-bold text-stone-600">
+                               {t('surfaces.events.pointsTotalLabel').replace('{n}', String(storedOutcome.pointsTotal ?? 0))}
+                             </p>
+                             <p className="text-[11px] font-bold text-stone-500 leading-relaxed">{t('surfaces.events.pointsResultNote')}</p>
+                             <p className="text-[10px] font-bold text-stone-500 uppercase tracking-widest">{t('surfaces.events.countedFromBallots')}</p>
+                             {myBallot?.allocations && myBallot.allocations.length > 0 && (
+                               <p className="text-xs font-bold text-stone-600">
+                                 {t('surfaces.events.memberPollsYourVote')}: {myBallot.allocations.map(a => `${options.find(o => o.id === a.optionId)?.text || a.optionId}: ${a.points}`).join(' · ')}
+                               </p>
+                             )}
+                           </div>
+                         ) : (
+                           <div className="space-y-3">
+                             <p className="text-[10px] font-black text-stone-500 uppercase tracking-widest">{t('surfaces.events.firstPreferences')}</p>
+                             {options.filter(o => o.id !== ABSTAIN_OPTION_ID).map((opt) => {
+                               const fp = storedOutcome.tallies[opt.id] || 0;
+                               const maxFp = Math.max(1, ...options.filter(o => o.id !== ABSTAIN_OPTION_ID).map(o => storedOutcome.tallies[o.id] || 0));
+                               const isWinner = winnerIds.includes(opt.id);
+                               const isMyFirst = myBallot?.ranking?.[0] === opt.id;
+                               return (
+                                 <div key={opt.id} className="relative w-full bg-stone-50 border border-stone-100 rounded-xl overflow-hidden shadow-sm">
+                                   <div className={`absolute top-0 left-0 h-full transition-all duration-1000 ease-out opacity-80 ${isWinner ? 'bg-green-200 border-r-4 border-green-500' : isMyFirst ? 'bg-saffron-200 border-r-4 border-saffron-500' : 'bg-stone-200 border-r-4 border-stone-300'}`} style={{ width: `${Math.round((fp / maxFp) * 100)}%` }}></div>
+                                   <div className="relative z-10 p-4 flex justify-between items-center">
+                                     <span className="flex items-center gap-2">
+                                       <span className={`text-sm font-black ${isWinner ? 'text-green-900' : 'text-stone-800'}`}>{opt.text}</span>
+                                       {isMyFirst && (
+                                         <span className="bg-saffron-500 text-white text-[9px] font-black px-2 py-0.5 rounded-md uppercase tracking-widest shadow-sm">Your Vote</span>
+                                       )}
+                                       {isWinner && (
+                                         <span className="bg-green-600 text-white text-[9px] font-black px-2 py-0.5 rounded-md uppercase tracking-widest shadow-sm flex items-center gap-1"><Award size={12}/> Winner</span>
+                                       )}
+                                     </span>
+                                     <span className={`text-sm font-black ${isWinner ? 'text-green-800' : 'text-stone-700'}`}>{fp}</span>
+                                   </div>
+                                 </div>
+                               );
+                             })}
+                             <p className="text-[10px] font-bold text-stone-500 uppercase tracking-widest">{t('surfaces.events.countedFromBallots')}</p>
+                             {myBallot?.ranking && myBallot.ranking.length > 0 && (
+                               <p className="text-xs font-bold text-stone-600">
+                                 {t('surfaces.events.rankYourOrder')}: {myBallot.ranking.map(id => options.find(o => o.id === id)?.text || id).join(' → ')}
+                               </p>
+                             )}
+                             {storedOutcome.rounds && storedOutcome.rounds.length > 0 && (
+                               <details className="bg-stone-50 border border-stone-100 rounded-xl px-4 py-2">
+                                 <summary className="text-xs font-black text-stone-700 cursor-pointer min-h-[44px] flex items-center">{t('surfaces.events.countRounds')}</summary>
+                                 <div className="space-y-2 pb-3">
+                                   {storedOutcome.rounds.map((r, i) => (
+                                     <div key={i} className="text-xs font-bold text-stone-600 leading-relaxed">
+                                       <span className="font-black text-stone-800">{t('surfaces.events.roundLabel').replace('{n}', String(i + 1))}:</span>{' '}
+                                       {Object.entries(r.tallies).map(([id, v]) => `${options.find(o => o.id === id)?.text || id} ${v}`).join(' · ')}
+                                       {r.eliminated.length > 0 && (
+                                         <span className="block text-stone-500">{t('surfaces.events.eliminatedLabel').replace('{names}', r.eliminated.map(id => options.find(o => o.id === id)?.text || id).join(', '))}</span>
+                                       )}
+                                       {r.exhausted > 0 && (
+                                         <span className="block text-stone-500">{t('surfaces.events.exhaustedLabel').replace('{n}', String(r.exhausted))}</span>
+                                       )}
+                                     </div>
+                                   ))}
+                                 </div>
+                               </details>
+                             )}
+                           </div>
+                         )
+                       ) : (
                        <>
                        {options.map((opt) => {
                          const percentage = totalVotes > 0 ? Math.round((opt.votes / totalVotes) * 100) : 0;
@@ -1551,6 +2025,8 @@ export const CommunityPollsTab: React.FC = () => {
                            </div>
                          );
                        })}
+                       </>
+                       )}
                        {/* P2b: the abstention row — counted in
                            turnout, never a candidate: no bar race,
                            just the count, on its own line. (Legacy
@@ -1590,6 +2066,42 @@ export const CommunityPollsTab: React.FC = () => {
                      )}
                    </div>
 
+
+                   {/* POLLS NEXT-LEVEL P3 — a concluded time poll's
+                       winning slot, and its one-step road to a real
+                       event on the org page (the page's own event
+                       path; the deterministic item id makes the
+                       step idempotent). A tie makes no event. */}
+                   {poll.status === 'CONCLUDED' && kind === 'time' && storedOutcome && showResults && (
+                     <div className="mt-5 bg-saffron-50 border border-saffron-100 p-5 rounded-2xl flex flex-col sm:flex-row sm:items-center gap-4 shadow-sm">
+                       <CalendarDays size={20} className="text-saffron-600 shrink-0"/>
+                       <div className="flex-1 min-w-0">
+                         {winningSlot ? (
+                           <>
+                             <p className="text-sm font-black text-stone-900">
+                               {new Date(winningSlot.slotAt).toLocaleString('en-IN', { weekday: 'short', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' })}
+                             </p>
+                             <p className="text-xs font-bold text-stone-500 mt-0.5">{winningSlot.text}</p>
+                           </>
+                         ) : winnerIds.length > 1 ? (
+                           <p className="text-xs font-bold text-stone-600 leading-relaxed">{t('surfaces.events.timeTieNoEvent')}</p>
+                         ) : (
+                           <p className="text-xs font-bold text-stone-600 leading-relaxed">{t('surfaces.events.awaitingCount')}</p>
+                         )}
+                       </div>
+                       {winningSlot && isManagerOrAdmin && (
+                         slotEventMade ? (
+                           <span className="shrink-0 text-[10px] font-black uppercase tracking-widest px-3 py-2.5 rounded-xl bg-green-100 text-green-800 border border-green-200 flex items-center gap-1.5 min-h-[44px]">
+                             <CheckCircle2 size={14}/> {t('surfaces.events.eventCreatedFromSlot')}
+                           </span>
+                         ) : (
+                           <button onClick={() => handleCreateEventFromPoll(poll)} disabled={submitting} className="shrink-0 bg-stone-900 hover:bg-black disabled:opacity-40 text-white px-4 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex justify-center items-center gap-1.5 shadow-sm min-h-[44px]">
+                             <CalendarDays size={14}/> {t('surfaces.events.createEventFromSlot')}
+                           </button>
+                         )
+                       )}
+                     </div>
+                   )}
 
                    {/* POLLS P1 — the recorded verdict of a Decision
                        poll: what the house decided, and the turnout
@@ -1889,9 +2401,13 @@ export const CommunityPollsTab: React.FC = () => {
                      </div>
                      <div>
                        <label className="block text-[10px] font-black text-stone-500 uppercase tracking-widest mb-1.5 flex items-center gap-1.5"><Lock size={12}/> {t('surfaces.events.ballotLabel')}</label>
-                       {pollForm.targetAudience === 'MANAGERS' || pollForm.kind === 'text' ? (
+                       {pollForm.targetAudience === 'MANAGERS' || pollForm.kind === 'text' || pollForm.kind === 'ranked' || pollForm.kind === 'points' ? (
                          <p className="text-[11px] font-bold text-stone-600 leading-relaxed bg-stone-50 border border-stone-200 rounded-xl p-4">
-                           {pollForm.targetAudience === 'MANAGERS' ? t('surfaces.events.ballotNamedFixed') : t('surfaces.events.textNote')}
+                           {pollForm.targetAudience === 'MANAGERS'
+                             ? t('surfaces.events.ballotNamedFixed')
+                             : pollForm.kind === 'ranked' || pollForm.kind === 'points'
+                               ? t('surfaces.events.countedByCommittee')
+                               : t('surfaces.events.textNote')}
                          </p>
                        ) : (
                          <select
@@ -1939,9 +2455,21 @@ export const CommunityPollsTab: React.FC = () => {
                      <option value="choice">{t('surfaces.events.kindChoice')}</option>
                      <option value="multi">{t('surfaces.events.kindMulti')}</option>
                      <option value="text">{t('surfaces.events.kindText')}</option>
+                     <option value="ranked">{t('surfaces.events.pollKindRanked')}</option>
+                     <option value="points">{t('surfaces.events.pollKindPoints')}</option>
+                     <option value="time">{t('surfaces.events.pollKindTime')}</option>
                    </select>
                    {pollForm.kind === 'text' && (
                      <p className="text-[11px] font-bold text-stone-600 mt-2 leading-relaxed">{t('surfaces.events.textNote')}</p>
+                   )}
+                   {pollForm.kind === 'ranked' && (
+                     <p className="text-[11px] font-bold text-stone-600 mt-2 leading-relaxed">{t('surfaces.events.kindNoteRanked')}</p>
+                   )}
+                   {pollForm.kind === 'points' && (
+                     <p className="text-[11px] font-bold text-stone-600 mt-2 leading-relaxed">{t('surfaces.events.kindNotePoints')}</p>
+                   )}
+                   {pollForm.kind === 'time' && (
+                     <p className="text-[11px] font-bold text-stone-600 mt-2 leading-relaxed">{t('surfaces.events.kindNoteTime')}</p>
                    )}
                  </div>
 
@@ -1991,7 +2519,43 @@ export const CommunityPollsTab: React.FC = () => {
                    )}
                  </div>
 
-                 {pollForm.kind !== 'text' && (
+                 {pollForm.kind === 'time' && (
+                 <div className="border-t border-stone-100 pt-5 mt-2">
+                   <label className="block text-[10px] font-black text-stone-500 uppercase tracking-widest mb-3">Voting Options *</label>
+                   <div className="space-y-3">
+                     {slotDrafts.map((slot, index) => (
+                       <div key={index} className="flex items-center gap-3">
+                         <div className="w-8 h-8 rounded-full bg-saffron-50 text-saffron-500 flex items-center justify-center text-[11px] font-black shrink-0 shadow-inner border border-saffron-100">{index + 1}</div>
+                         <input
+                           type="datetime-local" required={index < 2}
+                           value={slot.at}
+                           onChange={(e) => setSlotDrafts(prev => prev.map((s, i) => i === index ? { ...s, at: e.target.value } : s))}
+                           className="flex-1 min-w-0 p-3.5 bg-white border border-stone-200 rounded-xl text-sm font-bold focus:border-saffron-500 outline-none shadow-sm"
+                         />
+                         <input
+                           type="text"
+                           value={slot.label}
+                           onChange={(e) => setSlotDrafts(prev => prev.map((s, i) => i === index ? { ...s, label: e.target.value } : s))}
+                           placeholder={t('surfaces.events.slotLabelPlaceholder')}
+                           className="flex-1 min-w-0 p-3.5 bg-white border border-stone-200 rounded-xl text-sm font-bold focus:border-saffron-500 outline-none shadow-sm"
+                         />
+                         {index >= 2 && (
+                           <button type="button" onClick={() => setSlotDrafts(prev => prev.filter((_, i) => i !== index))} className="p-3.5 text-red-400 hover:text-red-600 bg-red-50 hover:bg-red-100 rounded-xl transition-colors shrink-0 shadow-sm border border-red-100">
+                             <Trash2 size={16}/>
+                           </button>
+                         )}
+                       </div>
+                     ))}
+                   </div>
+                   {slotDrafts.length < POLL_MAX_OPTIONS && (
+                     <button type="button" onClick={() => setSlotDrafts(prev => [...prev, { at: '', label: '' }])} className="mt-4 text-[10px] font-black text-saffron-500 uppercase tracking-widest flex items-center justify-center w-full gap-1 hover:text-saffron-700 transition-colors bg-saffron-50 hover:bg-saffron-100 p-3.5 rounded-xl border border-saffron-200 shadow-sm">
+                       <Plus size={14}/> Add Another Option
+                     </button>
+                   )}
+                 </div>
+                 )}
+
+                 {pollForm.kind !== 'text' && pollForm.kind !== 'time' && (
                  <div className="border-t border-stone-100 pt-5 mt-2">
                    <label className="block text-[10px] font-black text-stone-500 uppercase tracking-widest mb-3">Voting Options *</label>
                    <div className="space-y-3">
@@ -2273,7 +2837,37 @@ export const CommunityPollsTab: React.FC = () => {
                    )}
                  </div>
                )}
-               {Object.keys(auditPoll.options || {}).map(optId => {
+               {/* P3 — a counted poll's audit is its recorded
+                   count: the papers were read by the committee
+                   for the count (this opening is logged), and the
+                   outcome below is the whole of what the count
+                   produced. There are no per-option counters to
+                   show — they never moved. */}
+               {pollCountedKind(auditPoll) && (
+                 <div className="border border-stone-200 rounded-2xl p-4 bg-white shadow-sm space-y-2">
+                   <p className="text-[10px] font-black text-stone-500 uppercase tracking-widest">{t('surfaces.events.countedFromBallots')}</p>
+                   {(() => {
+                     const outcome = pollStoredOutcome(auditPoll);
+                     if (!outcome) return <p className="text-xs font-bold text-stone-500 leading-relaxed">{t('surfaces.events.awaitingCount')}</p>;
+                     const names = outcome.winnerOptionIds.map(id => auditPoll.options?.[id]?.text || id);
+                     return (
+                       <>
+                         <p className="text-sm font-bold text-stone-800 leading-relaxed">
+                           {names.length > 0 ? names.join(' · ') : '—'}
+                         </p>
+                         <p className="text-[11px] font-bold text-stone-500">
+                           {outcome.countMethod === 'points'
+                             ? t('surfaces.events.pointsTotalLabel').replace('{n}', String(outcome.pointsTotal ?? 0))
+                             : outcome.rounds
+                               ? `${t('surfaces.events.countRounds')}: ${outcome.rounds.length}`
+                               : ''}
+                         </p>
+                       </>
+                     );
+                   })()}
+                 </div>
+               )}
+               {!pollCountedKind(auditPoll) && Object.keys(auditPoll.options || {}).map(optId => {
                   const opt = auditPoll.options[optId];
                   // Named ballots exist only where the poll is a
                   // named vote (committee polls by design; Decision

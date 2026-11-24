@@ -41,7 +41,7 @@ export interface PollShape {
   title: string;
   description: string;
   targetAudience: string;
-  kind: 'choice' | 'multi' | 'text';
+  kind: 'choice' | 'multi' | 'text' | 'ranked' | 'points' | 'time';
   /** Abstaining enabled (a field on the poll now, never an option). */
   abstain: boolean;
   resultVisibility: string;
@@ -151,7 +151,10 @@ export function readPollTemplates(raw: unknown): PollTemplate[] {
     const t = item as Record<string, unknown>;
     if (typeof t.id !== 'string' || t.id.length === 0) continue;
     if (typeof t.title !== 'string' || t.title.trim().length === 0) continue;
-    const kind = t.kind === 'multi' || t.kind === 'text' ? t.kind : 'choice';
+    const kind =
+      t.kind === 'multi' || t.kind === 'text' || t.kind === 'ranked' || t.kind === 'points' || t.kind === 'time'
+        ? t.kind
+        : 'choice';
     const options = Array.isArray(t.options)
       ? t.options.filter((o): o is string => typeof o === 'string' && o.trim().length > 0)
       : [];

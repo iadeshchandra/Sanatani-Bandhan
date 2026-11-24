@@ -85,6 +85,69 @@ export function pollDecisionCard(
   if (stored && kind !== 'text') {
     const textOf = (id: string) => poll.options?.[id]?.text || id;
     const winners = stored.winnerOptionIds;
+    // POLLS NEXT-LEVEL P3 — the counted kinds speak in their own
+    // units: a points winner leads in POINTS of preference (never
+    // "% of votes", and never money), a ranked winner in the final
+    // round of the published count.
+    if (stored.countMethod === 'points' && stored.verdict !== 'quorum-not-met' && winners.length > 0) {
+      const names = winners.map((id) => `“${textOf(id)}”`).join(' and ');
+      const each = stored.tallies[winners[0]] || 0;
+      outcomeLine = winners.length > 1
+        ? `Tie — ${names} at ${each} points each`
+        : `${names} — ${each} of ${stored.pointsTotal ?? 0} points of preference`;
+      if (stored.verdict === 'carried') outcomeLine += ' · carried';
+      if (stored.verdict === 'not-carried') outcomeLine += ' · not carried';
+      const abstainVotes = stored.tallies[ABSTAIN_OPTION_ID] || 0;
+      if (abstainVotes > 0 && stored.totalVotes > 0) outcomeLine += ` · ${abstainVotes} abstained`;
+      detailLine =
+        (isDecision && eligible > 0
+          ? `${stored.totalVotes} of ${eligible} eligible members voted · quorum ${stored.quorumMet ? 'met' : 'not met'}`
+          : `${stored.totalVotes} vote${stored.totalVotes === 1 ? '' : 's'} counted openly`) +
+        ' · Points record preference — they never move money';
+      return {
+        kind: 'poll',
+        id: poll.id,
+        title: poll.title || 'Community poll',
+        badgeLine,
+        outcomeLine,
+        detailLine,
+        ...(poll.adminNote ? { note: poll.adminNote } : {}),
+        concludedAt: stored.concludedAt,
+      };
+    }
+    if (stored.countMethod === 'irv' && stored.verdict !== 'quorum-not-met' && winners.length > 0 && stored.rounds && stored.rounds.length > 0) {
+      const names = winners.map((id) => `“${textOf(id)}”`).join(' and ');
+      const rounds = stored.rounds;
+      const last = rounds[rounds.length - 1];
+      if (winners.length > 1) {
+        outcomeLine = `Tie — ${names} after ${rounds.length} counting round${rounds.length === 1 ? '' : 's'}`;
+      } else {
+        const finalVotes = last.tallies[winners[0]] || 0;
+        const pct = last.continuing > 0 ? Math.round((finalVotes / last.continuing) * 100) : 0;
+        outcomeLine = rounds.length === 1
+          ? `${names} — ${pct}% of first preferences`
+          : `${names} — won after ${rounds.length} counting rounds · ${pct}% in the final round`;
+        if (stored.verdict === 'carried') outcomeLine += ' · carried';
+        if (stored.verdict === 'not-carried') outcomeLine += ' · not carried';
+      }
+      const abstainVotes = stored.tallies[ABSTAIN_OPTION_ID] || 0;
+      if (abstainVotes > 0 && stored.totalVotes > 0) outcomeLine += ` · ${abstainVotes} abstained`;
+      detailLine =
+        (isDecision && eligible > 0
+          ? `${stored.totalVotes} of ${eligible} eligible members voted · quorum ${stored.quorumMet ? 'met' : 'not met'}`
+          : `${stored.totalVotes} vote${stored.totalVotes === 1 ? '' : 's'} counted openly`) +
+        ' · Counted round by round from the ballot papers';
+      return {
+        kind: 'poll',
+        id: poll.id,
+        title: poll.title || 'Community poll',
+        badgeLine,
+        outcomeLine,
+        detailLine,
+        ...(poll.adminNote ? { note: poll.adminNote } : {}),
+        concludedAt: stored.concludedAt,
+      };
+    }
     if (stored.verdict === 'quorum-not-met') {
       outcomeLine = eligible > 0
         ? `Not decided — quorum not met (${stored.totalVotes} of ${eligible} eligible members voted)`
