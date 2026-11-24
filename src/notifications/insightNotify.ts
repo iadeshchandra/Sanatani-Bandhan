@@ -20,7 +20,7 @@
 import type { Insight } from '../lib/appIntelligence';
 import type { NotifyEvent } from './types';
 import { emitNotify } from './emit';
-import { copyFor, renderCopy } from './warmCopy';
+import { buildNotifyText } from './notifyCopy';
 
 const LEDGER_KEY = (uid: string) => `sb.notify.insights.v1:${uid}`;
 
@@ -112,14 +112,9 @@ export async function notifyDigest(recipientUid: string, count: number): Promise
   const key = `digest:morning:${day}`;
   if (readLedger(recipientUid).keys.includes(key)) return false;
 
-  const entry = copyFor('suchana', 'morningDigest');
-  const title = { en: '', bn: '', hi: '' } as { en: string; bn: string; hi: string };
-  const body = { en: '', bn: '', hi: '' } as { en: string; bn: string; hi: string };
-  (['en', 'bn', 'hi'] as const).forEach((l) => {
-    const r = renderCopy(entry, { count }, l);
-    title[l] = r.title;
-    body[l] = r.body;
-  });
+  // Wave 3: the digest copy resolves from the dictionary
+  // (surfaces.notify suchanaMorningDigest*) in every loaded language.
+  const { title, body } = buildNotifyText('suchana', 'morningDigest', { count });
   try {
     const r = await emitNotify(recipientUid, {
       kind: 'suchana',

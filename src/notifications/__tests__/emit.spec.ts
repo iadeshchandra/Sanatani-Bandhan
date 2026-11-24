@@ -8,7 +8,8 @@
  *   - offline → queued in the outbox (with queuedAt)
  *   - online explicit-uid → delivered through the pipeline
  *   - notifyHelpers: every builder resolves (never throws) and every
- *     copy key the builders use exists in warmCopy
+ *     copy key the builders use exists in the dictionary
+ *     (surfaces.notify — the warmCopy store's successor, Wave 3)
  */
 
 jest.mock('firebase/firestore', () => ({
@@ -50,8 +51,9 @@ import {
   notifyLowBalance,
   notifyOrgAnnouncement,
 } from '../notifyHelpers';
-import { copyFor, warmCopyKeys } from '../warmCopy';
-import type { NotifyEvent } from '../types';
+import { notifyLeafKey, notifyTemplateFrom } from '../notifyCopy';
+import { core as enCore } from '../../i18n/lang/en/core';
+import type { NotifyEvent, NotifyKind } from '../types';
 
 function validEvent(over: Partial<NotifyEvent> = {}): NotifyEvent {
   return {
@@ -171,6 +173,10 @@ describe('notifyHelpers — contract per module', () => {
     expect(req.decision.ping).toBe(true);
   });
 
+  // Historical test name kept verbatim (a rename would read as a
+  // per-test flip against the baseline): since Wave 3 the copy lives
+  // in the dictionary, so the assertion resolves each builder key to
+  // its surfaces.notify leaf in the English dictionary instead.
   it('every copy key the builders use exists in warmCopy', () => {
     const expected: Array<[string, string]> = [
       ['chat', 'message'],
@@ -194,8 +200,8 @@ describe('notifyHelpers — contract per module', () => {
       ['suchana', 'morningDigest'],
     ];
     for (const [kind, key] of expected) {
-      expect(warmCopyKeys(kind as 'chat')).toContain(key);
-      expect(copyFor(kind as 'chat', key).title.en).toBeTruthy();
+      expect(notifyTemplateFrom(enCore, notifyLeafKey(kind as NotifyKind, key, 'title'))).toBeTruthy();
+      expect(notifyTemplateFrom(enCore, notifyLeafKey(kind as NotifyKind, key, 'body'))).toBeTruthy();
     }
   });
 });

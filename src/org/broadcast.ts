@@ -302,9 +302,10 @@ export interface AnnouncementInput {
 
 /**
  * Map a broadcast to the announcement emitter's input. The headline
- * rides the warmCopy `{title}` body; the full message (when written)
- * overrides the notification body so followers read the whole sandesh
- * without opening the app page.
+ * rides the dictionary `{title}` body (surfaces.notify
+ * orgAnnouncement*); the full message (when written) overrides the
+ * notification body so followers read the whole sandesh without
+ * opening the app page.
  */
 export function buildAnnouncementInput(b: OrgBroadcast): AnnouncementInput {
   return {

@@ -36,6 +36,7 @@ import { db } from '../firebase';
 import type {
   NotificationItem,
   NotifyEvent,
+  NotifyLang,
   RoutingDecision,
   TriText,
 } from './types';
@@ -142,12 +143,13 @@ export interface PushRequestDoc {
 export function buildPushRequest(
   uid: string,
   item: NotificationItem,
-  lang: 'en' | 'bn' | 'hi' = 'en',
+  lang: NotifyLang = 'en',
 ): PushRequestDoc {
   const critical = item.priority === 'critical';
   return {
     toUser: uid,
-    notification: { title: item.title[lang], body: item.body[lang] },
+    // Wave 3: the item may carry the reader's language; absent → English.
+    notification: { title: item.title[lang] || item.title.en, body: item.body[lang] || item.body.en },
     data: {
       kind: item.kind,
       priority: item.priority,

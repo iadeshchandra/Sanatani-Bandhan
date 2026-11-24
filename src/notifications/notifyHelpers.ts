@@ -2,8 +2,9 @@
  * notifications/notifyHelpers.ts — per-module event builders for emitNotify.
  * ============================================================================
  * Every builder returns a Phase 1 NotifyEvent (kind, priority, trilingual
- * title/body, dedupeKey, deepLink). Copy comes from warmCopy.ts — the
- * single source of truth for notification strings — via renderCopy.
+ * title/body, dedupeKey, deepLink). Copy comes from the 10-language
+ * dictionary (surfaces.notify) — the single source of truth for
+ * notification strings since Wave 3 — via notifyCopy.buildNotifyText.
  *
  * Rules every builder honours:
  *   - dedupeKey is stable per logical event (retries/replays never double).
@@ -16,7 +17,7 @@
  */
 import type { EmitResult, NotifyEvent, NotifyKind, NotifyPriority, TriText } from './types';
 import { emitNotify } from './emit';
-import { copyFor, renderCopy } from './warmCopy';
+import { buildNotifyText } from './notifyCopy';
 import { summarizeActors, type SocialSummary } from './socialBatcher';
 import { isFlagEnabled } from '../lib/platformGating';
 import type { PollVerdictFragment } from '../lib/pollLifecycleNotify';
@@ -28,19 +29,10 @@ import type { PollVerdictFragment } from '../lib/pollLifecycleNotify';
 type Params = Record<string, string | number>;
 
 function tri(kind: NotifyKind, key: string, params: Params = {}): { title: TriText; body: TriText } {
-  const entry = copyFor(kind, key);
-  const fallback = (t: TriText): string =>
-    t.en.replace(/\{(\w+)\}/g, (whole, k: string) => (k in params ? String(params[k]) : whole));
-  // renderCopy fills placeholders per language; fall back to EN fill on miss.
-  const langs = ['en', 'bn', 'hi'] as const;
-  const title = {} as TriText;
-  const body = {} as TriText;
-  for (const l of langs) {
-    const r = renderCopy(entry, params, l);
-    title[l] = r.title || fallback(entry.title);
-    body[l] = r.body || fallback(entry.body);
-  }
-  return { title, body };
+  // Wave 3: resolved from the dictionary (surfaces.notify) — the
+  // guaranteed en/bn/hi slots plus every draft language this device
+  // has genuinely loaded. See notifyCopy.ts for the resolution law.
+  return buildNotifyText(kind, key, params);
 }
 
 function base(
@@ -385,7 +377,7 @@ export function notifyLowBalance(recipientUid: string, amount: string): Promise<
 
 export interface OrderNotifyInput {
   orderId: string;
-  /** Copy key in the warmCopy `seva_order` section. */
+  /** Copy key in the dictionary's surfaces.notify `sevaOrder` leaves. */
   copyKey: string;
   priority: NotifyPriority;
   /** The seva's name (the order's gigTitle) — the copy's {seva}. */
@@ -499,24 +491,21 @@ export function notifyPollReminder(recipientUid: string, a: PollReminderNotifyIn
 /* any other fan-out impossible.                                      */
 /* ------------------------------------------------------------------ */
 
-/** Render a verdict fragment (warmCopy org.pollVerdict*) per language. */
+/** Render a verdict fragment (dictionary org.pollVerdict*) per language. */
 function verdictFragmentTri(v: PollVerdictFragment): TriText {
-  const entry = copyFor('org', v.key);
   const params: Params =
     v.key === 'pollVerdictWinner'
       ? { winner: v.winner }
       : v.key === 'pollVerdictResponses'
         ? { count: v.count }
         : {};
-  const out = {} as TriText;
-  for (const l of ['en', 'bn', 'hi'] as const) {
-    out[l] = renderCopy(entry, params, l).title || entry.title[l];
-  }
-  return out;
+  // The fragment is the entry's TITLE text in every resolved language
+  // (in warmCopy the verdict entries' body duplicated the title).
+  return buildNotifyText('org', v.key, params).title;
 }
 
 export interface PollLifecycleNotifyInput {
-  copyKey: 'pollOpened' | 'pollClosing' | 'pollConcluded';
+  copyKey: 'pollOpened' | 'pollClosing' | 'pollResult';
   orgId: string;
   orgName: string;
   pollId: string;
@@ -541,14 +530,17 @@ export function notifyPollLifecycle(recipientUid: string, a: PollLifecycleNotify
   }
   const fragment = a.verdict ? verdictFragmentTri(a.verdict) : null;
   const copyKey =
-    a.copyKey === 'pollConcluded' && !fragment ? 'pollConcludedPlain' : a.copyKey;
+    a.copyKey === 'pollResult' && !fragment ? 'pollResultPlain' : a.copyKey;
   const event = base('org', 'gentle', copyKey, { orgName: a.orgName, title: a.pollTitle }, a.dedupeKey, {
     deepLink: `/org/${a.orgId}`,
     payload: { orgId: a.orgId, pollId: a.pollId },
   });
   if (fragment) {
-    for (const l of ['en', 'bn', 'hi'] as const) {
-      event.body[l] = event.body[l].replace('{verdict}', fragment[l]);
+    // Substitute the verdict into the concluded body in every language
+    // the body actually carries (Wave 3: up to all ten).
+    for (const l of Object.keys(event.body) as (keyof TriText)[]) {
+      const frag = fragment[l];
+      if (frag) event.body[l] = event.body[l]!.replace('{verdict}', frag);
     }
   }
   if (a.expiresAt) event.expiresAt = a.expiresAt;

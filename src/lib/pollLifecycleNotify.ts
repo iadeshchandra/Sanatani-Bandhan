@@ -78,10 +78,11 @@ export function pollConcludedKey(pollId: string): string {
 
 /**
  * The verdict fragment key for a concluded poll's stored outcome —
- * the notify helper renders the matching warmCopy fragment per
- * language. Decision polls speak in verdicts; pulse polls name
- * their leading option (or the tie). No stored outcome ⇒ null
- * (the helper uses the plain concluded line).
+ * the notify helper renders the matching dictionary fragment
+ * (surfaces.notify orgPollVerdict*) per language. Decision polls
+ * speak in verdicts; pulse polls name their leading option (or the
+ * tie). No stored outcome ⇒ null (the helper uses the plain
+ * concluded line).
  */
 export type PollVerdictFragment =
   | { key: 'pollVerdictCarried' }

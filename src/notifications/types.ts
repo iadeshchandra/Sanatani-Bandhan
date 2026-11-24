@@ -34,13 +34,31 @@ export type NotifyKind =
   | 'aarti_reminder'
   | 'social';
 
-export type NotifyLang = 'en' | 'bn' | 'hi';
+/**
+ * The centre's language codes — all ten app languages since
+ * NOTIFICATION WAVE 3 (2026-11-24) migrated the copy to the dictionary
+ * (surfaces.notify). Before Wave 3 this was 'en' | 'bn' | 'hi'.
+ */
+export type NotifyLang = 'en' | 'bn' | 'hi' | 'ta' | 'te' | 'mr' | 'gu' | 'kn' | 'ml' | 'sa';
 
-/** Every user-facing string in the center is trilingual. No exceptions. */
+/**
+ * Every user-facing string in the center carries en/bn/hi — no
+ * exceptions (the emit validator's floor). Since Wave 3 the map may
+ * also carry any of the seven draft languages (ta/te/mr/gu/kn/ml/sa)
+ * when the producing device resolved them from the dictionary; a
+ * missing slot honestly falls back to English at render (NT.pick).
+ */
 export interface TriText {
   en: string;
   bn: string;
   hi: string;
+  ta?: string;
+  te?: string;
+  mr?: string;
+  gu?: string;
+  kn?: string;
+  ml?: string;
+  sa?: string;
 }
 
 export interface NotifyActor {
@@ -57,9 +75,9 @@ export interface NotifyEvent {
   kind: NotifyKind;
   priority: NotifyPriority;
   actor?: NotifyActor;
-  /** Trilingual, Sanatani voice. E.g. "Money request from Rahim". */
+  /** Sanatani voice, en/bn/hi floor + any resolved draft languages. E.g. "Money request from Rahim". */
   title: TriText;
-  /** Trilingual, Sanatani voice. One calm line, never alarming. */
+  /** Sanatani voice. One calm line, never alarming. */
   body: TriText;
   /**
    * Stable identity for dedupe. Emitters SHOULD reuse the same key for the
