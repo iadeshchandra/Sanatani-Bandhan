@@ -304,7 +304,11 @@ export function notifyApprovalEvent(recipientUid: string, a: ApprovalNotifyInput
     recipientUid,
     base('security', 'important', a.copyKey, { orgName: a.orgName, summary: a.summary }, a.dedupeKey, {
       deepLink: `/org/${a.orgId}`,
-      payload: { requestId: a.requestId, orgId: a.orgId },
+      // NOTIFICATION WAVE 2 (DESIGN L8): approval-requested carries
+      // the digest floor — the devotee's controls may demote it to
+      // the digest, never switch it off. The engine reads
+      // payload.floor (see engine.hasDigestFloor).
+      payload: { requestId: a.requestId, orgId: a.orgId, floor: 'digest' },
     }),
   );
 }
@@ -631,6 +635,223 @@ export function notifyFestivalPublished(
     },
   );
   return send(recipientUid, event);
+}
+
+/* ------------------------------------------------------------------ */
+/* NOTIFICATION WAVE 2 — staff relevance.                              */
+/* All emitted ONLY by the recipient's own device (the self-listen    */
+/* watchers in lib/staffMoneyNotifyService +                         */
+/* lib/staffGovernanceNotifyService) — role is the address: each      */
+/* watcher reads only what the reader's own role may already read.    */
+/* ------------------------------------------------------------------ */
+
+export interface PayoutFailedNotifyInput {
+  amount: string;
+  payoutId: string;
+  dedupeKey: string;
+}
+
+/**
+ * My payout was rejected → IMPORTANT (action tier; DESIGN §2.1),
+ * carrying the L8 digest floor: demotable, never off.
+ */
+export function notifyPayoutFailed(recipientUid: string, a: PayoutFailedNotifyInput): Promise<EmitResult> {
+  return send(
+    recipientUid,
+    base('wallet', 'important', 'payoutFailed', { amount: a.amount }, a.dedupeKey, {
+      deepLink: '/app/home/wallet',
+      payload: { payoutId: a.payoutId, floor: 'digest' },
+    }),
+  );
+}
+
+export interface PlanClaimRejectedNotifyInput {
+  orgId: string;
+  orgName: string;
+  /** Human plan label, e.g. "Standard (annual)". */
+  plan: string;
+  claimId: string;
+  dedupeKey: string;
+}
+
+/**
+ * A workspace plan payment claim was rejected → IMPORTANT (action
+ * tier), L8 floor. Audience (resolved by the watcher): the applicant
+ * who filed it + the workspace's finance roles.
+ */
+export function notifyPlanClaimRejected(recipientUid: string, a: PlanClaimRejectedNotifyInput): Promise<EmitResult> {
+  return send(
+    recipientUid,
+    base('wallet', 'important', 'planClaimRejected', { orgName: a.orgName, plan: a.plan }, a.dedupeKey, {
+      // Personal claims (workspaceId 'personal') have no org page —
+      // the watcher passes orgId '' and the card simply has no link.
+      ...(a.orgId ? { deepLink: `/org/${a.orgId}` } : {}),
+      payload: { ...(a.orgId ? { orgId: a.orgId } : {}), claimId: a.claimId, floor: 'digest' },
+    }),
+  );
+}
+
+export interface LargeDonationNotifyInput {
+  orgId: string;
+  orgName: string;
+  amount: string;
+  txnId: string;
+  dedupeKey: string;
+}
+
+/** A large offering was recorded → GENTLE (info/digest tier; §2.1). */
+export function notifyLargeDonation(recipientUid: string, a: LargeDonationNotifyInput): Promise<EmitResult> {
+  return send(
+    recipientUid,
+    base('org', 'gentle', 'largeDonation', { orgName: a.orgName, amount: a.amount }, a.dedupeKey, {
+      deepLink: `/org/${a.orgId}`,
+      payload: { orgId: a.orgId, txnId: a.txnId },
+    }),
+  );
+}
+
+export interface PlanStageNotifyInput {
+  copyKey: 'planExpiring' | 'planGrace' | 'planExpired';
+  orgId: string;
+  orgName: string;
+  /** Days remaining — read by the expiring copy only. */
+  days?: number;
+  dedupeKey: string;
+  /** The stage's premise dies at the period's end (+ grace). */
+  expiresAt?: number;
+}
+
+/**
+ * The workspace plan is expiring / in grace / lapsed → GENTLE while
+ * it is merely near (info), IMPORTANT once renewal is due (action;
+ * DESIGN §2.1: T-7d and on expiry, suppression: renewed ⇒ silent —
+ * the watcher's period-keyed dedupe makes renewal change the key).
+ */
+export function notifyPlanStage(recipientUid: string, a: PlanStageNotifyInput): Promise<EmitResult> {
+  const event = base(
+    'org',
+    a.copyKey === 'planExpiring' ? 'gentle' : 'important',
+    a.copyKey,
+    { orgName: a.orgName, days: a.days ?? 0 },
+    a.dedupeKey,
+    {
+      deepLink: `/org/${a.orgId}`,
+      payload: { orgId: a.orgId },
+    },
+  );
+  if (a.expiresAt) event.expiresAt = a.expiresAt;
+  return send(recipientUid, event);
+}
+
+export interface ResolutionPendingNotifyInput {
+  orgId: string;
+  orgName: string;
+  title: string;
+  resolutionId: string;
+  dedupeKey: string;
+  /** The resolution's own deadline — the premise's expiry. */
+  expiresAt?: number;
+}
+
+/** A board resolution awaits my vote → IMPORTANT (action; §2.3). */
+export function notifyResolutionPending(recipientUid: string, a: ResolutionPendingNotifyInput): Promise<EmitResult> {
+  const event = base(
+    'org',
+    'important',
+    'resolutionPending',
+    { orgName: a.orgName, title: a.title },
+    a.dedupeKey,
+    {
+      deepLink: `/org/${a.orgId}`,
+      payload: { orgId: a.orgId, resolutionId: a.resolutionId },
+    },
+  );
+  if (a.expiresAt) event.expiresAt = a.expiresAt;
+  return send(recipientUid, event);
+}
+
+export interface LotOutcomeNotifyInput {
+  copyKey: 'lotSettled' | 'lotFailed';
+  orgId: string;
+  orgName: string;
+  lotTitle: string;
+  lotId: string;
+  dedupeKey: string;
+}
+
+/** An auction lot settled / failed → GENTLE (info tier; §2.3). */
+export function notifyLotOutcome(recipientUid: string, a: LotOutcomeNotifyInput): Promise<EmitResult> {
+  return send(
+    recipientUid,
+    base('org', 'gentle', a.copyKey, { orgName: a.orgName, title: a.lotTitle }, a.dedupeKey, {
+      deepLink: `/org/${a.orgId}`,
+      payload: { orgId: a.orgId, lotId: a.lotId },
+    }),
+  );
+}
+
+export interface MemberJoinedNotifyInput {
+  orgId: string;
+  orgName: string;
+  /** Display summary, e.g. "Asha Verma" or "Asha Verma, Ravi Das +1 more". */
+  names: string;
+  dedupeKey: string;
+}
+
+/** New member(s) joined the workspace → GENTLE (info/digest; §2.4). */
+export function notifyMemberJoined(recipientUid: string, a: MemberJoinedNotifyInput): Promise<EmitResult> {
+  return send(
+    recipientUid,
+    base('org', 'gentle', 'memberJoined', { orgName: a.orgName, names: a.names }, a.dedupeKey, {
+      deepLink: `/org/${a.orgId}`,
+      payload: { orgId: a.orgId },
+    }),
+  );
+}
+
+export interface RoleChangedNotifyInput {
+  orgId: string;
+  orgName: string;
+  /** The member's NEW role label. */
+  role: string;
+  dedupeKey: string;
+  /** 'self' = the affected member (action tier, security kind);
+   *  'trustee' = a trustee of the workspace hearing of a member's
+   *  change (info tier). memberName is read by the trustee copy. */
+  audience: 'self' | 'trustee';
+  memberName?: string;
+}
+
+/**
+ * A workspace role was granted / changed → the affected member at
+ * IMPORTANT (DESIGN §2.4: a person should never discover a role
+ * change by accident; reuses the existing security.roleChanged
+ * copy), a trustee of the workspace at GENTLE.
+ */
+export function notifyRoleChanged(recipientUid: string, a: RoleChangedNotifyInput): Promise<EmitResult> {
+  if (a.audience === 'self') {
+    return send(
+      recipientUid,
+      base('security', 'important', 'roleChanged', { orgName: a.orgName, title: a.role }, a.dedupeKey, {
+        deepLink: `/org/${a.orgId}`,
+        payload: { orgId: a.orgId },
+      }),
+    );
+  }
+  return send(
+    recipientUid,
+    base(
+      'org',
+      'gentle',
+      'memberRoleChanged',
+      { orgName: a.orgName, name: a.memberName ?? 'A member', role: a.role },
+      a.dedupeKey,
+      {
+        deepLink: `/org/${a.orgId}`,
+        payload: { orgId: a.orgId },
+      },
+    ),
+  );
 }
 
 /* ------------------------------------------------------------------ */

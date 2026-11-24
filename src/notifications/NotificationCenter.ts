@@ -226,7 +226,8 @@ class NotificationCenter {
     // Blueprint D: a kind the devotee switched off is silent — no
     // grouping (which would resurrect it onto an old card), no
     // write, an honest 'dropped' result naming their own switch.
-    if (decision.suppressed === 'category') {
+    // Wave 2: the same silence for an org-mode-suppressed info item.
+    if (decision.suppressed === 'category' || decision.suppressed === 'org') {
       return { status: 'dropped', itemId: '', decision };
     }
 

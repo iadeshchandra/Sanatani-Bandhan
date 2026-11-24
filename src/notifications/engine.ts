@@ -24,6 +24,7 @@ import type {
 import {
   dailyCapFor,
   isInQuietHours,
+  orgModeFor,
   quietHoursEndMs,
   policyAllowsPing,
   type NotificationPrefs,
@@ -44,6 +45,71 @@ export const STALE_GENTLE_MS = 6 * 60 * 60 * 1000;
 
 /** DND hold fallback: re-check in 30 minutes if quiet hours aren't active. */
 export const DND_HOLD_MS = 30 * 60 * 1000;
+
+// ---------------------------------------------------------------------------
+// NOTIFICATION WAVE 2 — per-org modes + the L8 floor (DESIGN §5 / L8)
+// ---------------------------------------------------------------------------
+
+/**
+ * How an event counts for the per-organisation modes — the DESIGN's
+ * vocabulary (action vs information), which is NOT the engine's
+ * priority: a trustee broadcast rides 'important' yet is information
+ * ("Muted silences that org's broadcasts and info items"), while the
+ * poll-reminder contract is an ACTION-tier broadcast (it asks one
+ * unvoted member to act, and is exempt from the informational cap).
+ * Critical stands apart: no mode may touch it (L8).
+ */
+export type OrgTierClass = 'critical' | 'action' | 'info';
+
+export function orgTierClass(
+  event: Pick<NotifyEvent, 'kind' | 'priority' | 'dedupeKey'>,
+): OrgTierClass {
+  if (event.priority === 'critical' || event.kind === 'sos') return 'critical';
+  if (event.dedupeKey.startsWith('pollremind:')) return 'action';
+  if (event.dedupeKey.startsWith('organn:')) return 'info';
+  return event.priority === 'important' ? 'action' : 'info';
+}
+
+/**
+ * The L8 floor, carried on the event itself: an emitter stamps
+ * `payload.floor = 'digest'` on the two money-action families the
+ * design names — approval-requested and payout-failed. A floored
+ * item may be DEMOTED to the digest by the devotee's controls (a
+ * kind switched off, a muted org) but never switched off entirely:
+ * "digest, never off". Everything else may be silenced outright.
+ */
+export function hasDigestFloor(event: Pick<NotifyEvent, 'payload'>): boolean {
+  return event.payload?.floor === 'digest';
+}
+
+/** The floor's delivery shape: in-app + digest, no ping, no hold. */
+function digestDemotion(
+  event: NotifyEvent,
+  prefs: NotificationPrefs,
+  capped: boolean,
+): RoutingDecision {
+  if (capped) {
+    return {
+      ping: false,
+      inApp: true,
+      persistent: false,
+      holdUntil: null,
+      holdReason: null,
+      digestCandidate: false,
+      digestWindow: null,
+      suppressed: 'cap',
+    };
+  }
+  return {
+    ping: false,
+    inApp: true,
+    persistent: false,
+    holdUntil: null,
+    holdReason: null,
+    digestCandidate: true,
+    digestWindow: digestWindowFor(event.kind, prefs),
+  };
+}
 
 // ---------------------------------------------------------------------------
 // Priority engine
@@ -89,10 +155,22 @@ export function decideRouting(
     };
   }
 
+  const cap = dailyCapFor(prefs);
+  const capped =
+    cap > 0 &&
+    typeof ctx?.deliveredToday === 'number' &&
+    ctx.deliveredToday >= cap;
+
+  // NOTIFICATION WAVE 2: the L8 floor outranks the kind switch. A
+  // floored item (approval-requested, payout-failed) whose kind the
+  // devotee switched off is demoted to the digest — never silenced.
+  const floored = hasDigestFloor(event);
+
   // Blueprint D: the explicit per-kind switch — off means silent.
   // 'sos' is excluded by construction (kindEnabled's law: an
   // emergency is not a setting, so its switch is never honoured).
   if (event.kind !== 'sos' && prefs.kindToggles?.[event.kind] === false) {
+    if (floored) return digestDemotion(event, prefs, capped);
     return {
       ping: false,
       inApp: false,
@@ -105,11 +183,32 @@ export function decideRouting(
     };
   }
 
-  const cap = dailyCapFor(prefs);
-  const capped =
-    cap > 0 &&
-    typeof ctx?.deliveredToday === 'number' &&
-    ctx.deliveredToday >= cap;
+  // NOTIFICATION WAVE 2: the per-organisation mode (DESIGN §5),
+  // applied here — the delivery path — so every producer honours it.
+  // Only items carrying payload.orgId are org-scoped at all.
+  const orgId = typeof event.payload?.orgId === 'string' ? event.payload.orgId : null;
+  const mode = orgModeFor(prefs, orgId);
+  if (mode !== 'all') {
+    const tier = orgTierClass(event);
+    if (tier === 'info') {
+      // 'actions' and 'muted' both silence this org's information.
+      return {
+        ping: false,
+        inApp: false,
+        persistent: false,
+        holdUntil: null,
+        holdReason: null,
+        digestCandidate: false,
+        digestWindow: null,
+        suppressed: 'org',
+      };
+    }
+    if (mode === 'muted' && tier === 'action') {
+      // Muted still lets the org's action items ARRIVE — at the
+      // floor's level: the digest (DESIGN §5, L8).
+      return digestDemotion(event, prefs, capped);
+    }
+  }
 
   if (event.priority === 'silent') {
     return {
@@ -155,6 +254,9 @@ export function decideRouting(
   // important
   const allowed = policyAllowsPing(event.kind, prefs);
   if (!allowed) {
+    // A floored item under a category 'off' still joins the digest
+    // (L8: digest is its floor — it is never merely shelved).
+    if (floored) return digestDemotion(event, prefs, capped);
     return {
       ping: false,
       inApp: true,

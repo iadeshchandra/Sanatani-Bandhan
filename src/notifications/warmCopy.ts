@@ -244,6 +244,28 @@ export const WARM_COPY: Record<WarmCopyKind, Record<string, CopyEntry>> = {
         'आपकी पूर्ण सेवा का भुगतान आ गया है। ईमानदार कार्य हेतु धन्यवाद।',
       ),
     },
+    /* NOTIFICATION WAVE 2 — a payout the platform could not settle
+       (DESIGN §2.1). Carries the L8 floor: it may be demoted to the
+       digest by the devotee's controls, never switched off. */
+    payoutFailed: {
+      title: t('Payout could not be settled', 'পে-আউট মেটানো যায়নি', 'भुगतान निपटाया नहीं जा सका'),
+      body: t(
+        'Your payout of {amount} was not approved. Please check your payment details and request again — your earnings remain yours.',
+        'আপনার {amount}-এর পে-আউট অনুমোদিত হয়নি। অনুগ্রহ করে আপনার পেমেন্ট বিবরণ যাচাই করে আবার অনুরোধ করুন — আপনার উপার্জন আপনারই আছে।',
+        'आपका {amount} का भुगतान स्वीकृत नहीं हुआ। कृपया अपने भुगतान विवरण जाँचकर फिर से अनुरोध करें — आपकी कमाई आपकी ही है।',
+      ),
+    },
+    /* NOTIFICATION WAVE 2 — a plan payment claim for a workspace was
+       rejected (DESIGN §2.1's settlement-failure family, workspace
+       side). Also floor-carrying (L8). */
+    planClaimRejected: {
+      title: t('Plan payment needs attention at {orgName}', '{orgName}-এ প্ল্যান পেমেন্টে নজর দরকার', '{orgName} में प्लान भुगतान पर ध्यान चाहिए'),
+      body: t(
+        'The {plan} payment claim for {orgName} was not approved. Please check the payment details and file the claim again — nothing about your workspace has changed.',
+        '{orgName}-এর জন্য {plan} পেমেন্ট দাবি অনুমোদিত হয়নি। অনুগ্রহ করে পেমেন্ট বিবরণ যাচাই করে আবার দাবি জমা দিন — আপনার ওয়ার্কস্পেসে কিছুই বদলায়নি।',
+        '{orgName} के लिए {plan} भुगतान दावा स्वीकृत नहीं हुआ। कृपया भुगतान विवरण जाँचकर दावा फिर से जमा करें — आपके वर्कस्पेस में कुछ नहीं बदला है।',
+      ),
+    },
   },
 
   /* ---------------------------------------------------------------- */
@@ -376,6 +398,81 @@ export const WARM_COPY: Record<WarmCopyKind, Record<string, CopyEntry>> = {
         'Result: {count} responses were received.',
         'ফলাফল: {count}টি উত্তর পাওয়া গেছে।',
         'परिणाम: {count} उत्तर प्राप्त हुए।',
+      ),
+    },
+    /* NOTIFICATION WAVE 2 — staff relevance (DESIGN §2.1/2.3/2.4).
+       Operational news for the roles it concerns: gentle (digest)
+       unless it asks the reader to act. */
+    largeDonation: {
+      title: t('🪔 {orgName}', '🪔 {orgName}', '🪔 {orgName}'),
+      body: t(
+        'A generous offering of {amount} was recorded at {orgName}. May the giver be blessed.',
+        '{orgName}-এ {amount}-এর একটি উদার দান নথিভুক্ত হয়েছে। দাতা আশীর্বাদপ্রাপ্ত হোন।',
+        '{orgName} में {amount} का एक उदार दान दर्ज हुआ। दाता को आशीर्वाद मिले।',
+      ),
+    },
+    planExpiring: {
+      title: t('🪔 {orgName}', '🪔 {orgName}', '🪔 {orgName}'),
+      body: t(
+        'The plan for {orgName} renews in {days} days. Renew in good time so every seva continues without a pause.',
+        '{orgName}-এর প্ল্যান {days} দিনে নবায়ন হবে। সময়মতো নবায়ন করুন, যাতে প্রতিটি সেবা বিরতি ছাড়াই চলতে থাকে।',
+        '{orgName} का प्लान {days} दिनों में नवीनीकृत होगा। समय पर नवीनीकरण करें ताकि हर सेवा बिना रुके चलती रहे।',
+      ),
+    },
+    planGrace: {
+      title: t('🪔 {orgName}', '🪔 {orgName}', '🪔 {orgName}'),
+      body: t(
+        'The plan for {orgName} has reached its renewal date. A few grace days remain — please renew soon so the workspace keeps its full strength.',
+        '{orgName}-এর প্ল্যান নবায়নের তারিখে পৌঁছেছে। কয়েকদিনের অনুগ্রহ-সময় বাকি — ওয়ার্কস্পেস তার পূর্ণ শক্তি ধরে রাখতে শীঘ্রই নবায়ন করুন।',
+        '{orgName} का प्लान नवीनीकरण तिथि पर पहुँच गया है। कुछ अनुग्रह-दिन शेष हैं — वर्कस्पेस अपनी पूरी शक्ति बनाए रखे, कृपया शीघ्र नवीनीकरण करें।',
+      ),
+    },
+    planExpired: {
+      title: t('🪔 {orgName}', '🪔 {orgName}', '🪔 {orgName}'),
+      body: t(
+        'The paid plan for {orgName} has lapsed, and the workspace now continues on the free Seva plan. Nothing is lost — renew whenever you are ready.',
+        '{orgName}-এর পেইড প্ল্যান শেষ হয়ে গেছে, এবং ওয়ার্কস্পেস এখন বিনামূল্যের সেবা প্ল্যানে চলছে। কিছুই হারায়নি — প্রস্তুত হলে নবায়ন করুন।',
+        '{orgName} का सशुल्क प्लान समाप्त हो गया है, और वर्कस्पेस अब निःशुल्क सेवा प्लान पर चल रहा है। कुछ नहीं खोया — तैयार हों तो नवीनीकरण करें।',
+      ),
+    },
+    resolutionPending: {
+      title: t('📜 {orgName}', '📜 {orgName}', '📜 {orgName}'),
+      body: t(
+        'A resolution awaits your vote at {orgName}: {title}. The board decides together — your voice is part of the quorum.',
+        '{orgName}-এ একটি প্রস্তাব আপনার ভোটের অপেক্ষায়: {title}। বোর্ড একসাথে সিদ্ধান্ত নেয় — আপনার মতামত কোরামের অংশ।',
+        '{orgName} में एक प्रस्ताव आपके मत की प्रतीक्षा में है: {title}। बोर्ड मिलकर निर्णय लेता है — आपकी आवाज़ कोरम का हिस्सा है।',
+      ),
+    },
+    lotSettled: {
+      title: t('🔔 {orgName}', '🔔 {orgName}', '🔔 {orgName}'),
+      body: t(
+        'The auction lot “{title}” at {orgName} has been settled and recorded in the treasury.',
+        '{orgName}-এ নিলামের লট “{title}” নিষ্পত্তি হয়ে কোষাগারে নথিভুক্ত হয়েছে।',
+        '{orgName} में नीलामी लॉट “{title}” निपट गया है और कोष में दर्ज हो गया है।',
+      ),
+    },
+    lotFailed: {
+      title: t('🔔 {orgName}', '🔔 {orgName}', '🔔 {orgName}'),
+      body: t(
+        'The auction lot “{title}” at {orgName} did not find its outcome this time. The record is kept, and the lot may be offered again.',
+        '{orgName}-এ নিলামের লট “{title}” এবার ফলাফল পায়নি। নথি রাখা আছে, লটটি আবার দেওয়া যেতে পারে।',
+        '{orgName} में नीलामी लॉट “{title}” इस बार परिणाम तक नहीं पहुँचा। रिकॉर्ड रखा गया है, लॉट फिर से पेश किया जा सकता है।',
+      ),
+    },
+    memberJoined: {
+      title: t('🌸 {orgName}', '🌸 {orgName}', '🌸 {orgName}'),
+      body: t(
+        '{names} joined {orgName}. A warm welcome makes a sangha a home.',
+        '{names} {orgName}-এ যোগ দিয়েছেন। উষ্ণ অভ্যর্থনা সংঘকে ঘর বানায়।',
+        '{names} {orgName} से जुड़े हैं। उष्ण स्वागत संघ को घर बनाता है।',
+      ),
+    },
+    memberRoleChanged: {
+      title: t('🌸 {orgName}', '🌸 {orgName}', '🌸 {orgName}'),
+      body: t(
+        '{name} is now {role} at {orgName}.',
+        '{name} এখন {orgName}-এ {role}।',
+        '{name} अब {orgName} में {role} हैं।',
       ),
     },
     /* NOTIFICATION WAVE 1 — a followed org published a festival (§2.2). */

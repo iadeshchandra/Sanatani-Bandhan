@@ -6,6 +6,7 @@ import { T } from './ui';
 import { SOLO_TAB_IDS, SoloTabId } from './HomeTab';
 import { GUIDES, useGuide, TourPill, TourLink, CoachMark } from '../components/guide';
 import { NotificationSettings } from '../notifications/NotificationSettings';
+import { useNotificationOrgs } from '../notifications/useNotificationOrgs';
 import { DEFAULT_PREFS, mergePrefs, type NotificationPrefs } from '../notifications/preferences';
 import { readPrefsDoc, writePrefsDoc } from '../notifications/delivery';
 import { useAuthWorkspace } from '../context/AuthWorkspaceContext';
@@ -34,6 +35,8 @@ export const SuchanaPage: React.FC = () => {
   // component Profile's "🔔 Notifications" row opens: one component,
   // two doors, zero duplication.
   const [notifOpen, setNotifOpen] = useState(false);
+  // NOTIFICATION WAVE 2: per-org modes tune memberships ∪ follows.
+  const notifOrgs = useNotificationOrgs(prefsUid || undefined);
   const [prefs, setPrefs] = useState<NotificationPrefs>(() => ({
     ...DEFAULT_PREFS,
     quietHours: { ...DEFAULT_PREFS.quietHours },
@@ -129,6 +132,7 @@ export const SuchanaPage: React.FC = () => {
           prefs={prefs}
           onChange={onPrefsChange}
           onClose={() => setNotifOpen(false)}
+          orgs={notifOrgs}
         />
       )}
       {/* Quick Guide: the calm alternative — invitational only. */}

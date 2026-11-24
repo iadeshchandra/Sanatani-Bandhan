@@ -32,6 +32,7 @@
  */
 import {
   buildAnnouncementInput,
+  broadcastDayKey,
   pickNotifications,
   BROADCAST_RECENCY_MS,
 } from './broadcast';
@@ -39,8 +40,45 @@ import { fetchFollowedOrgs, fetchRecentBroadcasts } from './broadcastService';
 import { startPollLoop } from '../lib/pollCadence';
 
 const SEEN_KEY_PREFIX = 'sb.orgBroadcasts.seen.v1.';
+const DAYCOUNT_KEY_PREFIX = 'sb.orgBroadcasts.dayCounts.v1.';
 /** Ledger entries older than this are pruned (beyond the recency window). */
 const LEDGER_PRUNE_MS = 8 * 24 * 60 * 60 * 1000;
+
+/* ------------------------------------------------------------------ */
+/* NOTIFICATION WAVE 2 — per-org day-count ledger (receiver cap)       */
+/* ------------------------------------------------------------------ */
+
+/** Bells rung TODAY per org, for the ORG_DAILY_INFO_CAP pick. */
+function loadDayCounts(uid: string, now: number): Record<string, number> {
+  try {
+    const raw = localStorage.getItem(`${DAYCOUNT_KEY_PREFIX}${uid}`);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw) as Record<string, { day?: unknown; count?: unknown }>;
+    const today = broadcastDayKey(now);
+    const out: Record<string, number> = {};
+    for (const [orgId, rec] of Object.entries(parsed ?? {})) {
+      if (rec && rec.day === today && typeof rec.count === 'number' && rec.count > 0) {
+        out[orgId] = rec.count;
+      }
+    }
+    return out;
+  } catch {
+    return {};
+  }
+}
+
+function saveDayCounts(uid: string, counts: Record<string, number>, now: number): void {
+  try {
+    const today = broadcastDayKey(now);
+    const rec: Record<string, { day: string; count: number }> = {};
+    for (const [orgId, count] of Object.entries(counts)) {
+      if (count > 0) rec[orgId] = { day: today, count };
+    }
+    localStorage.setItem(`${DAYCOUNT_KEY_PREFIX}${uid}`, JSON.stringify(rec));
+  } catch {
+    /* storage unavailable — the per-check cap still applies within a session */
+  }
+}
 
 /* ------------------------------------------------------------------ */
 /* Seen ledger (fail-open: storage problems never break the app)       */
@@ -116,12 +154,17 @@ export async function checkOrgBroadcasts(uid: string, opts: { now?: number } = {
             now - BROADCAST_RECENCY_MS,
           );
 
+    // NOTIFICATION WAVE 2: the per-org daily line. Poll reminders
+    // never reach this pick (resolved above, their ids merged into
+    // `seen`), so the cap can never mute a reminder — info only.
+    const dayCounts = loadDayCounts(uid, now);
     const { notify, markSeen } = pickNotifications({
       broadcasts,
       seen: { ...(seen ?? {}), ...pollHandled },
       follows,
       now,
       baseline,
+      dayCounts,
     });
 
     // Persist the seen marks FIRST — if an emit crashes midway, the
@@ -133,6 +176,9 @@ export async function checkOrgBroadcasts(uid: string, opts: { now?: number } = {
     const { notifyOrgAnnouncement } = await import('../notifications/notifyHelpers');
     let sent = 0;
     for (const b of notify) {
+      // Count the surfacing against the org's day whether or not the
+      // emit lands — the broadcast is marked seen either way.
+      dayCounts[b.orgId] = (dayCounts[b.orgId] ?? 0) + 1;
       try {
         await notifyOrgAnnouncement(uid, buildAnnouncementInput(b));
         sent++;
@@ -140,6 +186,7 @@ export async function checkOrgBroadcasts(uid: string, opts: { now?: number } = {
         /* one failed bell must not stop the others */
       }
     }
+    saveDayCounts(uid, dayCounts, now);
     return sent;
   } catch {
     return 0; // a notification failure never breaks the product

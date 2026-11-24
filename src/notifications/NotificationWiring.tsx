@@ -37,6 +37,8 @@ import { startJyotishNotify } from '../lib/jyotishNotifyService';
 import { startSuggestionNotify } from '../lib/suggestionNotifyService';
 import { startApprovalNotify } from '../lib/approvalNotifyService';
 import { startPollLifecycleNotify } from '../lib/pollLifecycleNotifyService';
+import { startStaffGovernanceNotify } from '../lib/staffGovernanceNotifyService';
+import { startStaffMoneyNotify } from '../lib/staffMoneyNotifyService';
 import { startTicketDipNotify } from '../lib/ticketDipNotifyService';
 import { startFollowedFestivalNotify } from '../lib/followedFestivalNotifyService';
 import { PlanUpgradeHost } from '../billing/PlanUpgradeFlow';
@@ -237,6 +239,28 @@ export const NotificationWiring: React.FC = () => {
   useEffect(() => {
     if (!uid) return undefined;
     return startTicketDipNotify(uid);
+  }, [uid]);
+
+  // Staff money news → NotificationCenter (self-listen,
+  // NOTIFICATION WAVE 2). Role is the address: my own payouts, the
+  // plan claims of workspaces where I hold a finance role, large
+  // donations in workspaces I oversee, and the plan stages of
+  // workspaces I trust — each read only where my own role already
+  // grants the read. Baseline-silent first run per scope.
+  useEffect(() => {
+    if (!uid) return undefined;
+    return startStaffMoneyNotify(uid);
+  }, [uid]);
+
+  // Governance + people news → NotificationCenter (self-listen,
+  // NOTIFICATION WAVE 2). Resolutions awaiting my vote (board
+  // roles), auction lot outcomes (finance/trustee), member joins
+  // and role changes (my own edge always; the roster only where I
+  // am Trustee/SuperAdmin, as the read rules allow).
+  // Baseline-silent first run per scope.
+  useEffect(() => {
+    if (!uid) return undefined;
+    return startStaffGovernanceNotify(uid);
   }, [uid]);
 
   // Followed-org festival alerts → NotificationCenter (self-listen,

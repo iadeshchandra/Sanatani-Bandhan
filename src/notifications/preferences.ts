@@ -13,6 +13,23 @@ import type { NotifyKind } from './types';
 /** How promptly a category may reach the devotee. */
 export type InstantPolicy = 'instant' | 'digest' | 'off';
 
+/**
+ * NOTIFICATION WAVE 2 (DESIGN §5) — the per-organisation mode:
+ *  - 'all':     this org reaches me exactly as the global controls say.
+ *  - 'actions': only items that need MY action (approvals, results,
+ *               role changes) arrive; the org's information items
+ *               (announcements, festival news, digests) stay silent.
+ *  - 'muted':   the org's broadcasts and information items are
+ *               silenced; its ACTION items still arrive — demoted to
+ *               the digest (the L8 floor: "digest, never off") — and
+ *               SOS is never touched by any mode (critical is
+ *               unmuzzable, L8). Enforcement lives in the delivery
+ *               path (engine.decideRouting), so EVERY producer —
+ *               watchers and the broadcast listener alike — honours
+ *               the mode without knowing it exists.
+ */
+export type OrgNotifyMode = 'all' | 'actions' | 'muted';
+
 /** Which digest window Suchana-style items join. */
 export type SuchanaPolicy = 'morning' | 'evening' | 'off';
 
@@ -47,6 +64,15 @@ export interface NotificationPrefs {
    * never held by it — see decideRouting in engine.ts.
    */
   dailyCap?: number;
+  /**
+   * NOTIFICATION WAVE 2 (DESIGN §5) — per-organisation modes, keyed
+   * by workspace/org id. Absent entry = 'all'. Stored inside this
+   * same owner-only prefs doc — the doc is free-form, so NO rules
+   * delta is needed. Applies to every item whose payload carries
+   * that orgId (watchers and broadcasts alike), at the delivery
+   * path — see engine.ts (orgTierClass / decideRouting).
+   */
+  orgModes?: Record<string, OrgNotifyMode>;
 }
 
 /** The calm defaults: everything instant except the Suchana digest. */
@@ -67,7 +93,19 @@ export function mergePrefs(patch?: Partial<NotificationPrefs>): NotificationPref
     ...patch,
     quietHours: { ...DEFAULT_PREFS.quietHours, ...(patch.quietHours ?? {}) },
     kindToggles: { ...(patch.kindToggles ?? {}) },
+    orgModes: { ...(patch.orgModes ?? {}) },
   };
+}
+
+/**
+ * NOTIFICATION WAVE 2 — the devotee's mode for one organisation.
+ * Absent or garbage = 'all' (the shipped behaviour: an org the
+ * devotee never configured reaches them normally).
+ */
+export function orgModeFor(prefs: NotificationPrefs, orgId: string | null | undefined): OrgNotifyMode {
+  if (!orgId) return 'all';
+  const mode = prefs.orgModes?.[orgId];
+  return mode === 'actions' || mode === 'muted' ? mode : 'all';
 }
 
 /**

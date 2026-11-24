@@ -26,12 +26,20 @@ import { useLanguage } from '../context/LanguageContext';
 import { useAuthWorkspace } from '../context/AuthWorkspaceContext';
 import { useToast } from '../context/ToastContext';
 import {
+  composerCapNotice,
+  countBroadcastsToday,
+  startOfLocalDay,
   validateBroadcastInput,
   BROADCAST_TITLE_MAX,
   BROADCAST_BODY_MAX,
   type OrgBroadcast,
 } from './broadcast';
-import { fetchAudienceCount, listBroadcastHistory, publishBroadcast } from './broadcastService';
+import {
+  fetchAudienceCount,
+  fetchBroadcastsSince,
+  listBroadcastHistory,
+  publishBroadcast,
+} from './broadcastService';
 
 export interface OrgAnnouncementsSectionProps {
   orgId: string;
@@ -83,6 +91,11 @@ export const OrgAnnouncementsSection: React.FC<OrgAnnouncementsSectionProps> = (
   const [body, setBody] = useState('');
   const [formError, setFormError] = useState<string | null>(null);
   const [publishing, setPublishing] = useState(false);
+  // NOTIFICATION WAVE 2 — composer discipline: how many announcements
+  // this org has already sent today, and whether the soft-cap warning
+  // has been shown for THIS draft (a confirming second tap publishes).
+  const [todayCount, setTodayCount] = useState(0);
+  const [capArmed, setCapArmed] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -94,6 +107,9 @@ export const OrgAnnouncementsSection: React.FC<OrgAnnouncementsSectionProps> = (
     }
     if (isTrustee) {
       setAudience(await fetchAudienceCount(orgId));
+      const now = Date.now();
+      const todays = await fetchBroadcastsSince(orgId, startOfLocalDay(now));
+      setTodayCount(countBroadcastsToday(todays, now));
     }
   }, [orgId, isTrustee]);
 
@@ -126,6 +142,13 @@ export const OrgAnnouncementsSection: React.FC<OrgAnnouncementsSectionProps> = (
       setFormError(errorCopy(err));
       return;
     }
+    // NOTIFICATION WAVE 2 — soft cap (DESIGN §5/§6): past the day's
+    // second announcement, the first Publish tap only shows the
+    // warning; a confirming second tap sends. Warn, never block.
+    if (composerCapNotice(todayCount).needsConfirm && !capArmed) {
+      setCapArmed(true);
+      return;
+    }
     setFormError(null);
     setPublishing(true);
     try {
@@ -139,6 +162,8 @@ export const OrgAnnouncementsSection: React.FC<OrgAnnouncementsSectionProps> = (
       });
       setHistory((h) => [published, ...h]);
       setAudience(published.audienceCount);
+      setTodayCount((c) => c + 1);
+      setCapArmed(false);
       setTitle('');
       setBody('');
       showToast(
@@ -174,15 +199,18 @@ export const OrgAnnouncementsSection: React.FC<OrgAnnouncementsSectionProps> = (
               ? T('orgbroadcast_audience_loading', 'Counting your followers…', 'আপনার অনুসারী গণনা হচ্ছে…', 'आपके अनुयायी गिने जा रहे हैं…')
               : T(
                   'orgbroadcast_audience',
-                  `Your ${audience} followers receive announcements in their Suchana inbox 🔔`,
-                  `আপনার ${audience} অনুসারী তাদের সূচনা ইনবক্সে ঘোষণা পান 🔔`,
-                  `आपके ${audience} अनुयायी अपने सूचना इनबॉक्स में घोषणाएं पाते हैं 🔔`,
+                  `Your ${audience} followers receive each announcement when they next open the app 🔔`,
+                  `আপনার ${audience} অনুসারী পরেরবার অ্যাপ খুললে প্রতিটি ঘোষণা পাবেন 🔔`,
+                  `आपके ${audience} अनुयायी अगली बार ऐप खोलने पर प्रत्येक घोषणा पाएंगे 🔔`,
                 )}
           </p>
           <div>
             <input
               value={title}
-              onChange={(e) => setTitle(e.target.value)}
+              onChange={(e) => {
+                setTitle(e.target.value);
+                setCapArmed(false);
+              }}
               maxLength={BROADCAST_TITLE_MAX + 20}
               placeholder={T('orgbroadcast_title_ph', 'Headline — e.g. Maha Shivaratri abhishek at 6 PM', 'শিরোনাম — যেমন মহা শিবরাত্রি অভিষেক সন্ধ্যা ৬টায়', 'शीर्षक — जैसे महा शिवरात्रि अभिषेक शाम 6 बजे')}
               className="w-full bg-white border border-stone-200 rounded-xl px-3 py-2.5 min-h-[44px] text-sm text-stone-900 focus:outline-none focus:border-amber-500"
@@ -193,7 +221,10 @@ export const OrgAnnouncementsSection: React.FC<OrgAnnouncementsSectionProps> = (
           <div>
             <textarea
               value={body}
-              onChange={(e) => setBody(e.target.value)}
+              onChange={(e) => {
+                setBody(e.target.value);
+                setCapArmed(false);
+              }}
               rows={3}
               maxLength={BROADCAST_BODY_MAX + 20}
               placeholder={T('orgbroadcast_body_ph', 'Your message to devotees (optional)…', 'ভক্তদের জন্য আপনার বার্তা (ঐচ্ছিক)…', 'भक्तों के लिए आपका संदेश (वैकल्पिक)…')}
@@ -203,6 +234,16 @@ export const OrgAnnouncementsSection: React.FC<OrgAnnouncementsSectionProps> = (
             <p className="text-[10px] text-stone-400 text-right mt-0.5 font-mono">{body.length} / {BROADCAST_BODY_MAX}</p>
           </div>
           {formError && <p className="text-xs font-bold text-rose-600">{formError}</p>}
+          {capArmed && (
+            <p className="text-xs font-bold text-amber-800 bg-amber-100/70 border border-amber-200 rounded-xl px-3 py-2.5 leading-relaxed">
+              {T(
+                'orgbroadcast_cap_warn',
+                `This is announcement ${todayCount + 1} today — members receive each one when they next open the app. Fewer, fuller announcements keep devotees listening. Tap Publish again to send it.`,
+                `এটি আজকের ${todayCount + 1} নম্বর ঘোষণা — সদস্যরা পরেরবার অ্যাপ খুললে প্রতিটি পাবেন। কম, পূর্ণাঙ্গ ঘোষণা ভক্তদের মনোযোগ ধরে রাখে। পাঠাতে আবার প্রকাশ চাপুন।`,
+                `यह आज की घोषणा ${todayCount + 1} है — सदस्य अगली बार ऐप खोलने पर प्रत्येक पाएंगे। कम, पूर्ण घोषणाएं भक्तों का ध्यान बनाए रखती हैं। भेजने के लिए फिर से प्रकाशित करें दबाएं।`,
+              )}
+            </p>
+          )}
           <button
             type="button"
             disabled={publishing}
@@ -210,7 +251,7 @@ export const OrgAnnouncementsSection: React.FC<OrgAnnouncementsSectionProps> = (
             className="w-full sm:w-auto px-5 py-2.5 min-h-[44px] rounded-xl bg-amber-600 hover:bg-amber-500 text-white font-black text-sm flex items-center justify-center gap-2 shadow transition-all cursor-pointer disabled:opacity-50"
           >
             <Send className="w-4 h-4" />
-            <span>{publishing ? T('orgbroadcast_publishing', 'Publishing…', 'প্রকাশ হচ্ছে…', 'प्रकाशित हो रहा है…') : T('orgbroadcast_publish', '📢 Publish announcement', '📢 ঘোষণা প্রকাশ করুন', '📢 घोषणा प्रकाशित करें')}</span>
+            <span>{publishing ? T('orgbroadcast_publishing', 'Publishing…', 'প্রকাশ হচ্ছে…', 'प्रकाशित हो रहा है…') : capArmed ? T('orgbroadcast_publish_anyway', 'Publish anyway', 'তবুও প্রকাশ করুন', 'फिर भी प्रकाशित करें') : T('orgbroadcast_publish', '📢 Publish announcement', '📢 ঘোষণা প্রকাশ করুন', '📢 घोषणा प्रकाशित करें')}</span>
           </button>
           <p className="text-[11px] text-stone-400 leading-relaxed">
             {T(

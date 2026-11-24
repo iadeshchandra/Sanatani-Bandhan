@@ -292,8 +292,10 @@ async function emitOnlineTo(uid: string, event: NotifyEvent, now: number): Promi
       /* a failed count never swallows a notification */
     }
   }
-  // A switched-off kind is silent: no grouping, no write.
-  if (decision.suppressed === 'category') {
+  // A switched-off kind — or an org the devotee set to Actions-only
+  // / Muted for its information items (Wave 2) — is silent: no
+  // grouping, no write.
+  if (decision.suppressed === 'category' || decision.suppressed === 'org') {
     return { status: 'dropped', itemId: '', decision };
   }
 

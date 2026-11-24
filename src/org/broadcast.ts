@@ -67,8 +67,63 @@ export const BROADCAST_RECENCY_MS = 48 * 60 * 60 * 1000;
 export const MAX_NOTIFY_PER_CHECK = 3;
 /** Small clock-skew grace around follow time / future timestamps. */
 export const FOLLOW_GRACE_MS = 5 * 60 * 1000;
+/**
+ * NOTIFICATION WAVE 2 — composer soft cap (DESIGN §5/§6: a source
+ * may speak ~2×/day before it must justify itself). At this many
+ * broadcasts TODAY from THIS org, the composer warns and asks for a
+ * confirming second tap. Warn, never block; counted per org, never
+ * across orgs.
+ */
+export const BROADCAST_DAILY_SOFT_CAP = 2;
+/**
+ * NOTIFICATION WAVE 2 — receiver-side daily line (DESIGN §5):
+ * at most this many of one org's info items ring per devotee per
+ * day; the rest are marked seen and rest in the centre. Poll
+ * reminders never pass through this pick (the fanout resolves them
+ * first), so they are exempt by construction.
+ */
+export const ORG_DAILY_INFO_CAP = 3;
 /** Firestore `in` queries accept at most 10 values (30 on newer SDKs; 10 is safe). */
 export const ORG_QUERY_CHUNK = 10;
+
+/* ------------------------------------------------------------------ */
+/* NOTIFICATION WAVE 2 — daily counting (composer + receiver caps)     */
+/* ------------------------------------------------------------------ */
+
+/** Local day key (YYYY-MM-DD) — the grain of both daily caps. */
+export function broadcastDayKey(now: number): string {
+  const d = new Date(now);
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  return `${d.getFullYear()}-${mm}-${dd}`;
+}
+
+/** Epoch ms of the start of the local day containing `now`. */
+export function startOfLocalDay(now: number): number {
+  const d = new Date(now);
+  d.setHours(0, 0, 0, 0);
+  return d.getTime();
+}
+
+/** How many of this list were published today (local), up to `now`. */
+export function countBroadcastsToday(list: readonly OrgBroadcast[], now: number): number {
+  const start = startOfLocalDay(now);
+  let n = 0;
+  for (const b of list ?? []) {
+    if (b && typeof b.createdAt === 'number' && b.createdAt >= start && b.createdAt <= now) n++;
+  }
+  return n;
+}
+
+/**
+ * The composer's cap notice: at/over the soft cap, the next publish
+ * needs a confirming second tap. `nextNumber` is the ordinal the
+ * warning names ("This is announcement {n} today").
+ */
+export function composerCapNotice(countToday: number): { needsConfirm: boolean; nextNumber: number } {
+  const count = Math.max(0, Math.floor(countToday) || 0);
+  return { needsConfirm: count >= BROADCAST_DAILY_SOFT_CAP, nextNumber: count + 1 };
+}
 
 /* ------------------------------------------------------------------ */
 /* Composer validation                                                 */
@@ -190,6 +245,14 @@ export function pickNotifications(args: {
   follows: OrgFollow[];
   now: number;
   baseline: boolean;
+  /**
+   * NOTIFICATION WAVE 2: bells already rung TODAY per org (the
+   * listener's day-count ledger). When provided, an org at
+   * ORG_DAILY_INFO_CAP contributes no further bells today — its
+   * broadcasts are still marked seen (they rest in the centre and
+   * in the org's public announcements). Omit for the uncapped pick.
+   */
+  dayCounts?: Record<string, number>;
 }): PickResult {
   const followByOrg = new Map(args.follows.map((f) => [f.orgId, f.followedAt]));
   const markSeen: Record<string, number> = {};
@@ -210,7 +273,18 @@ export function pickNotifications(args: {
   }
 
   eligible.sort((a, b) => a.createdAt - b.createdAt); // oldest first
-  return { notify: eligible.slice(0, MAX_NOTIFY_PER_CHECK), markSeen };
+  const notify: OrgBroadcast[] = [];
+  const dayCounts = args.dayCounts ? { ...args.dayCounts } : null;
+  for (const b of eligible) {
+    if (notify.length >= MAX_NOTIFY_PER_CHECK) break;
+    if (dayCounts) {
+      const used = dayCounts[b.orgId] ?? 0;
+      if (used >= ORG_DAILY_INFO_CAP) continue; // over today's line — seen, silent
+      dayCounts[b.orgId] = used + 1;
+    }
+    notify.push(b);
+  }
+  return { notify, markSeen };
 }
 
 /* ------------------------------------------------------------------ */

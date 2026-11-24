@@ -137,6 +137,32 @@ export async function fetchFollowedOrgs(uid: string): Promise<OrgFollow[]> {
 }
 
 /**
+ * NOTIFICATION WAVE 2 — one org's broadcasts since an epoch ms
+ * (the composer's "announcements today" count). Same single-org
+ * query shape as the history fetch; fail-soft to an empty list.
+ */
+export async function fetchBroadcastsSince(orgId: string, sinceMs: number): Promise<OrgBroadcast[]> {
+  try {
+    const snap = await getDocs(
+      query(
+        collection(db, COLLECTION),
+        where('orgId', '==', orgId),
+        where('createdAt', '>', sinceMs),
+        limit(100),
+      ),
+    );
+    const out: OrgBroadcast[] = [];
+    snap.forEach((d) => {
+      const b = fromDoc(d.id, d.data() as Record<string, unknown>);
+      if (b) out.push(b);
+    });
+    return out;
+  } catch {
+    return [];
+  }
+}
+
+/**
  * Recent broadcasts across followed orgs (watcher fetch). Chunked `in`
  * queries; recency window applied server-side via createdAt, ordering
  * client-side. Fail-soft per chunk: one bad chunk never silences the rest.

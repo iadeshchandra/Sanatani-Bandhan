@@ -105,8 +105,12 @@ export interface RoutingDecision {
    * written in-app, its ping held to the next day). The "Why am I
    * seeing this?" line reads this plus the kind — the item itself
    * carries the reason it exists.
+   *
+   * NOTIFICATION WAVE 2 adds 'org': the devotee's per-organisation
+   * mode (preferences.orgModes) silenced this org's information
+   * item — like 'category', the item is not written at all.
    */
-  suppressed?: 'category' | 'cap' | null;
+  suppressed?: 'category' | 'cap' | 'org' | null;
   /** Eligible for digest batching instead of an immediate ping. */
   digestCandidate: boolean;
   /** Which Suchana digest window this belongs to (morning/evening). */

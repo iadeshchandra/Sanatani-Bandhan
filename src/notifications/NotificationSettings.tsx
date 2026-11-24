@@ -9,10 +9,11 @@
  */
 
 import React from 'react';
-import { X, HandCoins, MessageCircle, Sunrise, Sparkles, MoonStar, RotateCcw, ListChecks, Gauge, Lock } from 'lucide-react';
+import { X, HandCoins, MessageCircle, Sunrise, Sparkles, MoonStar, RotateCcw, ListChecks, Gauge, Lock, Building2 } from 'lucide-react';
 import { NT, pick, useNotifLang } from './NT';
-import type { NotificationPrefs, InstantPolicy, SuchanaPolicy } from './preferences';
-import { kindEnabled } from './preferences';
+import type { NotificationPrefs, InstantPolicy, SuchanaPolicy, OrgNotifyMode } from './preferences';
+import { kindEnabled, orgModeFor } from './preferences';
+import type { NotificationOrgOption } from './useNotificationOrgs';
 import { KIND_LABELS } from './whyLine';
 import type { NotifyKind, TriText } from './types';
 
@@ -46,7 +47,17 @@ export interface NotificationSettingsProps {
   onChange: (next: NotificationPrefs) => void;
   onClose: () => void;
   onReset?: () => void;
+  /** NOTIFICATION WAVE 2: the organisations the per-org section can
+   *  tune (memberships ∪ follows). Absent/empty hides the section. */
+  orgs?: NotificationOrgOption[];
 }
+
+const orgModeLabel = (v: OrgNotifyMode): TriText =>
+  v === 'all'
+    ? { en: 'All', bn: 'সব', hi: 'सभी' }
+    : v === 'actions'
+      ? { en: 'Actions only', bn: 'শুধু কাজের', hi: 'केवल कार्य' }
+      : { en: 'Quiet', bn: 'নীরব', hi: 'शांत' };
 
 const segLabel = (v: 'instant' | 'digest' | 'off'): TriText =>
   v === 'instant'
@@ -167,6 +178,7 @@ export const NotificationSettings: React.FC<NotificationSettingsProps> = ({
   onChange,
   onClose,
   onReset,
+  orgs,
 }) => {
   const lang = useNotifLang();
   const set = (patch: Partial<NotificationPrefs>) => onChange({ ...prefs, ...patch });
@@ -337,6 +349,37 @@ export const NotificationSettings: React.FC<NotificationSettingsProps> = ({
               }}
             />
           </Section>
+
+          {/* NOTIFICATION WAVE 2 — per-organisation modes (DESIGN §5) */}
+          {orgs && orgs.length > 0 && (
+            <Section
+              icon={<Building2 className="w-5 h-5" aria-hidden />}
+              title={{ en: 'Organisations', bn: 'সংস্থা', hi: 'संगठन' }}
+            >
+              <Explain
+                text={{
+                  en: 'Choose how much each organisation may tell you. "Actions only" keeps requests and decisions and lets announcements rest. "Quiet" silences an organisation’s bells — but safety alerts always arrive, and approval requests still reach your daily summary.',
+                  bn: 'প্রতিটি সংস্থা আপনাকে কতটা জানাবে তা বেছে নিন। "শুধু কাজের" অনুরোধ ও সিদ্ধান্ত রাখে, ঘোষণাগুলোকে বিশ্রাম দেয়। "নীরব" একটি সংস্থার ঘণ্টা থামিয়ে দেয় — কিন্তু সুরক্ষা সতর্কতা সবসময় আসে, এবং অনুমোদনের অনুরোধ আপনার দৈনিক সারসংক্ষেপে পৌঁছায়।',
+                  hi: 'चुनें कि प्रत्येक संगठन आपको कितना बताए। "केवल कार्य" अनुरोध और निर्णय रखता है और घोषणाओं को विश्राम देता है। "शांत" किसी संगठन की घंटियाँ बंद कर देता है — लेकिन सुरक्षा चेतावनियाँ हमेशा आती हैं, और अनुमोदन अनुरोध आपके दैनिक सारांश तक पहुँचते हैं।',
+                }}
+              />
+              <div className="space-y-3">
+                {orgs.map((o) => (
+                  <div key={o.id} className="space-y-1.5">
+                    <p className="text-[13px] text-stone-700 font-semibold truncate">{o.name}</p>
+                    <Segmented
+                      options={['all', 'actions', 'muted'] as const}
+                      value={orgModeFor(prefs, o.id)}
+                      onPick={(v: OrgNotifyMode) =>
+                        set({ orgModes: { ...(prefs.orgModes ?? {}), [o.id]: v } })
+                      }
+                      labelFor={orgModeLabel}
+                    />
+                  </div>
+                ))}
+              </div>
+            </Section>
+          )}
 
           {/* Blueprint D — the daily cap */}
           <Section
