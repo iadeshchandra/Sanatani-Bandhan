@@ -63,6 +63,15 @@ export interface ReleaseEntry {
 
 export const RELEASES: readonly ReleaseEntry[] = [
   {
+    version: 'v2026.11.24-03d894b',
+    date: '2026-11-24',
+    sections: {
+      new: [
+        { text: { en: 'Suchana now speaks all ten languages: every notification — polls, passes, dips, money, resolutions — arrives in the language you chose for the app, not only English, Bangla or Hindi.', hi: 'सूचना अब सभी दस भाषाओं में बोलती है: हर सूचना — मतदान, पास, डिप, धन, प्रस्ताव — उसी भाषा में आती है जो आपने ऐप के लिए चुनी है, केवल अंग्रेज़ी, बांग्ला या हिंदी में नहीं।', bn: 'সূচনা এখন দশটি ভাষাতেই কথা বলে: প্রতিটি সূচনা — ভোট, পাস, ডিপ, অর্থ, প্রস্তাব — আপনি অ্যাপের জন্য যে ভাষা বেছে নিয়েছেন সেই ভাষাতেই আসে, শুধু ইংরেজি, বাংলা বা হিন্দিতে নয়।' } },
+      ],
+    },
+  },
+  {
     version: 'v2026.11.24-be97f20',
     date: '2026-11-24',
     sections: {
