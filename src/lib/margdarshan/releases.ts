@@ -63,6 +63,20 @@ export interface ReleaseEntry {
 
 export const RELEASES: readonly ReleaseEntry[] = [
   {
+    version: 'v2026.11.24-be97f20',
+    date: '2026-11-24',
+    sections: {
+      new: [
+        { text: { en: "Your organisation's money news now finds you: a failed payout, a rejected payment claim, and a large donation become Suchana items for the people whose role they concern — no more learning from the bank's letter a week later.", hi: 'आपके संगठन के धन की खबर अब खुद आप तक पहुँचती है: असफल भुगतान, अस्वीकृत भुगतान-दावा और बड़ा दान — जिनकी भूमिका से ये जुड़े हैं, उनके लिए सूचना की वस्तु बन जाते हैं — अब एक सप्ताह बाद बैंक के पत्र से पता नहीं चलता।', bn: 'আপনার সংগঠনের অর্থের খবর এখন নিজেই আপনার কাছে পৌঁছায়: ব্যর্থ পেআউট, প্রত্যাখ্যাত পেমেন্ট দাবি এবং বড় অনুদান — যাঁদের ভূমিকার সঙ্গে জড়িত, তাঁদের জন্য সূচনার বিষয় হয়ে ওঠে — আর এক সপ্তাহ পরে ব্যাংকের চিঠি থেকে জানতে হয় না।' } },
+        { text: { en: 'Trustees hear about their workspace plan before it lapses: a gentle note a week ahead, a firmer one in the grace days, and an honest note if it lapses — and silence the moment it is renewed.', hi: 'ट्रस्टी अपने वर्कस्पेस प्लान के समाप्त होने से पहले सुनते हैं: एक सप्ताह पहले हल्की सूचना, अनुग्रह दिनों में दृढ़ सूचना, और समाप्त हो जाने पर ईमानदार सूचना — और नवीनीकरण होते ही मौन।', bn: 'ট্রাস্টিরা তাঁদের ওয়ার্কস্পেস প্ল্যানের মেয়াদ শেষ হওয়ার আগেই খবর পান: এক সপ্তাহ আগে হালকা নোট, গ্রেসের দিনগুলোতে দৃঢ় নোট, আর মেয়াদ শেষ হলে সৎ নোট — আর নবায়ন হলেই নীরবতা।' } },
+        { text: { en: 'Board resolutions awaiting your vote now appear in your Action lane, and stop the moment you vote.', hi: 'आपके मत की प्रतीक्षा करते बोर्ड प्रस्ताव अब आपके एक्शन लेन में दिखते हैं, और आपके मत देते ही रुक जाते हैं।', bn: 'আপনার ভোটের অপেক্ষায় থাকা বোর্ড প্রস্তাব এখন আপনার অ্যাকশন লেনে দেখা যায়, আর আপনি ভোট দিলেই থেমে যায়।' } },
+        { text: { en: 'Auction lot settlements, new members, and role changes now reach the staff they concern.', hi: 'नीलामी लॉट के निपटान, नए सदस्य और भूमिका परिवर्तन अब संबंधित कर्मचारियों तक पहुँचते हैं।', bn: 'নিলামের লট নিষ্পত্তি, নতুন সদস্য এবং ভূমিকা পরিবর্তনের খবর এখন সংশ্লিষ্ট কর্মীদের কাছে পৌঁছায়।' } },
+        { text: { en: 'New per-organisation notification controls: for each organisation choose All, Actions only, or Muted — safety and approval news always finds its floor, never silence.', hi: 'प्रत्येक संगठन के लिए नए सूचना नियंत्रण: हर संगठन के लिए चुनें — सभी, केवल एक्शन, या मौन — सुरक्षा और अनुमोदन की खबर हमेशा अपना न्यूनतम स्तर पाती है, कभी पूर्ण मौन नहीं।', bn: 'প্রতিটি সংগঠনের জন্য নতুন সূচনা নিয়ন্ত্রণ: প্রতিটি সংগঠনের জন্য বেছে নিন — সব, শুধু অ্যাকশন, বা নীরব — নিরাপত্তা ও অনুমোদনের খবর সবসময় তার সর্বনিম্ন স্তর পায়, কখনো পূর্ণ নীরবতা নয়।' } },
+        { text: { en: 'Broadcasts are now honest and disciplined: the composer tells you exactly who receives an announcement and when, and a gentle daily limit keeps any one organisation from crowding your bell.', hi: 'प्रसारण अब ईमानदार और अनुशासित हैं: लिखते समय ही पता चलता है कि घोषणा किसे और कब मिलेगी, और एक हल्की दैनिक सीमा किसी एक संगठन को आपकी घंटी पर भीड़ नहीं लगाने देती।', bn: 'সম্প্রচার এখন সৎ ও শৃঙ্খলাবদ্ধ: লেখার সময়ই জানা যায় ঘোষণাটি কে কখন পাবেন, আর একটি হালকা দৈনিক সীমা কোনো একটি সংগঠনকে আপনার ঘণ্টায় ভিড় করতে দেয় না।' } },
+      ],
+    },
+  },
+  {
     version: 'v2026.11.24-da8d5a6',
     date: '2026-11-24',
     sections: {
