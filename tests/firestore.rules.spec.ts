@@ -2012,3 +2012,98 @@ describe('AUCTION A1 — Nilam lots (auction_lots)', () => {
     await assertFails(ref(devoteeDb()).delete());
   });
 });
+
+describe('NOTIFICATION WAVE 4 — platform notices + broadcast audience', () => {
+  // 'global-admin-uid' is the platform_admins-seeded SuperAdmin (see
+  // beforeEach); 'user-1' is an ordinary signed-in devotee of ws-1.
+  const superDb = () => testEnv.authenticatedContext('global-admin-uid').firestore();
+  const userDb = () => testEnv.authenticatedContext('user-1').firestore();
+  const anonDb = () => testEnv.unauthenticatedContext().firestore();
+
+  const NOTICE = 'notice-w4-1';
+  const noticeDoc = (over: Record<string, unknown> = {}) => ({
+    title: 'Maintenance on Sunday, 6–8 am',
+    body: 'Sanatani Bandhan will be briefly unavailable while we tend the servers.',
+    kind: 'info',
+    createdAt: 1,
+    expiresAt: 0,
+    active: true,
+    ...over,
+  });
+  const noticeRef = (db: any) => db.collection('platformNotices').doc(NOTICE);
+  const seedNotice = async (over: Record<string, unknown> = {}) => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await context.firestore().collection('platformNotices').doc(NOTICE).set(noticeDoc(over));
+    });
+  };
+
+  it('159. platformNotices: any signed-in user may read; anonymous may not', async () => {
+    await seedNotice();
+    await assertSucceeds(noticeRef(userDb()).get());
+    await assertSucceeds(noticeRef(superDb()).get());
+    await assertFails(noticeRef(anonDb()).get());
+  });
+
+  it('160. platformNotices: create is SuperAdmin-only — an ordinary user is refused', async () => {
+    await assertFails(noticeRef(userDb()).set(noticeDoc()));
+    await assertFails(noticeRef(anonDb()).set(noticeDoc()));
+    await assertSucceeds(noticeRef(superDb()).set(noticeDoc()));
+  });
+
+  it('161. platformNotices: the create shape is pinned — kind enum, numeric clocks, no extra keys, non-empty title', async () => {
+    await assertSucceeds(noticeRef(superDb()).set(noticeDoc({ kind: 'important', expiresAt: 9999999999999 })));
+    await assertFails(noticeRef(superDb()).set(noticeDoc({ kind: 'urgent' })));
+    await assertFails(noticeRef(superDb()).set(noticeDoc({ title: '' })));
+    await assertFails(noticeRef(superDb()).set(noticeDoc({ createdAt: 'now' })));
+    await assertFails(noticeRef(superDb()).set(noticeDoc({ expiresAt: 'never' })));
+    await assertFails(noticeRef(superDb()).set(noticeDoc({ surpriseKey: true })));
+  });
+
+  it('162. platformNotices: update may flip ONLY active — a published notice is never rewritten', async () => {
+    await seedNotice();
+    await assertSucceeds(noticeRef(superDb()).update({ active: false }));
+    await assertFails(noticeRef(superDb()).update({ title: 'Rewritten after the fact' }));
+    await assertFails(noticeRef(superDb()).update({ body: 'Different words' }));
+    await assertFails(noticeRef(superDb()).update({ active: true, kind: 'important' }));
+    await assertFails(noticeRef(userDb()).update({ active: false }));
+  });
+
+  it('163. platformNotices: delete is SuperAdmin-only', async () => {
+    await seedNotice();
+    await assertFails(noticeRef(userDb()).delete());
+    await assertSucceeds(noticeRef(superDb()).delete());
+  });
+
+  const BC = 'bc-w4-1';
+  const bcDoc = (over: Record<string, unknown> = {}) => ({
+    orgId: 'ws-1',
+    orgName: 'Workspace 1',
+    title: 'Annual general meeting on Friday',
+    body: 'Members are requested to attend.',
+    createdBy: 'global-admin-uid',
+    createdByName: 'Platform Admin',
+    audienceCount: 48,
+    createdAt: 1,
+    ...over,
+  });
+  const bcRef = (db: any) => db.collection('orgBroadcasts').doc(BC);
+
+  it('164. orgBroadcasts audience: a legacy doc with NO audience field still creates (followers by default)', async () => {
+    await assertSucceeds(bcRef(superDb()).set(bcDoc()));
+    await assertSucceeds(bcRef(superDb()).set(bcDoc({ audience: 'followers' })));
+  });
+
+  it('165. orgBroadcasts audience: members and staff addressing create; a bad enum value is refused', async () => {
+    await assertSucceeds(bcRef(superDb()).set(bcDoc({ audience: 'members' })));
+    await assertSucceeds(bcRef(superDb()).set(bcDoc({ audience: 'staff' })));
+    await assertFails(bcRef(superDb()).set(bcDoc({ audience: 'everyone' })));
+    await assertFails(bcRef(superDb()).set(bcDoc({ audience: 42 })));
+  });
+
+  it('166. orgBroadcasts audience: audienceRole is allowed only alongside audience == staff', async () => {
+    await assertSucceeds(bcRef(superDb()).set(bcDoc({ audience: 'staff', audienceRole: 'Accountant' })));
+    await assertFails(bcRef(superDb()).set(bcDoc({ audience: 'members', audienceRole: 'Accountant' })));
+    await assertFails(bcRef(superDb()).set(bcDoc({ audienceRole: 'Accountant' })));
+    await assertFails(bcRef(superDb()).set(bcDoc({ audience: 'followers', audienceRole: 'Trustee' })));
+  });
+});
