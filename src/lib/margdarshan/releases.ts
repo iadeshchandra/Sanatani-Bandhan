@@ -63,6 +63,15 @@ export interface ReleaseEntry {
 
 export const RELEASES: readonly ReleaseEntry[] = [
   {
+    version: 'v2026.11.24-0ad5db6',
+    date: '2026-11-24',
+    sections: {
+      new: [
+        { text: { en: 'Polls grow up: prepare a poll as a private draft, schedule its opening in advance, save it as a reusable template, and re-run it next season in one step. Polls may now offer up to eight options, and abstaining is its own honest choice that never takes an option\'s place.', hi: 'मतदान अब और परिपक्व: मतदान को निजी प्रारूप के रूप में तैयार करें, उसका खुलना पहले से तय करें, उसे दोबारा उपयोग होने वाले नमूने के रूप में सहेजें, और अगले मौसम में एक कदम में फिर चलाएँ। अब मतदान में आठ विकल्प तक हो सकते हैं, और तटस्थ रहना अपना ईमानदार विकल्प है जो कभी किसी विकल्प की जगह नहीं लेता।', bn: 'ভোট এখন আরও পরিণত: ভোটটি ব্যক্তিগত খসড়া হিসেবে তৈরি করুন, আগাম তার খোলার সময় ঠিক করুন, পুনর্ব্যবহারযোগ্য নমুনা হিসেবে সংরক্ষণ করুন, আর পরের মৌসুমে এক ধাপে আবার চালান। এখন ভোটে আটটি পর্যন্ত বিকল্প থাকতে পারে, এবং বিরত থাকা তার নিজের সৎ পছন্দ যা কখনো কোনো বিকল্পের জায়গা নেয় না।' } },
+      ],
+    },
+  },
+  {
     version: 'v2026.11.24-841a08c',
     date: '2026-11-24',
     sections: {
