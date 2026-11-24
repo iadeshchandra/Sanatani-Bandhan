@@ -1,25 +1,20 @@
+// Sanatani Bandhan — Hardened Firestore Security Rules. DENY-BY-DEFAULT.
+// Source-dieted 2026-11-24 (comments stripped to fit the 262,144-byte source cap;
+// token stream verified identical — behaviour unchanged). Full commented source in git history.
 rules_version = '2';
 
-/**
- * Sanatani Bandhan â Hardened Firestore Security Rules.
- * DENY-BY-DEFAULT, tenant isolation. Identity: Firebase Auth (custom claims
- * tenantId/role/roles[], falling back to users/{uid}). DEMO_* = public-read
- * sandboxes. Financial ledgers append-only; sensitive writes field-allowlisted.
- */
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // 1. Identity & role helpers
     function isLoggedIn() {
       return request.auth != null && request.auth.uid != null;
     }
-    // True for anonymous (demo) sessions â used to gate real-workspace creation.
+
     function isAnonymous() {
       return isLoggedIn()
         && request.auth.token.firebase.sign_in_provider == 'anonymous';
     }
 
-    // Platform SuperAdmin: explicit claim, canonical role claim, or the
     function isSuperAdmin() {
       return isLoggedIn() && (
         request.auth.token.isSuperAdmin == true ||
@@ -31,12 +26,10 @@ service cloud.firestore {
       );
     }
 
-    // Platform owner: the canonical human owner UID. Used for Spark-native
     function isOwner() {
       return isSelf('sxIGHmvpYUTqPnpI1bLFT1O1cA62');
     }
 
-    // Effective tenant: custom claim wins, else the users/{uid} document.
     function effTenant() {
       return request.auth == null ? null :
         (request.auth.token.tenantId != null ? request.auth.token.tenantId :
@@ -44,7 +37,6 @@ service cloud.firestore {
             docGet(/databases/$(database)/documents/users/$(request.auth.uid), 'workspaceId', null) : null));
     }
 
-    // Role check: single `role` claim, `roles[]` claim, or users-doc fallback.
     function roleIn(roles) {
       return request.auth != null && (
         request.auth.token.role in roles ||
@@ -58,8 +50,6 @@ service cloud.firestore {
       return id != null && id.matches('^DEMO_.*');
     }
 
-    // Regional vocabulary ids (src/i18n/regionalTerms.ts). Devotee
-    // suggestions may omit the field entirely ('' = not regional).
     function isRegionId(v) {
       return v == '' || v in ['tamil-nadu', 'karnataka', 'andhra-telangana',
         'kerala', 'maharashtra', 'gujarat', 'west-bengal', 'bangladesh',
@@ -67,7 +57,6 @@ service cloud.firestore {
         'global-diaspora', 'other'];
     }
 
-    // Task contract: tenant member = logged in AND (own tenant claim |
     function wsMemberPath(tenantId) {
       return /databases/$(database)/documents/workspaceMembers/$(tenantId + '_' + request.auth.uid);
     }
@@ -87,13 +76,11 @@ service cloud.firestore {
       );
     }
 
-    // Task contract: role check scoped to the tenant. SuperAdmin bypasses
     function hasRole(tenantId, roles) {
       return isSuperAdmin()
         || (isTenantMember(tenantId) && (roleIn(roles) || wsMemberRoleIn(tenantId, roles)));
     }
 
-    // Organisation Trustee for a specific org (used by membership flows):
     function isOrgTrustee(orgId) {
       return isLoggedIn() && orgId != null && orgId != '' && (
         isSuperAdmin() ||
@@ -104,10 +91,6 @@ service cloud.firestore {
       );
     }
 
-    // Chat privacy (2026-10-19): extract the orgId from an org-type chat doc.
-    // New docs carry an explicit `orgId` field; legacy org chats carry it as
-    // participants[1] (see getOrCreateOrgChat: participants [userUid, orgId]).
-    // Returns '' for anything else — callers MUST check type == 'org' first.
     function chatOrgId(chatData) {
       return chatData.get('orgId', '') != '' ? chatData.get('orgId', '') :
         (chatData.get('participants', null) is list &&
@@ -115,16 +98,11 @@ service cloud.firestore {
          chatData.get('participants', [])[1] : '');
     }
 
-    // Trustee chat access, scoped (2026-10-19 privacy fix): a trustee may
-    // access ONLY org-type support threads belonging to their own org.
-    // Previously any trustee could read every private 1:1 chat.
-    // SuperAdmin keeps emergency access via the separate isSuperAdmin branch.
     function isChatOrgTrustee(chatData) {
       return chatData.get('type', '') == 'org' &&
         isOrgTrustee(chatOrgId(chatData));
     }
 
-    // Role-grant matrix for invites / member adds. A Trustee may grant
     function grantableRole(orgId, targetRole) {
       return isSuperAdmin() || (
         isOrgTrustee(orgId) &&
@@ -135,7 +113,6 @@ service cloud.firestore {
       );
     }
 
-    // DEMO sandboxes: public reads; writes need an authenticated session.
     function demoPublicRead(wsId) {
       return isDemoWs(wsId) && (request.auth == null || effTenant() == wsId || isSuperAdmin());
     }
@@ -143,7 +120,6 @@ service cloud.firestore {
       return isLoggedIn() && isDemoWs(wsId);
     }
 
-    // Workspace id carried on root-collection documents (fail closed if absent).
     function docWs() {
       return tkOldGet('workspaceId', null);
     }
@@ -154,21 +130,10 @@ service cloud.firestore {
       return newDocWs() == docWs();
     }
 
-    // EVENTS + POLLS P0 (2026-10-24) — public festival counters are
-    // ANCHORED to the caller's own RSVP doc, festival_rsvps/{eventId}__{uid},
-    // written in the SAME batch/transaction. The counter may move up OR
-    // down, by exactly the RSVP's headcount delta — never on its own.
-    // This replaces the old publicCounterBump, which let any signed-in
-    // user raise the counters with no RSVP at all (and never lower them).
     function festRsvpPath(eventId) {
       return /databases/$(database)/documents/festival_rsvps/$(eventId + '__' + request.auth.uid);
     }
-    // The festival_rsvps create shape shared by the devotee path
-    // and the REAL-WORLD PACK desk path (expansion-identical —
-    // proof in the batch RULES-DELTA): workspace + event present,
-    // a real party name, headcount 1..20, day choices bounded
-    // (EVENTS P1: at most 14 days), the pinned key set. Identity,
-    // status and the witness remain each clause's own.
+
     function festRsvpShapeOk() {
       return reqWorkspaceId() != ''
         && tkNewGet('eventId', '') != ''
@@ -186,8 +151,7 @@ service cloud.firestore {
     function festBooked(data, slotId) {
       return data.get('slotBooked', {}).get(slotId, 0);
     }
-    // The involved slots move by exactly their share of the RSVP delta,
-    // and never below zero.
+
     function festSlotMoveOk(oldData, newData, slotBefore, slotAfter, hcBefore, hcAfter) {
       return slotBefore == slotAfter
         ? (slotAfter == ''
@@ -197,29 +161,18 @@ service cloud.firestore {
             && festBooked(newData, slotBefore) >= 0
             && festBooked(newData, slotAfter) == festBooked(oldData, slotAfter) + hcAfter);
     }
-    // Capacity: a slot that gains heads may not pass the capacity the
-    // trustee published (slotCaps, stamped onto the event doc from
-    // darshanSlots at publish time). Docs published before this batch
-    // carry no slotCaps map — for them the counters stay anchored and
-    // the booking transaction itself refuses over-capacity bookings.
+
     function festSlotCapacityOk(oldData, newData, slotAfter) {
       return slotAfter == ''
         || !('slotCaps' in newData)
         || festBooked(newData, slotAfter) <= festBooked(oldData, slotAfter)
         || festBooked(newData, slotAfter) <= newData.get('slotCaps', {}).get(slotAfter, 0);
     }
-    // EVENTS P1 — a waitlisted RSVP holds a place in the queue only:
-    // its EFFECTIVE headcount for the public counters is 0 until the
-    // devotee claims a freed place (status → 'confirmed'). Pre-P1
-    // RSVPs carry no status and are confirmed by definition. Every
-    // counter check below runs on effective headcounts, so create /
-    // edit / cancel / join-queue / claim all obey one law.
+
     function festEffHc(data) {
       return data.get('status', 'confirmed') == 'waitlisted' ? 0 : data.get('headcount', 0);
     }
-    // One slot's waitlist queue (uid → joinedAt) may change only by
-    // the caller's own uid joining (+1) or leaving (−1); entries are
-    // never edited in place and nobody else's place may move.
+
     function festWlSlotOk(oldWl, newWl, slotId, uid, delta) {
       let o = oldWl.get(slotId, {});
       let n = newWl.get(slotId, {});
@@ -235,12 +188,7 @@ service cloud.firestore {
               && n.size() + 1 == o.size())
           : n == o;
     }
-    // The whole waitlist map: only the caller's involved slots may
-    // change, each exactly by the caller's own transition. (Queue
-    // ORDER is guarded by the claiming transaction's own re-read;
-    // capacity — the safety property — is enforced here, in
-    // festSlotCapacityOk, so an out-of-order claim can never
-    // overbook a darshan slot.)
+
     function festWaitlistOk(oldData, newData, slotBefore, slotAfter, uid, wasWl, isWl) {
       let oldWl = oldData.get('slotWaitlist', {});
       let newWl = newData.get('slotWaitlist', {});
@@ -250,17 +198,7 @@ service cloud.firestore {
         && festWlSlotOk(oldWl, newWl, slotBefore, uid, slotBefore == slotAfter ? dAfter : dBefore)
         && (slotAfter == slotBefore || festWlSlotOk(oldWl, newWl, slotAfter, uid, dAfter));
     }
-    // The anchored counter core (REAL-WORLD PACK factoring: one
-    // body for both anchors — expansion-identical for the P0
-    // devotee path, proof in the batch RULES-DELTA). The public
-    // counters move only by the anchored party RSVP's effective-
-    // headcount delta. The devotee anchor is the caller's own
-    // RSVP (festRsvpPath, anchorKey ''); the desk anchor is a
-    // desk sale's party RSVP, its identity stamped onto the
-    // update as rsvpAnchorUid and witnessed by its ticket
-    // (tkDeskSaleWitnessOk). With anchorKey '', the extra ''
-    // entry in the key list can never match a real field name,
-    // and the witness conjunct is vacuously true.
+
     function festCounterOk(eventId, rp, uid, anchorKey) {
       let had = exists(rp);
       let has = existsAfter(rp);
@@ -287,16 +225,6 @@ service cloud.firestore {
       return festCounterOk(eventId, festRsvpPath(eventId), request.auth.uid, '');
     }
 
-    // REAL-WORLD PACK — desk (counter) sales. A walk-in may hold
-    // no account at all, so a desk sale's party lives under a
-    // synthetic identity derived from the sale itself: buyerUid
-    // 'desk_' + ticketId. The identity is not a login — no clause
-    // anywhere lets it act (every read/update path keys on a real
-    // request.auth.uid) — and every use below is ALSO witnessed by
-    // the sale's ticket naming the staff caller as recordedBy.
-    // The witness: the party RSVP's own ticket (after-state or
-    // committed) must be a desk sale of this festival, recorded
-    // by the caller, owned by the desk identity the RSVP claims.
     function tkDeskSaleWitnessOk(eventId, auid) {
       let rp = /databases/$(database)/documents/festival_rsvps/$(eventId + '__' + auid);
       let tid = existsAfter(rp) ? afterDocGet(rp, 'ticketId', '') : '';
@@ -310,14 +238,7 @@ service cloud.firestore {
         && tkBuyerOf(tk) == auid
         && tkFestOf(tk) == eventId;
     }
-    // The desk twin of anchoredFestivalCounter: the public
-    // counters may move for a DESK party exactly as for a
-    // devotee's own — by the party's headcount delta, witnessed
-    // by its desk-sale ticket — when the update stamps the desk
-    // identity it answers for (rsvpAnchorUid, the
-    // tierAnchorTicketId pattern). Desk parties are slotless and
-    // confirmed, so the slot/waitlist helpers see a no-op move;
-    // they run anyway — one law for every party.
+
     function anchoredDeskCounter(eventId) {
       let auid = tkNewGet('rsvpAnchorUid', '');
       return festCounterOk(eventId,
@@ -325,20 +246,6 @@ service cloud.firestore {
         auid, 'rsvpAnchorUid');
     }
 
-    // EVENTS E2 — seva-pass ticketing anchors (event_tickets). The
-    // money formulas mirror src/lib/eventTickets.ts line-for-line;
-    // the two change together or not at all. Every cross-document
-    // witness inside a purchase/cancel batch is read with getAfter:
-    // the ticket, the counter move and the wallet move commit
-    // together, so committed-state get() would see none of them.
-    // Compiled-size diet (EVENTS E2, 2026-11-21): shared field-read
-    // and clause-head shapes for the ticketing code below, in the
-    // round-3 getter idiom. Every helper is a verbatim shape match
-    // for the inline form it replaces (full-expansion proof in the
-    // batch NOTES): tkDiff is diffKeysOnly on the request/resource
-    // pair; tkNewGet/tkOldGet are the two doc-side field reads;
-    // tk*Of(m) are one-key reads on an arbitrary map; tkStaffVenue
-    // and tkBuyerGuard are the two repeated allow-clause heads.
     function tkDiff(keys) {
       return diffKeysOnly(request.resource.data, resource.data, keys);
     }
@@ -404,9 +311,7 @@ service cloud.firestore {
       return data.get('paymentState', '') in ['paid-wallet', 'pay-at-venue', 'comp']
         ? data.get('qty', 0) : 0;
     }
-    // The tierSold anchor: the published event doc's sold map may
-    // move only by the witness ticket's effective-qty delta, only
-    // on that ticket's tier, never past the published tierCaps.
+
     function anchoredTierCounter(eventId) {
       let tid = tkNewGet('tierAnchorTicketId', '');
       let tp = ticketPath(tid);
@@ -430,11 +335,7 @@ service cloud.firestore {
             || !(tierId in tkNewGet('tierCaps', {}))
             || soldAfter.get(tierId, 0) <= tkNewGet('tierCaps', {}).get(tierId, 0));
     }
-    // The itemised quote, recomputed from the plan's stamped maps
-    // (festival_plans carries the prices — the public event doc
-    // never carries discount codes, only their hashed terms).
-    // Split into helpers because a rules function may declare at
-    // most 10 variables — tkAmountsOk assembles their results only.
+
     function tkUnitPrice(tk, tierId) {
       let early = tk.get('tierEarly', {}).get(tierId, {});
       return (early.size() > 0 && request.time.toMillis() <= early.get('untilMs', 0))
@@ -475,13 +376,7 @@ service cloud.firestore {
             || (total > 0 && tkStateOf(d) in ['paid-wallet', 'pay-at-venue']))
         && (code == '' || tkCodeOk(tk, code));
     }
-    // Create shape: household linkage (attendance passes name their
-    // party RSVP — the buyer's own doc; add-ons carry neither names
-    // nor an RSVP), per-booking cap from the plan's stamped map.
-    // REAL-WORLD PACK factoring: the rsvpUid parameter is the ONLY
-    // difference between the devotee shape (the caller's own uid)
-    // and the desk shape (the synthetic desk identity) — expansion
-    // proof in the batch RULES-DELTA.
+
     function tkCreateShapeOk(d, plan) {
       return tkShapeOk(d, plan, request.auth.uid);
     }
@@ -504,10 +399,7 @@ service cloud.firestore {
     function tkDeskShapeOk(d, plan) {
       return tkShapeOk(d, plan, tkBuyerOf(d));
     }
-    // The refund percent for a buyer cancel, from the plan ladder
-    // (derived sorted desc, at most 5 rungs, terminal 0-day row) —
-    // walked by bounded index, the rules language has no loops. An
-    // organiser-cancelled festival refunds 100%, fee included.
+
     function tkRefundPct(plan, ev) {
       let lad = tkPlanCfg(plan).get('refundLadder', []);
       let days = (tkPlanCfg(plan).get('startMs', 0) - request.time.toMillis()) / 86400000;
@@ -520,11 +412,7 @@ service cloud.firestore {
         : lad.size() > 4 && days >= tkLadMin(lad, 4) ? tkLadPct(lad, 4)
         : tkLadPct(lad, lad.size() - 1);
     }
-    // Buyer cancel: the only money-moving ticket update a buyer may
-    // make — wallet passes refund exactly the ladder's share of the
-    // total (with the wallet credit + tier release in the same
-    // batch, each anchored on this ticket); everything else simply
-    // releases the place.
+
     function tkBuyerCancelOk() {
       let plan = tkPlanRes();
       let ev = docData(/databases/$(database)/documents/festival_events/$(tkFestOf(resource.data)));
@@ -539,9 +427,7 @@ service cloud.firestore {
           || (ns == 'cancelled'
               && (tkStateOf(resource.data) != 'paid-wallet' || due == 0)));
     }
-    // Transfer accept: the recipient becomes the buyer in the same
-    // transaction that rebinds the RSVP; the festival must not have
-    // begun (the plan's stamped start is the cutoff).
+
     function tkAcceptOk() {
       let plan = tkPlanRes();
       return tkTrStateOf(resource.data) == 'offered'
@@ -554,8 +440,7 @@ service cloud.firestore {
              'transferToUid', 'transferToName', 'transferState', 'offeredAt', 'rsvpId', 'updatedAt'])
         && request.time.toMillis() < tkPlanCfg(plan).get('startMs', 0);
     }
-    // Wallet debit for a pass purchase — the marketplace debit's
-    // twin, anchored on the ticket (getAfter: same batch).
+
     function tkWalletDebitOk() {
       let data = reqData();
       let old = resource.data;
@@ -573,7 +458,7 @@ service cloud.firestore {
         && data.get('balance', -1) >= 0
         && data.get('totalSpent', -1) == old.get('totalSpent', 0) + total;
     }
-    // Wallet refund credit — anchored on the refunded ticket.
+
     function tkWalletRefundOk(uid) {
       let data = reqData();
       let old = resource.data;
@@ -590,9 +475,7 @@ service cloud.firestore {
         && data.get('balance', -1) == old.get('balance', 0) + amt
         && data.get('totalReceived', -1) == old.get('totalReceived', 0) + amt;
     }
-    // Discount-use increment: a purchase batch may raise exactly
-    // its own code's use count by one, under the code's cap,
-    // witnessed by the batch's own tier-anchor ticket.
+
     function anchoredDiscountUse(planId) {
       let oldTk = tkPlanCfg(resource.data);
       let newTk = tkPlanCfg(reqData());
@@ -611,28 +494,12 @@ service cloud.firestore {
         && tkUseCount(newTk, code) == tkUseCount(oldTk, code) + 1
         && (!('maxUses' in cm) || tkUseCount(newTk, code) <= cm.get('maxUses', 0));
     }
-    // EVENTS E8 — the pass-release gate (the TTD pattern): when
-    // the published event doc stamps a release moment
-    // (ticketReleaseAtMs, epoch ms — the stamped-clock idiom), no
-    // pass purchase may commit before it. The stamp is read from
-    // the event doc tkCreateOk already fetches, so the gate costs
-    // no extra read. Absent (pre-E8 docs) or 0 = no gate: the E2
-    // path, unchanged. Mirrors lib/eventTickets' passesOpen.
+
     function tkReleaseOpen(ev) {
       return ev.get('ticketReleaseAtMs', 0) <= 0
         || request.time.toMillis() >= ev.get('ticketReleaseAtMs', 0);
     }
-    // NEXT-LEVEL B1b — the e-dip interlock (the draw for
-    // oversubscribed darshan). A tier is a DIP tier when the
-    // published event doc stamps an entry window for it
-    // (dipOpensAtMs, per tier, epoch ms — the tkReleaseOpen
-    // stamped-clock idiom; absent/0 = not a dip tier, and the
-    // check below is then vacuously true). A direct purchase of
-    // a dip tier stands only when the buyer's own dip entry
-    // stands 'selected' inside the draw's published claim
-    // window (dipDraws[tier].claimByMs, per tier, stamped at
-    // draw time). The entry is read from COMMITTED state — the
-    // draw wrote it long before this purchase began.
+
     function dipPath(festivalId, tierId, uid) {
       return /databases/$(database)/documents/event_dip_entries/$(festivalId + '__' + tierId + '__' + uid);
     }
@@ -648,12 +515,7 @@ service cloud.firestore {
             && ev.get('dipDraws', {}).get(tierId, {}).get('claimByMs', 0)
                  >= request.time.toMillis());
     }
-    // Ticket create: buyer-self only, pinned field shape, the
-    // workspace agreeing on all three docs, shape + amounts checked
-    // against the plan's stamped maps (tkCreateShapeOk/tkAmountsOk).
-    // The three-doc workspace agreement every ticket create
-    // checks (REAL-WORLD PACK factoring — shared by the devotee
-    // and desk create paths, expansion-identical).
+
     function tkDocsAgreeOk(d, ev, plan) {
       return tkWsOf(d) != ''
         && tkFestOf(d) != ''
@@ -675,18 +537,7 @@ service cloud.firestore {
         && tkReleaseOpen(ev)
         && tkDipOk(d, ev);
     }
-    // REAL-WORLD PACK — desk (counter) sale create. A staff member
-    // of the workspace sells a pass to a walk-in (cash in hand,
-    // possibly no account). The bill is recomputed by the SAME
-    // tkAmountsOk the buyer path uses; the differences are the
-    // honesty rails of a desk sale: the buyer identity is the
-    // synthetic desk identity derived from this very ticket id,
-    // the sale is marked (deskSale) and attributed (recordedBy =
-    // the caller), money states are venue/comp only — never
-    // paid-wallet (a desk identity holds no wallet) — a paid sale
-    // is born received at the desk, and discount codes are refused
-    // outright (anchoredDiscountUse can only witness a real buyer;
-    // codes stay a devotee-channel feature).
+
     function tkDeskCreateOk(ticketId) {
       let d = reqData();
       let ev = docData(/databases/$(database)/documents/festival_events/$(tkFestOf(d)));
@@ -709,15 +560,10 @@ service cloud.firestore {
             || (d.get('venueReceived', false) == true
                 && d.get('receivedBy', '') != ''))
         && tkReleaseOpen(ev)
-        // NEXT-LEVEL B1b — a desk sale of a DIP tier is refused
-        // outright: dip places are allotted by the draw alone,
-        // and the synthetic desk identity can never hold an
-        // entry for tkDipOk to witness. A walk-in for a dip
-        // tier is entered into the dip by staff help, never
-        // sold a place at the counter.
+
         && !dipIsDipTier(ev, tkTierOf(d));
     }
-    // The refund ledger line's anchor (walletTransactions create).
+
     function tkRefundLedgerOk() {
       let tk = tkAfterData(ticketPath(reqOrderId()));
       return reqOrderId() != ''
@@ -726,8 +572,7 @@ service cloud.firestore {
         && tkStateOf(tk) == 'refunded'
         && tk.get('refundAmount', 0) == reqAmount();
     }
-    // The giver's RSVP delete inside a transfer-accept transaction,
-    // witnessed by the rebound ticket's after-state.
+
     function festRsvpTransferDeleteOk() {
       let tid = tkOldGet('ticketId', '');
       let tp = ticketPath(tid);
@@ -739,14 +584,10 @@ service cloud.firestore {
         && tkFestOf(tk) == tkOldGet('eventId', '');
     }
 
-    // Canonical role sets (canonical + legacy variants from ROLE_MIGRATION_MAP).
     function R_FINANCE() {
       return ['SuperAdmin', 'SUPER_ADMIN', 'Trustee', 'TRUSTEE', 'Accountant', 'ACCOUNTANT'];
     }
-    // Blueprint B: finance + the read-only Auditor — the oversight
-    // READ set. The Auditor appears in read clauses only, never in
-    // a create/update/delete set: read-only is enforced here in
-    // the rules, not merely by hiding buttons in the UI.
+
     function R_OVERSIGHT() {
       return ['SuperAdmin', 'SUPER_ADMIN', 'Trustee', 'TRUSTEE', 'Accountant', 'ACCOUNTANT', 'Auditor', 'AUDITOR'];
     }
@@ -761,11 +602,6 @@ service cloud.firestore {
               'Accountant', 'ACCOUNTANT', 'Priest', 'PRIEST', 'PUROHIT', 'Sevadar', 'SEVADAR', 'VOLUNTEER'];
     }
 
-    // Compiled-size diet (2026-10-27): shared literal sets. The compiled
-    // ruleset must stay under Firebase's 256,000-byte executable cap; a
-    // literal list is compiled at every use site, a function body once.
-    // Each helper returns exactly the list it replaces - no rule changes
-    // meaning; verified by inverse expansion against the previous file.
     function R_TRUSTEE() {
       return ['SuperAdmin', 'SUPER_ADMIN', 'Trustee', 'TRUSTEE'];
     }
@@ -794,10 +630,6 @@ service cloud.firestore {
       return ['families', 'guests', 'annadanam', 'gurukulStudents', 'campaigns', 'shifts', 'checkIns', 'festivals', 'residentPujas', 'pitruRecords', 'check_ins'];
     }
 
-    // Compiled-size diet, round 2 (2026-10-28): shared expression shapes.
-    // bumpToggleOk / bumpUpOk pin the counter patterns used across the
-    // social and events blocks: exactly one counter moves by exactly one
-    // step (toggle: +-1, never below 0; up: +1 only), nothing else changes.
     function bumpToggleOk(field) {
       return diffKeys().hasOnly([field])
         && tkNewGet(field, -1) >= 0
@@ -808,31 +640,19 @@ service cloud.firestore {
       return diffKeys().hasOnly([field])
         && tkNewGet(field, 0) == tkOldGet(field, 0) + 1;
     }
-    // diffKeysOnly: the affected-keys guard, factored - the diff chain is
-    // identical at dozens of sites; only the two maps and the key list vary.
+
     function diffKeysOnly(newData, oldData, keys) {
       return newData.diff(oldData).affectedKeys().hasOnly(keys);
     }
-    // diffKeys: the request-vs-resource affected-keys set itself, for
-    // branches that test it with hasAny/hasOnly directly (JY-FIX-B
-    // compiled-size factoring — the expansion is token-identical to
-    // the inline chain it replaces).
+
     function diffKeys() {
       return request.resource.data.diff(resource.data).affectedKeys();
     }
-    // E5 diet round 4: the incoming doc's key set, for the many
-    // keys().hasOnly / hasAll guards (expansion token-identical).
+
     function reqKeys() {
       return request.resource.data.keys();
     }
-    // Compiled-size diet, round 3 (2026-11-01): shared field-read and
-    // identity shapes - the docWs()/newDocWs() pattern applied
-    // systematically. Each getter replaces an identical literal
-    // .get('field', default) chain; isSelf / uidIs factor the two
-    // uid-equality shapes; the req*Doc() helpers factor the
-    // cross-document lookups keyed by the incoming document. Every
-    // expansion is token-identical to the inline form it replaces
-    // (full-expansion proof: staging diet3 NOTES).
+
     function isSelf(x) {
       return isLoggedIn() && request.auth.uid == x;
     }
@@ -840,10 +660,6 @@ service cloud.firestore {
       return x == request.auth.uid;
     }
 
-    // Compiled-size diet, round 5 (2026-11-23): shared expression shapes
-    // for auction headroom. Each helper returns exactly the expression
-    // it replaces at every call site - no rule changes meaning;
-    // verified by inverse expansion against the previous file.
     function docGet(p, k, dv) {
       return get(p).data.get(k, dv);
     }
@@ -956,9 +772,7 @@ service cloud.firestore {
     function resExpiresAtTs() {
       return tkOldGet('expiresAtTs', null);
     }
-    // rsvpWithinCap: an RSVP +1 respects capacity - allowed when the event
-    // has no capacity set, a non-positive capacity (treated as unset), or
-    // room still remains under the cap.
+
     function rsvpWithinCap() {
       return !('capacity' in resource.data) || tkOldGet('capacity', 0) <= 0
         || reqRsvpCount() <= tkOldGet('capacity', 0);
@@ -976,15 +790,11 @@ service cloud.firestore {
       return ['id', 'uid', 'name', 'reflection', 'coverVaultUrl', 'createdAt'];
     }
 
-    // 2. Platform admin registry (server-managed via Admin SDK only)
     match /platform_admins/{adminId} {
       allow read: if isSuperAdmin();
       allow write: if false;
     }
 
-    // Delegated platform admins (QUEUED #21) — client-managed registry.
-    // DISTINCT from /platform_admins: a doc here NEVER confers
-    // isSuperAdmin(); it only gates the GodMode console UI.
     match /platformAdmins/{adminUid} {
       allow read: if isOwner()
         || (isSelf(adminUid));
@@ -999,7 +809,7 @@ service cloud.firestore {
     }
 
     match /platform_leads/{leadId} {
-      allow create: if true; // public lead-capture form
+      allow create: if true;
       allow read, update: if isSuperAdmin() || isOwner();
       allow delete: if isSuperAdmin();
     }
@@ -1009,50 +819,36 @@ service cloud.firestore {
       allow write: if isSuperAdmin();
     }
 
-    // 3. User profiles â owner or SuperAdmin only.
     match /users/{userId} {
       allow read: if isLoggedIn() && (request.auth.uid == userId || isSuperAdmin() || isOwner());
       allow create: if isSelf(userId)
         && !reqKeys().hasAny(['admin', 'isGlobalAdmin', 'status', 'tenantId',
-          // Step 8: soft-ban fields are owner-write-only
+
           'suspended', 'suspendReason', 'suspendedAt', 'suspendedBy'])
         && (
-          // DEMO sandbox: may self-claim a demo workspace + starter role
+
           isDemoWs(newDocWs())
-          // Standard registration: no privilege or tenant claims at all
+
           || !reqKeys().hasAny(['role', 'workspaceId', 'defaultWorkspaceId', 'membership'])
         );
       allow update: if isSuperAdmin() || (
         isSelf(userId)
         && !diffKeys()
             .hasAny(['admin', 'isGlobalAdmin', 'status', 'tenantId', 'role', 'workspaceId', 'defaultWorkspaceId', 'membership',
-              // Step 8: soft-ban fields are owner-write-only
+
               'suspended', 'suspendReason', 'suspendedAt', 'suspendedBy'])
       )
-        // Step 8: owner-only soft-ban writes — suspension fields and nothing else
+
         || (isOwner()
           && diffKeys()
               .hasOnly(['suspended', 'suspendReason', 'suspendedAt', 'suspendedBy', 'updatedAt']));
       allow delete: if false;
     }
 
-    // FCM device tokens for push delivery. Each user manages only their own
     match /users/{userId}/fcmTokens/{tokenId} {
       allow read, write: if isSelf(userId);
     }
 
-    // NEXT-LEVEL A1 — user follows (the subscribable temple
-    // calendar). *** NEW COLLECTION: user_follows *** — ONE doc
-    // per user, id = their uid, holding the temples (workspace
-    // ids) and festival series (plan ids) they follow. It is the
-    // devotee's OWN list: nobody else may read it — who follows
-    // what is never public information (follower COUNTS live on
-    // the org side, followers/{orgId}/users, never here). The
-    // shape is pinned: exactly the two id lists + a numeric
-    // updatedAt (the orgPages Date.now() convention). Lists are
-    // string lists by the client's construction; per this file's
-    // list convention (festival_rsvps days, ticket attendees)
-    // the rule pins list-ness and the 200 cap.
     match /user_follows/{uid} {
       function followsShapeOk() {
         return reqKeys().hasOnly(['orgIds', 'festivalIds', 'updatedAt'])
@@ -1070,32 +866,28 @@ service cloud.firestore {
       allow delete: if isSelf(uid);
     }
 
-    // 4. Tenant partitions
     match /tenants/{tenantId} {
-      allow read: if true; // public discovery
+      allow read: if true;
       allow create: if isSuperAdmin();
       allow update: if hasRole(tenantId, R_TRUSTEE())
         && diffKeys()
             .hasOnly(['name', 'city', 'state', 'country', 'type', 'logoUrl', 'tagline', 'updatedAt']);
       allow delete: if isSuperAdmin();
 
-      // Sensitive tenant fields (bank details, tax ids, keys) â restricted.
       match /private/{docId} {
         allow read, write: if hasRole(tenantId, R_TRUSTEE());
       }
 
-      // Curated public profile mirror for discovery clients.
       match /publicProfile/{docId} {
         allow read: if true;
         allow write: if hasRole(tenantId, R_TRUSTEE());
       }
 
-      // Tenant-scoped financial ledger (path-param tenant).
       match /treasury/{docId} {
         allow read: if demoPublicRead(tenantId) || hasRole(tenantId, R_OVERSIGHT());
         allow create: if demoWriteOk(tenantId) || hasRole(tenantId, R_FINANCE());
         allow update: if (demoWriteOk(tenantId) || hasRole(tenantId, R_FINANCE()));
-        allow delete: if false; // append-only fiduciary ledger
+        allow delete: if false;
       }
 
       match /devotees/{docId} {
@@ -1111,32 +903,23 @@ service cloud.firestore {
       }
     }
 
-    // 5. Workspace documents (client-managed workspaces collection)
     match /workspaces/{workspaceId} {
-      // NOTE: adminPinHash may only ever be written via the server
+
       allow read: if isTenantMember(workspaceId) || isOwner();
-      // Anonymous (demo) sessions cannot create real workspaces â must sign in
+
       allow create: if isLoggedIn() && !isAnonymous()
         && !reqKeys().hasAny(['adminPinHash', 'adminPin']);
-      // Owner (Spark-native console) may change plan + limits-bypass fields only â never pins.
+
       allow update: if (isOwner()
           && tkDiff(['planId', 'limitsBypassed', 'updatedAt']))
         || ((demoWriteOk(workspaceId) || hasRole(workspaceId, R_TRUSTEE()))
           && !diffKeys().hasAny(['adminPinHash', 'adminPin']))
-        // POLLS NEXT-LEVEL P2b: poll templates live on the workspace
-        // doc (where workspace configuration already lives) as a
-        // pollTemplates array — question shapes only, never votes.
-        // The full poll committee (R_BOARD, incl. Manager — the set
-        // that may create polls) manages them through this
-        // field-pinned path and gains no other workspace write.
+
         || (hasRole(workspaceId, R_BOARD())
           && tkDiff(['pollTemplates', 'updatedAt']));
       allow delete: if isSuperAdmin();
     }
 
-    // 6. Root collections (keyed by `workspaceId` field) â deny by default
-
-    // Financial ledger â append-only. Demo workspaces are blocked from writing
     match /treasury/{docId} {
       allow read: if demoPublicRead(docWs())
         || hasRole(docWs(), R_OVERSIGHT())
@@ -1175,14 +958,6 @@ service cloud.firestore {
       allow delete: if false;
     }
 
-    // SECURITY P1 — receiptCounters/{workspaceId}_{series}_{year}:
-    // the server anchor for receipt numbering (Finding 5). One doc per
-    // workspace + series + year holding the highest official receipt
-    // sequence issued. Finance roles (or demo writers in a demo
-    // workspace) seed it once from the known maximum and advance it;
-    // the counter may only ever move FORWARD, so two devices claiming
-    // inside transactions can never be handed the same number. Nobody
-    // may delete a counter -- the sequence is part of the audit record.
     match /receiptCounters/{counterId} {
       allow read: if resource == null
         || hasRole(tkOldGet('workspaceId', ''), R_OVERSIGHT());
@@ -1199,7 +974,6 @@ service cloud.firestore {
       allow delete: if false;
     }
 
-    // Devotee PII â read: any tenant member; write: staff roles only
     match /devotees/{devoteeId} {
       allow read: if demoPublicRead(docWs()) || isTenantMember(docWs())
         || uidIs(tkOldGet('userId', '')) || uidIs(devoteeId);
@@ -1232,16 +1006,13 @@ service cloud.firestore {
       allow delete: if hasRole(docWs(), R_TRUSTEE());
     }
 
-    // Pillar 2 â Festival war-room (market domination).
     match /festival_plans/{planId} {
       allow read: if demoPublicRead(docWs()) || isTenantMember(docWs());
       allow create: if (demoWriteOk(newDocWs()) || hasRole(newDocWs(), R_STAFF()))
         && (resource == null || wsImmutable());
       allow update: if ((demoWriteOk(newDocWs()) || hasRole(newDocWs(), R_STAFF()))
           && wsImmutable())
-        // EVENTS E2: a buyer's purchase batch may raise exactly its
-        // own discount code's use count (anchoredDiscountUse) —
-        // nothing else in the plan is reachable by a non-staff write.
+
         || (isLoggedIn() && anchoredDiscountUse(planId));
       allow delete: if hasRole(docWs(), R_TRUSTEE());
     }
@@ -1254,11 +1025,9 @@ service cloud.firestore {
       allow update: if demoWriteOk(docWs())
         || hasRole(docWs(), R_BOARD())
         || (isLoggedIn() && wsImmutable() && anchoredFestivalCounter(eventId))
-        // EVENTS E2: the tierSold anchor — sold counts move only
-        // with a witness ticket's purchase / cancel (same batch).
+
         || (isLoggedIn() && wsImmutable() && anchoredTierCounter(eventId))
-        // REAL-WORLD PACK: the desk-sale counter anchor — a desk
-        // party's headcount move, witnessed by its desk-sale ticket.
+
         || (isLoggedIn() && wsImmutable() && anchoredDeskCounter(eventId));
       allow delete: if hasRole(docWs(), R_TRUSTEE());
     }
@@ -1268,19 +1037,11 @@ service cloud.firestore {
         || (loggedUidIs(resUid()));
       allow create: if loggedUidIs(reqUid())
         && festRsvpShapeOk()
-        // EVENTS P1: optional waitlist status.
+
         && tkNewGet('status', 'confirmed') in ['confirmed', 'waitlisted']
-        // EVENTS P0: the doc id is derived ({eventId}__{uid}) so the
-        // festival_events counter rule can find THIS RSVP as its anchor.
+
         && rsvpId == request.resource.data.get('eventId', '') + '__' + request.auth.uid;
-      // REAL-WORLD PACK — a desk sale's party record: created by a
-      // staff member for a walk-in under the synthetic desk identity
-      // (uid 'desk_' + ticketId), witnessed by the sale's own ticket
-      // (tkDeskSaleWitnessOk). Every shape law of the devotee path
-      // above applies — name, headcount, the pinned key set, the
-      // derived doc id — with one tightening: a desk party is
-      // always confirmed (it holds a paid or blessed pass; the
-      // waitlist is a devotee-channel queue).
+
       allow create: if isLoggedIn()
         && hasRole(reqWorkspaceId(), R_ANY_STAFF())
         && reqUid().matches('desk_.+')
@@ -1290,95 +1051,69 @@ service cloud.firestore {
         && tkDeskSaleWitnessOk(tkNewGet('eventId', ''), reqUid());
       allow update: if (loggedUidIs(resUid())
           && tkDiff(['headcount', 'slotId', 'days', 'status'])
-          // EVENTS P1: the owner may move status ONLY waitlisted →
-          // confirmed (claiming a freed place — the counters move in
-          // the same transaction, anchored on the event doc). Giving
-          // up a confirmed place happens by deleting the RSVP, never
-          // by a status flip the counters cannot see.
+
           && (tkNewGet('status', 'confirmed') == tkOldGet('status', 'confirmed')
               || (tkOldGet('status', 'confirmed') == 'waitlisted'
                   && reqStatus() == 'confirmed')))
         || hasRole(docWs(), R_TRUSTEE());
       allow delete: if (loggedUidIs(resUid()))
         || hasRole(docWs(), R_TRUSTEE())
-        // EVENTS E2: inside a transfer-accept transaction the
-        // RECIPIENT deletes the giver's party record — witnessed by
-        // the rebound ticket (festRsvpTransferDeleteOk).
+
         || (isLoggedIn() && festRsvpTransferDeleteOk());
     }
 
-    // EVENTS E2 — seva passes (NEW COLLECTION, flagged to the owner
-    // in advance). One record per purchase: the buyer, every named
-    // attendee, the itemised amounts and the payment state. Created
-    // only by the buyer for themselves, with the quote recomputed
-    // here from the plan's stamped maps; updates are the legal
-    // one-way transitions only, each key-pinned; deletes denied —
-    // a pass is cancelled or refunded, never erased.
     match /event_tickets/{ticketId} {
       allow read: if isLoggedIn()
         && (uidIs(tkOldGet('buyerUid', ''))
           || tkIsTransferTo()
           || hasRole(docWs(), R_ANY_STAFF()));
       allow create: if isLoggedIn() && tkCreateOk();
-      // REAL-WORLD PACK — a staff-witnessed desk (counter) sale:
-      // the walk-in holds no account; the ticket is owned by the
-      // synthetic desk identity and attributed to the caller.
+
       allow create: if isLoggedIn() && tkDeskCreateOk(ticketId);
-      // Buyer cancel / wallet refund (the ladder decides the amount).
+
       allow update: if tkBuyerGuard()
         && tkBuyerCancelOk();
-      // Buyer offers a transfer (live passes only).
+
       allow update: if tkBuyerGuard()
         && tkStateOf(resource.data) in ['paid-wallet', 'pay-at-venue', 'comp']
         && tkTrStateOf(reqData()) == 'offered'
         && tkNewGet('transferToUid', '') != ''
         && tkNewGet('transferToUid', '') != tkBuyerOf(resource.data)
         && tkDiff(['transferToUid', 'transferToName', 'transferState', 'offeredAt', 'updatedAt']);
-      // Buyer withdraws an offer / dismisses a decline.
+
       allow update: if tkBuyerGuard()
         && tkTrStateOf(resource.data) in ['offered', 'declined']
         && !('transferToUid' in reqData())
         && tkDiff(['transferToUid', 'transferToName', 'transferState', 'offeredAt', 'updatedAt']);
-      // Recipient declines.
+
       allow update: if isLoggedIn() && tkIsTransferTo()
         && tkTrStateOf(resource.data) == 'offered'
         && tkTrStateOf(reqData()) == 'declined'
         && tkDiff(['transferState', 'updatedAt']);
-      // Recipient accepts (rebinds buyer + RSVP link, before the start).
+
       allow update: if isLoggedIn() && tkAcceptOk();
-      // Staff mark pay-at-venue money received at the desk.
+
       allow update: if tkStaffVenue()
         && tkNewGet('venueReceived', false) == true
         && tkDiff(['venueReceived', 'receivedBy', 'receivedAt', 'updatedAt']);
-      // Staff desk-refund of a RECEIVED venue payment (full total;
-      // the treasury Expense posts through the app path).
+
       allow update: if tkStaffVenue()
         && tkOldGet('venueReceived', false) == true
         && tkStateOf(reqData()) == 'refunded'
         && tkNewGet('refundAmount', 0) == tkTotalOf(resource.data)
         && tkDiff(['paymentState', 'refundAmount', 'refundedAt', 'updatedAt']);
-      // Staff desk-cancel of an UNRECEIVED venue pass.
+
       allow update: if tkStaffVenue()
         && tkOldGet('venueReceived', false) != true
         && tkStateOf(reqData()) == 'cancelled'
         && tkDiff(['paymentState', 'updatedAt']);
-      // Staff treasury stamp (the real tx id, after posting income).
+
       allow update: if hasRole(docWs(), R_ANY_STAFF())
         && tkNewGet('treasuryTxId', '') != ''
         && tkDiff(['treasuryTxId', 'treasuryPostedAt', 'updatedAt']);
       allow delete: if false;
     }
 
-    // EVENTS E5 — attendee feedback (NEW COLLECTION, flagged to the
-    // owner in advance). One record per attendee per festival, id
-    // {festivalId}__{authorUid}. Only a devotee the gate actually
-    // checked in may write one — creation is witnessed by their own
-    // festival_rsvps record (fbAttendedOk). Free text is visible
-    // ONLY to the author and the org's staff; the public festival
-    // page can only ever carry the aggregates the committee
-    // publishes onto the festival_events doc (feedbackSummary — a
-    // shape that cannot hold a name). Moderation is a state, never
-    // a delete: the record is the trail.
     function fbRatingOk(v) {
       return v is int && v >= 1 && v <= 5;
     }
@@ -1441,11 +1176,6 @@ service cloud.firestore {
       allow delete: if false;
     }
 
-    // NEXT-LEVEL B1b — e-dip entry witnesses (event_dip_entries).
-    // Create: the devotee enters THEMSELVES, under the derived
-    // doc id, inside the festival doc's stamped window (the
-    // tkReleaseOpen pattern — the window lives on the public
-    // event doc; the per-booking cap on the plan's stamped maps).
     function dipEntryCreateOk(entryId) {
       let d = reqData();
       let ev = docData(/databases/$(database)/documents/festival_events/$(tkNewGet('festivalId', '')));
@@ -1475,11 +1205,7 @@ service cloud.firestore {
         && request.time.toMillis() >= opens
         && request.time.toMillis() <= closes;
     }
-    // Staff move the standings the draw produces — nothing else:
-    // entered → selected | waitlisted (the draw), waitlisted →
-    // selected (a promotion), selected → lapsed (an unclaimed
-    // place, after its window). A published position, when the
-    // after-state carries one, is a positive number.
+
     function dipStaffUpdateOk() {
       let os = tkOldGet('status', '');
       let ns = tkNewGet('status', '');
@@ -1490,12 +1216,7 @@ service cloud.firestore {
             || (os == 'selected' && ns == 'lapsed'))
         && (tkNewGet('dipPosition', 1) is number && tkNewGet('dipPosition', 1) >= 1);
     }
-    // The claim: the entry's owner buys their selected place and
-    // the SAME batch flips the entry to 'claimed'. The witness
-    // is the purchase itself — the event doc's after-state
-    // anchor names the batch's ticket (the anchoredTierCounter
-    // idiom), and that ticket must be the entry owner's own,
-    // for this festival and tier, in a live money state.
+
     function dipClaimConsumeOk() {
       let evAfter = tkAfterData(/databases/$(database)/documents/festival_events/$(tkOldGet('festivalId', '')));
       let tp = ticketPath(evAfter.get('tierAnchorTicketId', ''));
@@ -1509,9 +1230,7 @@ service cloud.firestore {
         && tkTierOf(tk) == tkOldGet('tierId', '')
         && tkStateOf(tk) in ['paid-wallet', 'pay-at-venue', 'comp'];
     }
-    // Withdraw: the owner takes their own name out — only while
-    // the entry still stands 'entered' and the stamped window
-    // has not closed. After that the entry is the draw's record.
+
     function dipWithdrawOk() {
       let ev = docData(/databases/$(database)/documents/festival_events/$(tkOldGet('festivalId', '')));
       let closes = ev.get('dipClosesAtMs', {}).get(tkOldGet('tierId', ''), 0);
@@ -1520,15 +1239,7 @@ service cloud.firestore {
         && closes > 0
         && request.time.toMillis() <= closes;
     }
-    // NEXT-LEVEL B1b — e-dip entries (NEW COLLECTION, flagged to
-    // the owner in advance). One entry per devotee per tier by
-    // doc-id construction ({festivalId}__{tierId}__{uid}): the
-    // household party that hopes for a place on an oversubscribed
-    // tier. Created by the devotee inside the stamped window;
-    // standings move only by staff (the draw, promotions) or by
-    // the owner's own witnessed claim purchase; deleted only by
-    // the owner withdrawing while the window stands open — after
-    // that the record is the audit, and staff delete is denied.
+
     match /event_dip_entries/{entryId} {
       allow read: if isSuperAdmin()
         || (loggedUidIs(tkOldGet('uid', '')))
@@ -1539,17 +1250,6 @@ service cloud.firestore {
       allow delete: if isLoggedIn() && dipWithdrawOk();
     }
 
-    // AUCTION A1 (2026-11-23) — Nilam auction & allotment lots. The
-    // lot doc is the defensible record of a hall/public auction and is
-    // staff-read only (bidder phones and ID references live on it; the
-    // public sees the Transparency-Board result card, never the lot).
-    // Writes follow the desk gate (SuperAdmin / Trustee / Manager /
-    // Accountant). The valuation gate keeps a lot from leaving draft
-    // without a basis; the sanction gate is enforced here for the
-    // classes that demand it; settlement tx ids are append-only; the
-    // notice freezes once published and the outcome once accepted;
-    // registrations / objections / affixtures never shrink and
-    // registrations are capped at 100 (the bounded-array decision).
     function lotTxFrozen(o, d, k) {
       return o.settlement.get(k, '') == ''
         || d.settlement.get(k, '') == o.settlement.get(k, '');
@@ -1604,17 +1304,6 @@ service cloud.firestore {
       allow update: if (lotWriteGate(newDocWs())) && lotUpdateOk();
       allow delete: if false;
 
-      // AUCTION A2 — sealed bids, one doc per bidder (the doc id
-      // IS the bidder's uid: a second live bid is impossible by
-      // construction, and replace/withdraw are the bidder's own
-      // writes on that one doc). Before the lot's stored close
-      // clock — the notice's auctionAt, frozen with the notice so
-      // the deadline cannot be quietly moved (the Sabarimala
-      // lesson) — a bid answers ONLY to its own bidder: not other
-      // bidders, not the committee, not staff. After the close,
-      // the lot's board/finance roles may read them: the opening.
-      // "Sealed" means exactly this — hidden until the opening
-      // moment; no cryptographic sealing is claimed or run.
       match /bids/{bidId} {
         allow read: if isSuperAdmin() || uidIs(tkOldGet('bidderUid', '')) || bidReadOk(lotId);
         allow create: if isLoggedIn() && bidCreateOk(lotId, bidId);
@@ -1629,10 +1318,7 @@ service cloud.firestore {
     function lotCloseOf(l) {
       return l.get('notice', {}).get('auctionAt', 0);
     }
-    // The sealed window stands open only while the lot is 'open',
-    // sealed-mode, and the close clock has not passed. A lot with
-    // no notice carries auctionAt 0, and no request time is < 0 —
-    // the window can never stand open on an unnoticed lot.
+
     function lotSealedWindowOpen(l) {
       return l.get('status', '') == 'open'
         && l.get('lotMode', 'hall') == 'sealed'
@@ -1648,15 +1334,12 @@ service cloud.firestore {
         && tkNewGet('amount', 0) > 0
         && reqKeys().hasOnly(['bidderUid', 'amount', 'createdAt', 'updatedAt']);
     }
-    // Replace + withdraw share one head: the bid's own bidder,
-    // while the window still stands. After the close both are
-    // refused — a sealed bid is irrevocable once the window shuts.
+
     function bidOwnWindowOk(lotId) {
       return uidIs(tkOldGet('bidderUid', ''))
         && lotSealedWindowOpen(docData(lotPath(lotId)));
     }
-    // The committee's first lawful look: the close clock has
-    // passed on a lot that carries one.
+
     function bidReadOk(lotId) {
       let l = docData(lotPath(lotId));
       return lotCloseOf(l) > 0
@@ -1666,14 +1349,6 @@ service cloud.firestore {
             || demoPublicRead(l.get('workspaceId', '')));
     }
 
-
-    // EVENTS P1 — Utsav One team sharing. Until now the whole Utsav
-    // committee plan lived in ONE device's localStorage; the War Room
-    // proved the mirror pattern (festival_plans) and Utsav follows
-    // it: one doc per workspace holding the store snapshot, newer
-    // edit wins on both sides. Committee plans are working papers —
-    // member-only reads; staff of THAT workspace write.
-    // *** NEW COLLECTION: utsav_stores ***
     match /utsav_stores/{workspaceId} {
       allow read: if demoPublicRead(workspaceId) || isTenantMember(workspaceId);
       allow create, update: if (demoWriteOk(workspaceId) || hasRole(workspaceId, R_STAFF()))
@@ -1682,7 +1357,6 @@ service cloud.firestore {
       allow delete: if hasRole(workspaceId, R_TRUSTEE());
     }
 
-    // Inventory & assets
     match /inventory_items/{itemId} {
       allow read: if demoPublicRead(docWs()) || isTenantMember(docWs());
       allow create, update: if (demoWriteOk(newDocWs()) || hasRole(newDocWs(), R_ANY_STAFF())) && (resource == null || wsImmutable());
@@ -1704,7 +1378,6 @@ service cloud.firestore {
       allow delete: if hasRole(docWs(), R_TRUSTEE());
     }
 
-    // Goshala / Dharamshala operations
     match /cows/{cattleId} {
       allow read: if demoPublicRead(docWs()) || isTenantMember(docWs());
       allow create, update: if (demoWriteOk(newDocWs()) || hasRole(newDocWs(), R_STAFF())) && (resource == null || wsImmutable());
@@ -1726,7 +1399,6 @@ service cloud.firestore {
       allow delete: if hasRole(docWs(), R_TRUSTEE());
     }
 
-    // One-time QR login pairing tokens â bearer-token pattern (Spark-plan,
     match /qrPairTokens/{tokenId} {
       allow create: if isLoggedIn()
         && reqKeys().hasAll(['memberId', 'workspaceId', 'role', 'expiresAt'])
@@ -1740,7 +1412,6 @@ service cloud.firestore {
       allow list, update: if false;
     }
 
-    // Generic operational collections (annadanam, campaigns, check-ins...)
     match /{collection}/{docId} {
       allow read: if collection in UTSAV_COLLECTIONS()
         && (demoPublicRead(docWs()) || isTenantMember(docWs()));
@@ -1752,7 +1423,6 @@ service cloud.firestore {
         && hasRole(docWs(), R_TRUSTEE());
     }
 
-    // Audit logs â append-only, actor-bound. Owner gets full read + write
     match /audit_logs/{logId} {
       allow read: if isOwner() || demoPublicRead(docWs()) || hasRole(docWs(), R_FINANCE());
       allow create: if (isOwner() && uidIs(tkNewGet('actorUid', '')))
@@ -1761,7 +1431,6 @@ service cloud.firestore {
       allow update, delete: if false;
     }
 
-    // Verification applications â owner-reviewed, never client-writable beyond apply.
     match /verificationApplications/{appId} {
       allow read: if isSuperAdmin() || isOwner();
       allow create: if loggedUidIs(tkNewGet('applicantUid', ''))
@@ -1770,7 +1439,6 @@ service cloud.firestore {
       allow delete: if false;
     }
 
-    // Moderation reports â reporter can file, only owner sees and acts.
     match /moderationReports/{reportId} {
       allow read: if isSuperAdmin() || isOwner();
       allow create: if loggedUidIs(tkNewGet('reporterUid', ''));
@@ -1778,50 +1446,35 @@ service cloud.firestore {
       allow delete: if false;
     }
 
-    // Moderation hide directives â read-only for clients, enforced in UI.
     match /moderationHides/{hideId} {
       allow read: if isLoggedIn();
       allow create, update: if isOwner();
       allow delete: if false;
     }
 
-    // Reminder queue -- scheduler writes via Admin SDK; recipients read
-    // their own items and may mark them sent (status field only).
     match /reminderQueue/{reminderId} {
-      // Field alignment (owner-approved 2026-10-20): the server scheduler
-      // writes ownerUid (samskara/shraddha routes) while the client drain
-      // keys targetUid -- an item belongs to the recipient when EITHER
-      // field names them.
+
       allow read: if isLoggedIn()
         && (uidIs(tkOldGet('targetUid', ''))
           || uidIs(tkOldGet('ownerUid', '')));
-      // The recipient may mark their own item sent -- the status field
-      // only, set to 'sent'; nothing else may change.
+
       allow update: if isLoggedIn()
         && (uidIs(tkOldGet('targetUid', ''))
           || uidIs(tkOldGet('ownerUid', '')))
         && tkDiff(['status'])
         && reqStatus() == 'sent';
-      allow create, delete: if false; // scheduler writes via Admin SDK only
+      allow create, delete: if false;
     }
 
-    // ---- Manual billing (bKash / Nagad / UPI / PhonePe) ----
     match /paymentMethods/{methodId} {
       allow read: if true;
-      allow create, update, delete: if isOwner(); // owner writes via Admin SDK only
+      allow create, update, delete: if isOwner();
     }
 
-    // Payment claims: any authenticated member files their own claim; only the
     match /paymentClaims/{claimId} {
       allow read: if isSuperAdmin() || isOwner()
         || (loggedUidIs(tkOldGet('applicantUid', '')))
-        // QUEUED #54 (owner-approved companion): the org's own finance
-        // roles may read claims filed for their workspace, so Settings →
-        // Billing history can list the org's claims (query
-        // where('workspaceId','==',wsId)) alongside its upgrade requests.
-        // hasRole ANDs tenant membership, so cross-org reads stay
-        // impossible; claims with workspaceId 'personal' fail closed
-        // (hasRole('personal', …) is false) and remain applicant-only.
+
         || (isLoggedIn() && hasRole(tkOldGet('workspaceId', ''), R_FINANCE()));
       allow create: if loggedUidIs(tkNewGet('applicantUid', ''))
         && reqStatus() == 'pending';
@@ -1829,7 +1482,6 @@ service cloud.firestore {
       allow delete: if false;
     }
 
-    // Subscriptions: readable by owner or workspace members; owner activates
     match /subscriptions/{workspaceId} {
       allow read: if isSuperAdmin() || isOwner()
         || (isSelf(workspaceId))
@@ -1838,26 +1490,12 @@ service cloud.firestore {
       allow delete: if false;
     }
 
-    // Workspace treasury summaries (QUEUED #40 design; owner-approved
-    // 2026-10-22): one maintained aggregate doc per workspace so large
-    // orgs get exact money totals without full-ledger reads. The doc
-    // carries its own workspaceId field (newDocWs/wsImmutable pin it).
-    // Finance roles of that workspace only — member-level read would
-    // leak treasury totals; delete is never allowed.
     match /workspaceSummaries/{workspaceId} {
       allow read: if demoPublicRead(workspaceId) || hasRole(workspaceId, R_OVERSIGHT());
       allow create, update: if hasRole(newDocWs(), R_FINANCE()) && (resource == null || wsImmutable());
       allow delete: if false;
     }
 
-    // Master audit stream (Blueprint A): append-only, hash-chained
-    // auditEvents written by the data layer at every commit point
-    // (treasury, devotees, bookings, inventory, settings, sample
-    // purge, publish/unpublish). A member may only ever write events
-    // AS THEMSELVES (actorUid == request.auth.uid — no impersonation),
-    // and no one can update or delete an event: the stream is the
-    // forensic record. Reads are finance/oversight roles of that
-    // workspace (a member-level read would expose everyone's history).
     match /auditEvents/{eventId} {
       allow read: if demoPublicRead(docWs()) || hasRole(docWs(), R_OVERSIGHT());
       allow create: if (demoWriteOk(newDocWs()) || isTenantMember(newDocWs()))
@@ -1865,30 +1503,12 @@ service cloud.firestore {
       allow update, delete: if false;
     }
 
-    // Cash custody sync (owner-approved 2026-10-23): ONE maintained
-    // state doc per workspace (boxes, sessions, the SHA-256 custody
-    // chain, deposit slips, roster) written by the Cash Custody desk
-    // so custody survives device loss and oversight can review from
-    // a second device. The doc carries its own workspaceId field
-    // (newDocWs/wsImmutable pin it) and the writer pins savedByUid
-    // to themselves — no syncing a state copy as someone else.
-    // Finance roles write; oversight roles read (R_OVERSIGHT
-    // includes the read-only Auditor — visibility, never a write);
-    // delete is never allowed: the custody record is evidence. The
-    // client treats this copy as fail-open — the on-device copies
-    // stay canonical whenever the cloud path is unavailable.
     match /cashCustodyStates/{workspaceId} {
       allow read: if demoPublicRead(workspaceId) || hasRole(workspaceId, R_OVERSIGHT());
       allow create, update: if hasRole(newDocWs(), R_FINANCE()) && (resource == null || wsImmutable()) && uidIs(tkNewGet('savedByUid', ''));
       allow delete: if false;
     }
 
-    // Published monthly accounts (Blueprint A): the public
-    // Transparency Board. A document exists ONLY because a finance
-    // role published that month — unpublished months have no
-    // document at all — so reads are public, like orgPages. Publish,
-    // republish and unpublish (delete) are finance roles of that
-    // workspace; update keeps the workspaceId pinned (wsImmutable).
     match /publishedAccounts/{docId} {
       allow read: if true;
       allow create: if hasRole(newDocWs(), R_FINANCE());
@@ -1896,20 +1516,6 @@ service cloud.firestore {
       allow delete: if hasRole(docWs(), R_FINANCE());
     }
 
-    // Maker-checker approvals (Blueprint B): sensitive changes
-    // (treasury payouts at/above the workspace threshold, payment
-    // detail changes, gated role grants) are filed as PENDING
-    // requests and take effect only after a DIFFERENT oversight
-    // member decides. Separation of duties is encoded here, not
-    // just in the client: the decision branch requires an
-    // oversight role AND decidedBy == caller AND decidedBy !=
-    // requestedBy, from PENDING, touching ONLY the decision
-    // fields; the apply-marker branch may touch ONLY
-    // appliedAt/applyError and cannot move the decision; the
-    // maker alone may cancel their own PENDING request. Deletes
-    // are never allowed — the request log is governance record,
-    // and every step is mirrored into the hash-chained
-    // auditEvents stream by the client.
     match /approvalRequests/{requestId} {
       allow read: if demoPublicRead(docWs())
         || hasRole(docWs(), R_OVERSIGHT())
@@ -1918,8 +1524,7 @@ service cloud.firestore {
         && uidIs(tkNewGet('requestedBy', ''))
         && reqStatus() == 'PENDING';
       allow update: if
-        // Checker decision — oversight, not the maker, from
-        // PENDING, decision fields only.
+
         (hasRole(docWs(), R_OVERSIGHT())
           && resStatus() == 'PENDING'
           && reqStatus() in ['APPROVED', 'REJECTED']
@@ -1928,15 +1533,14 @@ service cloud.firestore {
           && diffKeys()
             .hasOnly(DECISION_KEYS())
           && wsImmutable())
-        // Apply marker — the approved change was applied (or
-        // failed); the decision itself cannot move here.
+
         || (hasRole(docWs(), R_OVERSIGHT())
           && resStatus() == 'APPROVED'
           && reqStatus() == 'APPROVED'
           && diffKeys()
             .hasOnly(['appliedAt', 'applyError'])
           && wsImmutable())
-        // Maker cancel — own request, still pending.
+
         || (loggedUidIs(tkOldGet('requestedBy', ''))
           && resStatus() == 'PENDING'
           && reqStatus() == 'CANCELLED'
@@ -1946,7 +1550,6 @@ service cloud.firestore {
       allow delete: if false;
     }
 
-    // ---- Messaging ----
     match /messages/{messageId} {
       allow read: if isSuperAdmin() || isOwner()
         || (loggedUidIs(tkOldGet('targetUid', '')));
@@ -1956,7 +1559,6 @@ service cloud.firestore {
       allow delete: if false;
     }
 
-    // Campaigns, scheduled messages, templates: owner-only reads; owner writes
     match /messageCampaigns/{campaignId} {
       allow read: if isSuperAdmin() || isOwner();
       allow create: if isOwner();
@@ -1969,42 +1571,32 @@ service cloud.firestore {
     }
     match /messageTemplates/{templateId} {
       allow read: if isSuperAdmin() || isOwner();
-      // Owner manages templates from the Console 3.0 Content Manager.
+
       allow create, update, delete: if isOwner();
     }
-    // ---- Console 3.0: commission, content, settings, support ----
 
-    // Commission rules: public read so the future marketplace UI can show
     match /commissionRules/{ruleId} {
       allow read: if true;
       allow create, update, delete: if isOwner();
     }
-    // Platform config (commission tier rates etc): public read so booking
+
     match /platformConfig/{configId} {
       allow read: if configId != 'public';
       allow create, update: if isOwner();
       allow delete: if false;
     }
-    // API Keys — GodMode "API Keys" tab (owner-managed third-party keys).
-    // Two tiers by design: client-safe keys are published to the 'public'
-    // doc below (readable by signed-in clients — anything on a phone is
-    // visible in the network tab); server-only secrets stay owner-only and
-    // can never reach a client on the current plan (no backend).
+
     match /platformConfig/apiKeys/{keyId} {
       allow read, create, update: if isOwner();
       allow delete: if false;
     }
-    // Published subset: ONLY client-safe && enabled keys, written by the
-    // owner via "Publish to app". Authenticated read; owner-only write.
+
     match /platformConfig/public {
       allow read: if isLoggedIn();
       allow create, update: if isOwner();
       allow delete: if false;
     }
-    // Geo payment regions: owner-configured payment rails (BD / IN / INTL +
-    // any custom regions added from GodMode → Geo Payments). Every signed-in
-    // user reads this to pick payment rails; reads that fail or miss fall
-    // back to the hardcoded defaults client-side. Writes are owner-only.
+
     match /geoPaymentConfig/config {
       allow read: if isLoggedIn();
       allow create, update: if isOwner()
@@ -2016,19 +1608,19 @@ service cloud.firestore {
         && tkNewGet('defaultRegion', '') is string;
       allow delete: if false;
     }
-    // Append-only audit: who changed which key, when. Values never logged.
+
     match /platformConfig/apiKeysAudit/{auditId} {
       allow read: if isOwner();
       allow create: if isOwner();
       allow update, delete: if false;
     }
-    // Marketplace transactions: owner-only. Written by the future booking
+
     match /marketplaceTransactions/{txnId} {
       allow read: if isSuperAdmin() || isOwner();
       allow create, update: if isOwner();
       allow delete: if false;
     }
-    // Payouts: providers request via their own doc (future), owner decides.
+
     match /payouts/{payoutId} {
       allow read: if isSuperAdmin() || isOwner()
         || (loggedUidIs(resProviderUid()));
@@ -2040,27 +1632,27 @@ service cloud.firestore {
           && reqStatus() == 'requested');
       allow delete: if false;
     }
-    // Announcements: active ones are public so the app can render banners.
+
     match /announcements/{annId} {
       allow read: if true;
       allow create, update, delete: if isOwner();
     }
-    // Site content (landing page KV): public read, owner writes.
+
     match /siteContent/{key} {
       allow read: if true;
       allow create, update, delete: if isOwner();
     }
-    // Feature flags: logged-in clients read (the app gates modules on these);
+
     match /featureFlags/{flagId} {
       allow read: if isLoggedIn();
       allow create, update, delete: if isOwner();
     }
-    // Plans: public read so pricing pages stay in sync; owner edits.
+
     match /plans/{planId} {
       allow read: if true;
       allow create, update, delete: if isOwner();
     }
-    // Payment methods: public read so billing pages can render them;
+
     match /marketplaceGigs/{gigId} {
       allow read: if true;
       allow create: if loggedUidIs(reqProviderUid())
@@ -2068,18 +1660,10 @@ service cloud.firestore {
       allow update: if isOwner()
         || (loggedUidIs(resProviderUid())
           && uidIs(reqProviderUid())
-          // SECURITY P1: the provider's own edits may not move the
-          // rating aggregates -- those change only via the anchored
-          // blessing branch below.
+
           && tkNewGet('avgRating', 0) == tkOldGet('avgRating', 0)
           && reqRatingCount() == tkOldGet('ratingCount', 0))
-        // Step 7 (gig ratings) -- SECURITY P1 anchored form (see
-        // p1GigRatingOk): a devotee's blessing may nudge the aggregate
-        // ONLY when the same transaction creates the gigRatings doc
-        // named by lastRatedOrderId, for this gig, by this caller,
-        // with ratingCount exactly +1 and the average stepped by that
-        // rating. The gigRatings doc (auditable, one per order) is the
-        // source of truth.
+
         || (isLoggedIn()
           && tkDiff(['avgRating', 'ratingCount', 'updatedAt', 'lastRatedOrderId'])
           && reqProviderUid() == resProviderUid()
@@ -2088,9 +1672,7 @@ service cloud.firestore {
           && p1GigRatingOk(gigId));
       allow delete: if isOwner();
     }
-    // gigRatings: one blessing per completed order (doc ID = orderId).
-    // Public read (trust display); create restricted to the order's client
-    // on a completed order; immutable after (no update/delete).
+
     match /gigRatings/{orderId} {
       allow read: if true;
       allow create: if loggedUidIs(tkNewGet('clientUid', ''))
@@ -2102,7 +1684,7 @@ service cloud.firestore {
         && uidIs(docData(/databases/$(database)/documents/marketplaceOrders/$(orderId)).clientUid);
       allow update, delete: if false;
     }
-    // Orders: client creates (clientUid must match); provider + client read
+
     match /marketplaceOrders/{orderId} {
       allow read: if isOwner() || isSuperAdmin()
         || (isLoggedIn() && (
@@ -2116,57 +1698,53 @@ service cloud.firestore {
           && tkNewGet('commissionAmount', 0) == tkOldGet('commissionAmount', 0)
           && tkNewGet('providerNet', 0) == tkOldGet('providerNet', 0)
           && (
-          // Provider: accept / decline / progress; 'completed' only from a live status
+
           (uidIs(resProviderUid())
             && reqStatus() in ['accepted', 'cancelled', 'in_progress', 'completed']
             && (reqStatus() != 'completed'
               || resStatus() in ORDER_ACTIVE()))
-          // Provider (pay-after-task): task done, now awaiting the platform commission
+
           || (uidIs(resProviderUid())
             && tkOldGet('payAfterTask', false) == true
             && reqStatus() == 'awaiting_commission'
             && resStatus() in ORDER_ACTIVE())
-          // Provider (Rail-2): dispute a payment proof â back to pending_payment
+
           || (uidIs(resProviderUid())
             && tkOldGet('rail', '') == 'rail2'
             && reqStatus() == 'pending_payment'
             && tkNewGet('rail2Proof', {}).get('disputed', false) == true)
-          // Client: confirm completion (only from a live status), or cancel
+
           || (uidIs(resClientUid())
             && reqStatus() in ['completed', 'cancelled']
             && (reqStatus() != 'completed'
               || resStatus() in ORDER_ACTIVE()))
-          // Client (wallet): pay from wallet â pending_payment becomes paid.
+
           || (uidIs(resClientUid())
             && tkOldGet('payWithWallet', false) == true
             && resStatus() == 'pending_payment'
             && reqStatus() == 'paid'
             && tkNewGet('escrowHeld', 0) == tkOldGet('amountGross', 0))
-          // Client (Rail-2): submit payment proof â pending_payment becomes paid
+
           || (uidIs(resClientUid())
             && tkOldGet('rail', '') == 'rail2'
             && resStatus() == 'pending_payment'
             && reqStatus() == 'paid'
             && tkNewGet('rail2Proof', {}).get('trxId', '') != '')
-          // AUDIT FIX #4 (2026-10-19): Provider (Rail-1): confirm direct
-          // payment received (bKash/Nagad/UPI/cash moved outside the app) --
-          // pending_payment becomes paid. Rail-1 had no paid path at all.
+
           || (uidIs(resProviderUid())
             && resStatus() == 'pending_payment'
             && reqStatus() == 'paid'
             && tkOldGet('rail', '') == 'rail1'
             && tkOldGet('payWithWallet', false) == false
             && tkDiff(['status', 'paidAt', 'paymentNote', 'updatedAt']))
-          // PHASE 3 â dispute freeze: an order party moves an ACTIVE order to
+
           || (isLoggedIn()
             && (uidIs(resProviderUid())
               || uidIs(resClientUid()))
             && resStatus() in ORDER_ACTIVE()
             && reqStatus() == 'commission_held'
             && uidIs(tkNewGet('commissionHold', {}).get('frozenByUid', '')))
-          // openDispute(): an order party flags an ACTIVE order 'disputed'.
-          // The dispute record itself lives in marketplaceDisputes (ruled
-          // separately); on the order only status + updatedAt may change here.
+
           || (isLoggedIn()
             && (uidIs(resProviderUid())
               || uidIs(resClientUid()))
@@ -2175,7 +1753,7 @@ service cloud.firestore {
             && tkDiff(KEYS_STATUS_ONLY()))));
       allow delete: if false;
     }
-    // Commission freeze requests (Phase 3): dispute on a COMPLETED order,
+
     match /commissionFreezeRequests/{orderId} {
       allow read: if isOwner() || isSuperAdmin()
         || (isLoggedIn() && (
@@ -2191,14 +1769,14 @@ service cloud.firestore {
       allow update: if isOwner();
       allow delete: if false;
     }
-    // Rail-2 provider sequence counter (unique TrxID reference numbering).
+
     match /rail2Sequences/{providerUid} {
       allow read: if isLoggedIn();
       allow write: if isLoggedIn()
         && reqKeys().hasOnly(['seq', 'updatedAt'])
         && tkNewGet('seq', 0) is int;
     }
-    // Disputes: either party on the order may open; owner resolves.
+
     match /marketplaceDisputes/{disputeId} {
       allow read: if isOwner() || isSuperAdmin()
         || (isLoggedIn() && (
@@ -2210,14 +1788,12 @@ service cloud.firestore {
       allow update: if isOwner();
       allow delete: if false;
     }
-    // Commission overrides: public read (marketplace shows "platform fee X%");
+
     match /commissionOverrides/{overrideId} {
       allow read: if true;
       allow create, update, delete: if isOwner();
     }
-    // Platform config (maintenance mode etc.): public read of the main doc.
 
-    // ---- Marketplace anti-bypass + provider payments ----
     match /providerPaymentMethods/{mId} {
       allow read: if isOwner() || isSuperAdmin()
         || (loggedUidIs(resProviderUid()));
@@ -2226,7 +1802,7 @@ service cloud.firestore {
       allow update: if isOwner();
       allow delete: if false;
     }
-    // Provider â owner inquiries: provider creates + reads own; owner manages.
+
     match /providerInquiries/{inqId} {
       allow read: if isOwner() || isSuperAdmin()
         || (loggedUidIs(resProviderUid()));
@@ -2235,7 +1811,7 @@ service cloud.firestore {
       allow update: if isOwner();
       allow delete: if false;
     }
-    // Bypass flags: the sender's own client creates the flag when a message
+
     match /bypassFlags/{flagId} {
       allow read: if isOwner() || isSuperAdmin();
       allow create: if loggedUidIs(tkNewGet('senderUid', ''))
@@ -2243,19 +1819,19 @@ service cloud.firestore {
       allow update: if isOwner();
       allow delete: if false;
     }
-    // Bypass keyword patterns: public read (clients need them to scan);
+
     match /bypassKeywords/{kwId} {
       allow read: if true;
       allow create, update, delete: if isOwner();
     }
-    // Provider strikes: owner-only writes; provider reads own (transparency).
+
     match /providerStrikes/{strikeId} {
       allow read: if isOwner() || isSuperAdmin()
         || (loggedUidIs(resProviderUid()));
       allow create, update: if isOwner();
       allow delete: if false;
     }
-    // ---- Rail-2: platform dues (Layer 6) ----
+
     match /platformDues/{dueId} {
       allow read: if isOwner() || isSuperAdmin()
         || (loggedUidIs(resProviderUid()));
@@ -2267,7 +1843,7 @@ service cloud.firestore {
       allow update: if isOwner();
       allow delete: if false;
     }
-    // Provider marketplace profile (dues suspension flags): owner writes,
+
     match /marketplaceProviders/{providerUid} {
       allow read: if isOwner() || isSuperAdmin()
         || (loggedUidIs(providerUid));
@@ -2275,7 +1851,6 @@ service cloud.firestore {
       allow delete: if false;
     }
 
-    // ---- Platform wallet + escrow top-up system ----
     function walletDebitOk() {
       let data = reqData();
       let old = resource.data;
@@ -2293,13 +1868,7 @@ service cloud.firestore {
         && data.get('balance', -1) >= 0
         && data.get('totalSpent', -1) == old.get('totalSpent', 0) + gross;
     }
-    // P2P "Pay from Seva Wallet" (atomic client debit): the sender settles
-    // an ACCEPTED money request with a real debit of their OWN wallet.
-    // Anchored to the live p2pRequests doc â same idempotency pattern as
-    // walletDebitOk: lastDebitP2PRequestId must change, so a replay or a
-    // double-tap can never debit twice. Rules get() reads committed state,
-    // so the transaction's own requestâ'paid' flip is invisible here; the
-    // request leg is validated by the p2pRequests match below.
+
     function p2pSettlementDebitOk(uid) {
       let data = reqData();
       let old = resource.data;
@@ -2317,11 +1886,7 @@ service cloud.firestore {
         && data.get('balance', -1) >= 0
         && data.get('totalSpent', -1) == old.get('totalSpent', 0) + amount;
     }
-    // P2P settlement credit (receiver side): the sender's transaction
-    // credits wallets/{receiverUid} via blind merge-set + increment().
-    // Anchored to the live p2pRequests doc — receiver-bound, exact
-    // amount, currency pinned, one credit per request
-    // (lastCreditP2PRequestId). Mirrors p2pSettlementDebitOk.
+
     function p2pSettlementCreditOk(uid) {
       let data = reqData();
       let old = resource.data;
@@ -2329,7 +1894,7 @@ service cloud.firestore {
       let rpath = /databases/$(database)/documents/p2pRequests/$(requestId);
       let rdata = docData(rpath);
       let amount = rdata.get('amount', 0);
-      return diffKeysOnly(data, old, 
+      return diffKeysOnly(data, old,
           ['uid', 'balance', 'currency', 'totalToppedUp', 'totalSpent',
            'totalReceived', 'lastCreditP2PRequestId', 'updatedAt'])
         && requestId != '' && requestId != old.get('lastCreditP2PRequestId', '')
@@ -2345,8 +1910,7 @@ service cloud.firestore {
         && data.get('totalToppedUp', -1) == old.get('totalToppedUp', 0)
         && data.get('totalSpent', -1) == old.get('totalSpent', 0);
     }
-    // Create-path for the P2P receiver credit: the wallet doc may not
-    // exist yet when the first settlement arrives.
+
     function p2pSettlementCreditCreateOk(uid) {
       let data = reqData();
       let requestId = data.get('lastCreditP2PRequestId', '');
@@ -2384,7 +1948,7 @@ service cloud.firestore {
         && data.get('totalToppedUp', -1) == old.get('totalToppedUp', 0)
         && data.get('totalSpent', -1) == old.get('totalSpent', 0);
     }
-    // PHASE 3 â provider commission debit, order-anchored.
+
     function commissionHoldOk(uid) {
       let data = reqData();
       let old = resource.data;
@@ -2404,7 +1968,7 @@ service cloud.firestore {
         && data.get('balance', -1) >= 0
         && data.get('totalSpent', -1) == old.get('totalSpent', 0) + debit;
     }
-    // PHASE 3 â Pratham Seva counter advancement, order-anchored.
+
     function sevaProfileCompletionOk() {
       let data = reqData();
       let old = resource.data;
@@ -2421,14 +1985,7 @@ service cloud.firestore {
         && uidIs(docGet(opath, 'providerUid', ''))
         && docGet(opath, 'status', '') in ORDER_ACTIVE();
     }
-    // SECURITY P1 -- anchored rating steps (Finding 1). A rating
-    // aggregate may move ONLY as the second half of a real rating: the
-    // same batch/transaction creates the rating doc named by the
-    // anchor field; that doc belongs to the caller and to this
-    // gig/profile; the count rises by exactly 1; the anchor must name
-    // a NEW rating; and the new average must be the old sum plus that
-    // rating (tolerance covers the 1-dp rounding drift). Mirrors the
-    // order-anchored precedent of sevaProfileCompletionOk above.
+
     function p1GigRatingOk(gigId) {
       let rid = tkNewGet('lastRatedOrderId', '');
       let rpath = /databases/$(database)/documents/gigRatings/$(rid);
@@ -2476,12 +2033,7 @@ service cloud.firestore {
         && newSum >= oldSum + afterDocGet(rpath, 'rating', 0) - (0.06 * newCount + 0.1)
         && newSum <= oldSum + afterDocGet(rpath, 'rating', 0) + (0.06 * newCount + 0.1);
     }
-    // JY-FIX-B (JY-04) -- anchored endorsement step: endorsementCount
-    // may rise ONLY by exactly +1, naming (in lastEndorsementId) a NEW
-    // endorsement doc for THIS profile, created in the same
-    // transaction (endorseJyotish writes both atomically). Mirrors
-    // p1JyotishRatingOk's shape. Without this anchor the tier-claim
-    // branch below could be fed a self-inflated count.
+
     function p1JyotishEndorsementOk(jyotishId) {
       let eid = request.resource.data.get('lastEndorsementId', '');
       let epath = /databases/$(database)/documents/jyotishEndorsements/$(eid);
@@ -2490,15 +2042,7 @@ service cloud.firestore {
         && getAfter(epath).data.get('jyotishId', '') == jyotishId
         && request.resource.data.get('endorsementCount', 0) == resource.data.get('endorsementCount', 0) + 1;
     }
-    // JY-FIX-B (JY-04) -- the tier claim: the target tier must be
-    // EARNED by the doc's own anchored fields, mirroring the client
-    // ladder (types/purohit.computeEffectiveTier, post-JY-05):
-    // ORG_ENDORSED needs CREDENTIAL_VERIFIED + at least 1 anchored
-    // endorsement; PLATFORM_VERIFIED additionally needs the merit bar
-    // (at least 10 completed consultations at a 4.5+ aggregate — both
-    // anchored fields themselves). A legacy 'VERIFIED' value (the
-    // SevaPro dialect GodMode once stamped, = CREDENTIAL_VERIFIED)
-    // may claim, which also heals the stored value to canonical.
+
     function jyotishTierClaimOk() {
       let from = tkOldGet('verificationTier', '');
       let to = reqVerificationTier();
@@ -2512,13 +2056,7 @@ service cloud.firestore {
           && (from == 'CREDENTIAL_VERIFIED' || from == 'ORG_ENDORSED' || from == 'VERIFIED')
           && endorsements >= 1 && gigs >= 10 && rating >= 4.5);
     }
-    // PUROHIT-PARITY (mirrors JY-FIX-B / JY-04 above) -- anchored
-    // endorsement step for purohits: endorsementCount may rise ONLY by
-    // exactly +1, naming (in lastEndorsementId) a NEW endorsement doc
-    // for THIS profile, created in the same transaction
-    // (endorsePurohit writes both atomically). The endorsement docs
-    // live in the top-level `endorsements` collection (the purohit
-    // twin of jyotishEndorsements). Mirrors p1JyotishEndorsementOk.
+
     function p1PurohitEndorsementOk(purohitId) {
       let eid = request.resource.data.get('lastEndorsementId', '');
       let epath = /databases/$(database)/documents/endorsements/$(eid);
@@ -2527,16 +2065,7 @@ service cloud.firestore {
         && getAfter(epath).data.get('purohitId', '') == purohitId
         && request.resource.data.get('endorsementCount', 0) == resource.data.get('endorsementCount', 0) + 1;
     }
-    // PUROHIT-PARITY -- the purohit tier claim: the target tier must
-    // be EARNED by the doc's own anchored fields, mirroring the client
-    // ladder (types/purohit.computeEffectiveTier, post-JY-05):
-    // ORG_ENDORSED needs CREDENTIAL_VERIFIED + at least 1 anchored
-    // endorsement; PLATFORM_VERIFIED additionally needs the merit bar
-    // (at least 10 completed gigs at a 4.5+ aggregate — both anchored
-    // fields themselves). A legacy 'VERIFIED' value (the SevaPro
-    // dialect GodMode once stamped, = CREDENTIAL_VERIFIED) may claim,
-    // which also heals the stored value to canonical. Mirrors
-    // jyotishTierClaimOk with the purohit merit field (completedGigs).
+
     function purohitTierClaimOk() {
       let from = tkOldGet('verificationTier', '');
       let to = reqVerificationTier();
@@ -2550,10 +2079,7 @@ service cloud.firestore {
           && (from == 'CREDENTIAL_VERIFIED' || from == 'ORG_ENDORSED' || from == 'VERIFIED')
           && endorsements >= 1 && gigs >= 10 && rating >= 4.5);
     }
-    // SECURITY P1 -- completed-count anchors: the owner's own +1 is
-    // legal only when it names (in lastCompletedGigId /
-    // lastCompletedConsultationId) a NEWLY cited engagement that is
-    // really theirs and really COMPLETED.
+
     function p1CompletedGigOk() {
       let gid = tkNewGet('lastCompletedGigId', '');
       let gpath = /databases/$(database)/documents/gigs/$(gid);
@@ -2572,7 +2098,7 @@ service cloud.firestore {
         && uidIs(docGet(cpath, 'assignedJyotishUid', ''))
         && docGet(cpath, 'status', '') in ORDER_DONE();
     }
-    // Create-path for provider credit: the wallet doc may not exist yet when
+
     function walletCreditCreateOk(uid) {
       let data = reqData();
       let orderId = data.get('lastCreditOrderId', '');
@@ -2608,13 +2134,12 @@ service cloud.firestore {
         || (isLoggedIn() && walletCreditOk(uid))
         || (isLoggedIn() && p2pSettlementCreditOk(uid))
         || (isLoggedIn() && referralWalletCreditOk(uid))
-        // EVENTS E2: seva-pass purchase debit + refund credit,
-        // each anchored on its ticket (same batch, getAfter).
+
         || (loggedUidIs(uid) && tkWalletDebitOk())
         || (loggedUidIs(uid) && tkWalletRefundOk(uid));
       allow delete: if false;
     }
-    // Wallet transactions: append-only ledger. Clients record their own
+
     match /walletTransactions/{txnId} {
       allow read: if isOwner() || isSuperAdmin()
         || (loggedUidIs(resUid()));
@@ -2627,7 +2152,7 @@ service cloud.firestore {
           && reqOrderId() != ''
           && (uidIs(docGet(/databases/$(database)/documents/marketplaceOrders/$(reqOrderId()), 'clientUid', ''))
             || uidIs(docGet(/databases/$(database)/documents/marketplaceOrders/$(reqOrderId()), 'providerUid', ''))))
-        // Seva Pro Phase 4: referral guidance credit, anchored to the validated credit doc.
+
         || (isLoggedIn()
           && tkNewGet('type', '') == 'referral_credit'
           && reqUid() != ''
@@ -2637,9 +2162,7 @@ service cloud.firestore {
           && docGet(/databases/$(database)/documents/referralCredits/$(tkNewGet('creditId', '')), 'referrerUid', '') == reqUid()
           && docGet(/databases/$(database)/documents/referralCredits/$(tkNewGet('creditId', '')), 'status', '') == 'SETTLED'
           && docGet(/databases/$(database)/documents/referralCredits/$(tkNewGet('creditId', '')), 'creditAmount', 0) == reqAmount())
-        // P2P settlement receiver receipt: the sender's transaction writes
-        // the receiver's audit-trail doc. Anchored to the live p2pRequests
-        // doc — sender-bound, receiver-bound, exact amount, still accepted.
+
         || (isLoggedIn()
           && tkNewGet('type', '') == 'p2p_receive'
           && tkNewGet('requestId', '') != ''
@@ -2650,14 +2173,13 @@ service cloud.firestore {
           && docGet(/databases/$(database)/documents/p2pRequests/$(tkNewGet('requestId', '')), 'amount', 0) == reqAmount()
           && docGet(/databases/$(database)/documents/p2pRequests/$(tkNewGet('requestId', '')), 'currency', '') == tkNewGet('currency', '')
           && docGet(/databases/$(database)/documents/p2pRequests/$(tkNewGet('requestId', '')), 'status', '') == 'accepted')
-        // EVENTS E2: the refund ledger line of a seva-pass cancel —
-        // anchored to the refunded ticket (tkRefundLedgerOk).
+
         || (loggedUidIs(reqUid())
           && tkNewGet('type', '') == 'refund'
           && tkRefundLedgerOk());
       allow update, delete: if false;
     }
-    // Top-up claims: user files (pending only); owner approves â credits
+
     match /topupClaims/{claimId} {
       allow read: if isOwner() || isSuperAdmin()
         || (loggedUidIs(resUid()));
@@ -2668,7 +2190,7 @@ service cloud.firestore {
       allow update: if isOwner();
       allow delete: if false;
     }
-    // Commission payments (Path B: post-task direct pay, commission to
+
     match /commissionPayments/{payId} {
       allow read: if isOwner() || isSuperAdmin()
         || (isLoggedIn() && (
@@ -2682,7 +2204,7 @@ service cloud.firestore {
       allow update: if isOwner();
       allow delete: if false;
     }
-    // Platform revenue ledger: one doc per completed order, amount pinned to
+
     match /platformRevenue/{orderId} {
       allow read: if isOwner() || isSuperAdmin();
       allow create: if isLoggedIn()
@@ -2697,7 +2219,6 @@ service cloud.firestore {
       allow delete: if false;
     }
 
-    // Crisis events â Tier 1 SOS (sender cancel, coordinator ack/resolve, response fan-out).
     match /crisis_events/{eventId} {
       function parent() {
         return docData(/databases/$(database)/documents/crisis_events/$(eventId));
@@ -2708,44 +2229,36 @@ service cloud.firestore {
       }
       allow read: if demoPublicRead(docWs()) || isTenantMember(docWs())
         || (loggedUidIs(tkOldGet('senderUid', '')))
-        // Notified responder: someone in this event's `notified` subcollection
-        // (family circle / nearby Sanatani / coordinator pinged by fan-out).
-        // ACTIVE-ONLY: the moment the SOS resolves, their read access ends —
-        // the responder map can never render a resolved victim's location.
+
         || (isLoggedIn() && resStatus() == 'active'
           && exists(/databases/$(database)/documents/crisis_events/$(eventId)/notified/$(request.auth.uid)));
       allow create: if loggedUidIs(tkNewGet('senderUid', ''))
         && (demoWriteOk(newDocWs()) || isTenantMember(newDocWs()) || newDocWs() == null);
       allow update: if (demoWriteOk(docWs())
           || hasRole(docWs(), R_TRUSTEE())
-          // Sender: "I'm safe" â cancel own SOS.
+
           || (loggedUidIs(tkOldGet('senderUid', ''))
             && diffKeys()
               .hasOnly(['status', 'resolvedAt', 'outcomeNote', 'updatedAt'])
             && reqStatus() in ['cancelled', 'resolved'])
-          // Sender: attach the voice-note vault URL after the audio upload
-          // finishes (uploadVoiceNote / flushVoiceOutbox). Field-pinned to
-          // the pointer alone — no other sender field may change here.
+
           || (loggedUidIs(tkOldGet('senderUid', ''))
             && diffKeys()
               .hasOnly(['voiceNoteUrl', 'updatedAt']))
-          // Coordinator edge: ack (-> acknowledged) and resolve (-> resolved).
+
           || (isCrisisCoord(docWs())
             && diffKeys()
               .hasOnly(['status', 'acknowledgedBy', 'acknowledgedAt', 'ackCount',
                 'resolvedAt', 'outcomeNote', 'updatedAt'])
             && reqStatus() in ['acknowledged', 'resolved'])
-          // Coordinator edge: assign sevadars (assignSevadars) — appends to
-          // the assignments array, bumps responderCount, flips
-          // active -> responding. Assignments stay a list so a bad write
-          // fails closed instead of corrupting the roster.
+
           || (isCrisisCoord(docWs())
             && diffKeys()
               .hasOnly(['assignments', 'status', 'responderCount', 'updatedAt'])
             && reqStatus()
               in ['active', 'responding', 'acknowledged']
             && tkNewGet('assignments', []) is list)
-          // Tenant member: best-effort ack bump from ackSOS; only -> acknowledged.
+
           || (isTenantMember(docWs())
             && diffKeys()
               .hasOnly(['status', 'ackCount', 'responderCount', 'updatedAt'])
@@ -2760,8 +2273,7 @@ service cloud.firestore {
           && reqStatus() in ['coming', 'arrived'];
         allow delete: if false;
       }
-      // Nearby-ping fan-out: sender's client writes one doc per nearby uid
-      // (fanOutToNearby); a responder's own client may also self-register.
+
       match /notified/{uid} {
         allow read: if isTenantMember(parent().get('workspaceId', null))
           || (loggedUidIs(parent().get('senderUid', '')));
@@ -2770,18 +2282,16 @@ service cloud.firestore {
           && reqKeys()
             .hasOnly(['uid', 'notifiedAt', 'distanceM'])
           && (
-            // Responder self-register: their own client marks them notified.
+
             (request.auth.uid == uid
               && isTenantMember(parent().get('workspaceId', null)))
-            // Sender fan-out: the sender's client writes one lightweight
-            // ping doc per nearby uid so the active-only responder-read
-            // carve-out above can grant them access.
+
             || uidIs(parent().get('senderUid', ''))
           );
         allow update, delete: if false;
       }
     }
-    // Coordinator edge docs (crisisCoordinators/{orgId}_{uid}): trustee-managed.
+
     match /crisisCoordinators/{edgeId} {
       allow read: if isLoggedIn()
         && (uidIs(resUid())
@@ -2794,7 +2304,7 @@ service cloud.firestore {
           + reqUid();
       allow delete: if isOrgTrustee(tkOldGet('orgId', ''));
     }
-    // Abuse counters (crisisAbuse/{uid}): self-only read/write.
+
     match /crisisAbuse/{uid} {
       allow read, write: if isSelf(uid);
     }
@@ -2802,18 +2312,6 @@ service cloud.firestore {
       allow read, write: if isSelf(uid);
     }
 
-
-    // EVENTS + POLLS P0 (2026-10-24) — the ballot box. A poll doc
-    // carries ONLY counts (options[].votes + totalVotes). Each ballot
-    // lives in polls/{pollId}/votes/{uid}: one doc per voter, written
-    // only by that voter, never edited or deleted. Poll counts may
-    // move ONLY in the same batch as the caller's NEW ballot doc
-    // (anchored increment — the SECURITY P1 ratings pattern). The old
-    // block read `allow write: if hasRole(effTenant(), [Trustee])` —
-    // the caller's OWN tenant, never the poll's: ordinary members'
-    // votes were rules-denied while any trustee anywhere could
-    // rewrite any org's polls, and every signed-in user could read
-    // every poll including the full votedUsers map.
     function pollPath(pollId) {
       return /databases/$(database)/documents/polls/$(pollId);
     }
@@ -2826,40 +2324,25 @@ service cloud.firestore {
     function pollCommittee(ws) {
       return hasRole(ws, R_BOARD());
     }
-    // Votes already counted on a poll doc: the explicit total under
-    // the ballot-box model, else the legacy votedUsers map size
-    // (read-compat for polls created before this batch; those maps
-    // are frozen — no write path below touches them any more).
+
     function pollBaseTotal(data) {
       return data.get('totalVotes', data.get('votedUsers', {}).size());
     }
     function pollKindOf(pollId) {
       return docGet(pollPath(pollId), 'kind', 'choice');
     }
-    // POLLS NEXT-LEVEL P2b: the REAL option count. The option
-    // ceiling counts real options only — the reserved abstain
-    // entry (pre-P2b polls carry it inside the options map) never
-    // consumes one of the slots.
+
     function pollVisOk() {
       return tkNewGet('resultVisibility', 'afterVote') in ['live', 'afterVote', 'afterClose', 'committee'];
     }
     function pollRealOptionCount(opts) {
       return opts.size() - (opts.keys().hasAny(['abstain']) ? 1 : 0);
     }
-    // POLLS NEXT-LEVEL P1: was the poll launched as a NAMED ballot?
-    // The field is create-only (no update path may touch it), so the
-    // secrecy choice is frozen at launch — exactly like kind and
-    // resultVisibility above.
+
     function pollBallotNamed(pollId) {
       return docGet(pollPath(pollId), 'ballot', 'secret') == 'named';
     }
-    // POLLS NEXT-LEVEL P3 — one entry of a points ballot: a map
-    // naming one of the poll's own options (treasury heads) and an
-    // integer share of the voter's 100 points. An index beyond the
-    // list's end passes vacuously (bounded-index checks stand in
-    // for a loop, the pollMultiVoteAnchorOk idiom). Keys beyond
-    // optionId/points inside an entry are inert — the counter
-    // reads those two fields only — so they are not pinned.
+
     function pollOptKeys(pdata) {
       return pdata.get('options', {}).keys();
     }
@@ -2870,8 +2353,7 @@ service cloud.firestore {
             && allocs[i].get('points', -1) >= 0
             && allocs[i].get('points', -1) <= 100);
     }
-    // The points at one allocations index, 0 beyond the list's end —
-    // the pieces of the exactly-100 sum (pollBallotOk).
+
     function pollAllocPts(allocs, i) {
       return i < allocs.size() ? allocs[i].get('points', 0) : 0;
     }
@@ -2887,14 +2369,10 @@ service cloud.firestore {
         && pdata.get('status', '') == 'ACTIVE'
         && (pdata.get('targetAudience', 'ALL_MEMBERS') != 'MANAGERS'
             || pollCommittee(pdata.get('workspaceId', null)))
-        // POLLS NEXT-LEVEL P2b: the scheduled opening is a rules
-        // gate, not a display habit — no ballot lands before it.
+
         && (pdata.get('opensAtTs', null) == null || request.time >= pdata.get('opensAtTs', null))
         && (pdata.get('expiresAtTs', null) == null || request.time < pdata.get('expiresAtTs', null))
-        // EVENTS P1: the ballot's shape follows the poll's own shape.
-        // POLLS NEXT-LEVEL P3: a time poll's ballot IS a choice
-        // ballot (one proposed slot picked) — same branch, same
-        // anchor; the slot's moment rides the option entry itself.
+
         && (((kind == 'choice' || kind == 'time')
               && (tkNewGet('optionId', '') in pollOptKeys(pdata))
               && pollKeys('optionId'))
@@ -2911,14 +2389,7 @@ service cloud.firestore {
               && reqText().size() >= 1
               && reqText().size() <= 280
               && pollKeys('text'))
-          // POLLS NEXT-LEVEL P3: the ranked ballot — an ordered
-          // list of the poll's own options. No counter can carry a
-          // ranking, so the count happens at conclusion from the
-          // ballot papers (pollCountedVoteAnchorOk + the committee
-          // read below). Rules cannot detect a duplicated id in a
-          // list; the client refuses one, and the counter dedupes
-          // (first occurrence wins) — one voter, one ballot doc,
-          // so no amplification is possible.
+
           || (kind == 'ranked'
               && ranking is list
               && ranking.size() >= 1
@@ -2926,11 +2397,7 @@ service cloud.firestore {
               && pollOptKeys(pdata).hasAll(ranking)
               && !('abstain' in ranking)
               && pollKeys('ranking'))
-          // POLLS NEXT-LEVEL P3: the points ballot — the voter
-          // distributes EXACTLY 100 points across the poll's heads.
-          // Per-entry shapes first (pollAllocOk, bounded indices),
-          // then the sum: a ballot whose points do not total 100
-          // is refused here, server-side, never merely displayed.
+
           || (kind == 'points'
               && allocs is list
               && allocs.size() >= 1
@@ -2948,20 +2415,13 @@ service cloud.firestore {
                   + pollAllocPts(allocs, 4) + pollAllocPts(allocs, 5)
                   + pollAllocPts(allocs, 6) + pollAllocPts(allocs, 7)) == 100
               && pollKeys('allocations'))
-          // POLLS NEXT-LEVEL P2b: the abstention is its own ballot
-          // shape — a first-class choice OUTSIDE the option list,
-          // accepted only on polls whose creator enabled it
-          // (allowAbstain). Legacy polls, whose abstain entry lives
-          // inside the options map, keep taking abstentions through
-          // the choice branch above, exactly as before.
+
           || (kind != 'text'
               && tkNewGet('abstain', false) == true
               && pdata.get('allowAbstain', false) == true
               && pollKeys('abstain')));
     }
-    // The caller head shared by every ballot-anchored poll update
-    // below (POLLS P2b: factored verbatim from the four use sites —
-    // the diet method; the expansion is character-identical).
+
     function pollVoteHeadOk() {
       return (demoWriteOk(docWs()) || isTenantMember(docWs())) && wsImmutable();
     }
@@ -2969,10 +2429,7 @@ service cloud.firestore {
       let vp = /databases/$(database)/documents/polls/$(pollId)/votes/$(request.auth.uid);
       let oldOpts = tkOldGet('options', {});
       let newOpts = reqOptions();
-      // Every getAfter access sits to the RIGHT of existsAfter(vp) in
-      // the && chain (the SECURITY P1 helper pattern): for writes that
-      // carry no ballot — conclude, notes — this function must return
-      // false cleanly, never error.
+
       return !exists(vp) && existsAfter(vp)
         && resStatus() == 'ACTIVE'
         && reqStatus() == 'ACTIVE'
@@ -2986,14 +2443,7 @@ service cloud.firestore {
         && diffKeys()
              .hasOnly(['options', 'totalVotes', 'updatedAt']);
     }
-    // EVENTS P1 — multi-select anchor: EVERY chosen option rises by
-    // exactly one, totalVotes rises by exactly one (one voter, one
-    // ballot — a multi-pick is still a single voice), and nothing
-    // else on the poll may move. Bounded-index checks stand in for a
-    // loop (rules cannot iterate); ballot validity (1–5 real
-    // options) is pollBallotOk's job. Every getAfter access sits to
-    // the RIGHT of existsAfter(vp), the house pattern from
-    // pollVoteAnchorOk, so ballot-less writes fail cleanly.
+
     function pollMultiDeltaOk(oldOpts, newOpts, id) {
       return newOpts.get(id, {}).get('votes', 0) == oldOpts.get(id, {}).get('votes', 0) + 1;
     }
@@ -3020,9 +2470,7 @@ service cloud.firestore {
         && tkNewGet('totalVotes', 0) == pollBaseTotal(resource.data) + 1
         && tkDiff(['options', 'totalVotes', 'updatedAt']);
     }
-    // EVENTS P1 — free-text anchor: a text ballot moves ONLY the
-    // turnout counter; the options map must stay identical (a text
-    // poll has no option counts to inflate).
+
     function pollTextVoteAnchorOk(pollId) {
       let vp = /databases/$(database)/documents/polls/$(pollId)/votes/$(request.auth.uid);
       return !exists(vp) && existsAfter(vp)
@@ -3036,12 +2484,7 @@ service cloud.firestore {
         && tkNewGet('totalVotes', 0) == pollBaseTotal(resource.data) + 1
         && tkDiff(['totalVotes', 'updatedAt']);
     }
-    // POLLS NEXT-LEVEL P2b — the abstention anchor: an abstain
-    // ballot moves ONLY the turnout counter and the poll's own
-    // abstention counter (abstainVotes), each by exactly one, in
-    // the same batch as the caller's NEW abstain ballot. The diff
-    // pin forbids the options map from moving at all — an
-    // abstention can never inflate a candidate.
+
     function pollAbstainVoteAnchorOk(pollId) {
       let vp = /databases/$(database)/documents/polls/$(pollId)/votes/$(request.auth.uid);
       return !exists(vp) && existsAfter(vp)
@@ -3052,15 +2495,7 @@ service cloud.firestore {
         && tkNewGet('abstainVotes', 0) == tkOldGet('abstainVotes', 0) + 1
         && tkDiff(['totalVotes', 'abstainVotes', 'updatedAt']);
     }
-    // POLLS NEXT-LEVEL P3 — the counted-ballot anchor, shared by
-    // the two shapes no counter can carry (ranked + points): the
-    // ballot moves ONLY the turnout counter, and the options map
-    // must stay identical (equality, the text anchor's idiom) —
-    // there are no candidate counters to inflate; the poll's own
-    // committee counts the ballot papers at conclusion and the
-    // result is stored once, write-once, like every outcome. The
-    // ballot-shape conjuncts sit to the RIGHT of existsAfter(vp),
-    // the house pattern, so ballot-less writes fail cleanly.
+
     function pollCountedVoteAnchorOk(pollId) {
       let vp = /databases/$(database)/documents/polls/$(pollId)/votes/$(request.auth.uid);
       let kind = tkOldGet('kind', 'choice');
@@ -3078,17 +2513,9 @@ service cloud.firestore {
         && tkNewGet('totalVotes', 0) == pollBaseTotal(resource.data) + 1
         && tkDiff(['totalVotes', 'updatedAt']);
     }
-    // EVENTS P1 — edit-before-first-vote: the committee (guarded by
-    // the caller, like pollManageOk) may repair a launched poll ONLY
-    // while no ballot exists — pollBaseTotal == 0 is the count of
-    // record. The shape (kind), the audience and the workspace are
-    // NOT editable here; relaunch for those.
+
     function pollEditOk() {
-      // POLLS NEXT-LEVEL P2b: a DRAFT edits under the same
-      // zero-ballot discipline (a draft has no ballots by
-      // construction), and the schedule twins + the abstain choice
-      // join the repairable fields — all still frozen forever once
-      // the first ballot lands.
+
       return (resStatus() == 'ACTIVE' || resStatus() == 'DRAFT')
         && reqStatus() == resStatus()
         && pollBaseTotal(resource.data) == 0
@@ -3099,18 +2526,9 @@ service cloud.firestore {
             || (pollRealOptionCount(reqOptions()) >= 2
                 && pollRealOptionCount(reqOptions()) <= 8));
     }
-    // Committee management: conclude (early or at deadline) and the
-    // official note. Nothing else on the doc may change here.
-    // POLLS NEXT-LEVEL P1: the recorded outcome rides this path —
-    // writable ONLY in the write that concludes the poll or onto an
-    // already-concluded poll, and never over an existing outcome
-    // (write-once: the record of the decision cannot be rewritten).
+
     function pollManageOk() {
-      // POLLS NEXT-LEVEL P2b: opening a draft (DRAFT → ACTIVE) is
-      // its own branch — the electorate stamp may ride ONLY that
-      // write (a Decision draft's frozen electorate is the
-      // register as it stands when voting begins, never a number
-      // rewritten mid-poll), and nothing else may move with it.
+
       return (resStatus() == 'DRAFT'
               && reqStatus() == 'ACTIVE'
               && diffKeys()
@@ -3124,9 +2542,7 @@ service cloud.firestore {
                 || (reqStatus() == 'CONCLUDED'
                     && !('outcome' in resource.data))));
     }
-    // Deadline truth no longer waits for a manager's visit: ANY member
-    // of the poll's workspace may land the conclusion once the stored
-    // deadline timestamp has passed (status flip only, nothing else).
+
     function pollAutoConcludeOk() {
       return diffKeys()
                .hasOnly(KEYS_STATUS_ONLY())
@@ -3136,11 +2552,8 @@ service cloud.firestore {
         && request.time >= resExpiresAtTs();
     }
 
-    // Polls — scoped to the poll's OWN workspace (see ballot-box note).
     match /polls/{pollId} {
-      // POLLS NEXT-LEVEL P2b: a DRAFT is the committee's working
-      // paper — invisible to voters at the rules layer, not merely
-      // unrendered (the trailing conjunct gates every branch).
+
       allow read: if (demoPublicRead(docWs()) || isSuperAdmin()
         || (isTenantMember(docWs())
             && (tkOldGet('targetAudience', 'ALL_MEMBERS') != 'MANAGERS'
@@ -3154,29 +2567,15 @@ service cloud.firestore {
             && tkNewGet('abstainVotes', 0) == 0
             && tkNewGet('votedUsers', {}).size() == 0
             && tkNewGet('targetAudience', '') in ['ALL_MEMBERS', 'MANAGERS']
-            // EVENTS P1: text polls carry no options at all.
-            // POLLS NEXT-LEVEL P2b: choice and multi carry 2–8
-            // REAL options — the reserved abstain entry never
-            // consumes a slot (pollRealOptionCount), and new polls
-            // carry abstention as a field, not an option at all.
+
             && (tkNewGet('kind', 'choice') == 'text'
                 ? reqOptions().size() == 0
                 : (pollRealOptionCount(reqOptions()) >= 2
                    && pollRealOptionCount(reqOptions()) <= 8))
-            // EVENTS P1: the shape and the result-visibility rule are
-            // chosen AT LAUNCH. No update path below ever lists kind
-            // as writable again, and resultVisibility may move only
-            // through pollEditOk (zero ballots cast).
+
             && tkNewGet('kind', 'choice') in ['choice', 'multi', 'text', 'ranked', 'points', 'time']
             && pollVisOk()
-            // POLLS NEXT-LEVEL P1: the Decision-grade fields, when
-            // carried, must be honest shapes — the class enum, the
-            // secrecy enum, and both marks non-negative (a negative
-            // mark would make its test trivially true; an over-100
-            // mark can only defeat the creator's own poll, and the
-            // client reads out-of-range marks as unrecorded).
-            // Absent fields read as the legacy defaults (pulse /
-            // advisory / secret / unrecorded).
+
             && tkNewGet('pollClass', 'pulse') in ['pulse', 'decision']
             && tkNewGet('ballot', 'secret') in ['secret', 'named']
             && tkNewGet('quorumPct', 0) >= 0
@@ -3187,9 +2586,7 @@ service cloud.firestore {
                   'totalVotes', 'votedUsers', 'kind', 'resultVisibility',
                   'pollClass', 'binding', 'ballot', 'eligibleCount', 'quorumPct',
                   'passPct', 'createdByUid',
-                  // POLLS NEXT-LEVEL P2b: the schedule twins, the
-                  // abstain choice + counter, and the template
-                  // provenance (informational — no rule reads them).
+
                   'opensAt', 'opensAtTs', 'allowAbstain', 'abstainVotes',
                   'templateId', 'recurrence']));
       allow update: if (pollVoteHeadOk() && pollVoteAnchorOk(pollId))
@@ -3200,37 +2597,18 @@ service cloud.firestore {
         || (pollCommittee(docWs()) && wsImmutable() && pollEditOk())
         || (pollCommittee(docWs()) && wsImmutable() && pollManageOk())
         || (isTenantMember(docWs()) && wsImmutable() && pollAutoConcludeOk());
-      // Decided history is archive-only: a poll may be deleted ONLY
-      // while no ballot has ever been cast on it.
+
       allow delete: if pollCommittee(docWs()) && pollBaseTotal(resource.data) == 0;
 
-      // One private ballot per voter. ALL_MEMBERS ballots are secret —
-      // only the voter can read their own. Committee (MANAGERS) polls
-      // are named votes by design: the committee may read the ballots
-      // (the deliberate, logged reveal in the desk).
       match /votes/{voterUid} {
         allow read: if isLoggedIn() && (uidIs(voterUid)
           || isSuperAdmin()
           || (pollAudience(pollId) == 'MANAGERS' && pollCommittee(pollWs(pollId)))
-          // POLLS NEXT-LEVEL P1: a poll launched as a NAMED ballot —
-          // the committee of the poll's own workspace may read the
-          // ballots (the desk logs the opening, exactly as for
-          // committee polls above).
+
           || (pollBallotNamed(pollId) && pollCommittee(pollWs(pollId)))
-          // EVENTS P1: free-text responses are an ANNOUNCED suggestion
-          // box — the committee of the poll's own workspace may read
-          // them (the create form says so in plain words; a secret
-          // ballot remains a choice poll, whose named reveal stays
-          // committee-gated exactly as in P0).
+
           || (pollKindOf(pollId) == 'text' && pollCommittee(pollWs(pollId)))
-          // POLLS NEXT-LEVEL P3: ranked and points ballots are
-          // COUNTED by the poll's own committee from the ballot
-          // papers (the scrutineer model — no counter can carry a
-          // ranking or an allocation). The same announced posture
-          // as text: the create form says so in plain words, the
-          // desk logs the count-view opening, and the published
-          // record shows rounds and totals — never a name beside
-          // a choice. Nobody else's read changes.
+
           || (pollKindOf(pollId) in ['ranked', 'points']
               && pollCommittee(pollWs(pollId))));
         allow create: if uidIs(voterUid) && pollBallotOk(pollId);
@@ -3238,19 +2616,6 @@ service cloud.firestore {
       }
     }
 
-    // MARGDARSHAN (J0 candidate, 2026-10-31) — Your Voice: the public
-    // suggestion board (blueprint s5.3). NOT YET LIVE — this block is
-    // staged for the owner's complete-file review and ships with
-    // batch J3, together with the board UI. Read/engage law (owner,
-    // 2026-10-31): anyone may READ a visible suggestion with no
-    // sign-in; engagement (file, support, edit) requires sign-in.
-    // Hidden (moderated) suggestions are NEVER publicly readable —
-    // the read path below serves hidden == false, the author reading
-    // their own, or the SuperAdmin only. supporterCount is an
-    // ANCHORED counter (the polls ballot-box pattern): it may move
-    // ONLY in the same batch as the caller's own supporters/{uid}
-    // doc appearing (support, +1) or vanishing (withdraw, -1) —
-    // never by a direct write, never below zero.
     function SUGG_KINDS() {
       return ['feature', 'problem', 'praise', 'manual-gap'];
     }
@@ -3258,9 +2623,7 @@ service cloud.firestore {
       return ['received', 'under-review', 'planned', 'in-progress',
         'shipped', 'not-now', 'duplicate'];
     }
-    // One parameterized anchor for both directions (the compiled-size
-    // law: the two shapes differ only in the exists/existsAfter sense
-    // and the sign of the step, so they share one body).
+
     function suggAnchorOk(suggId, up) {
       let sp = /databases/$(database)/documents/suggestions/$(suggId)/supporters/$(request.auth.uid);
       return (up ? (!exists(sp) && existsAfter(sp))
@@ -3274,8 +2637,7 @@ service cloud.firestore {
     function suggVisible(suggId) {
       return docGet(/databases/$(database)/documents/suggestions/$(suggId), 'hidden', false) == false;
     }
-    // The deskId shape, shared by create and the author-edit path
-    // (a suggestion may concern no desk at all — deskId null).
+
     function suggDeskIdOk() {
       return tkNewGet('deskId', null) == null
         || (tkNewGet('deskId', '') is string
@@ -3291,9 +2653,7 @@ service cloud.firestore {
     }
 
     match /suggestions/{suggId} {
-      // Public read of visible suggestions (read/engage law); hidden
-      // ones answer only to their author and the SuperAdmin. List
-      // queries from signed-out clients must filter hidden == false.
+
       allow read: if tkOldGet('hidden', false) == false
         || isSuperAdmin()
         || (loggedUidIs(tkOldGet('authorId', '')));
@@ -3333,15 +2693,11 @@ service cloud.firestore {
             && tkNewGet('status', '') in SUGG_STATUSES()
             && tkNewGet('officialReplies', []).size() <= 50
             && tkNewGet('statusHistory', []).size() <= 50);
-      // Polls pattern: a suggestion with supporters is archive —
-      // its author deletes only while nobody has supported it.
+
       allow delete: if isSuperAdmin()
         || (loggedUidIs(tkOldGet('authorId', ''))
             && tkOldGet('supporterCount', 0) == 0);
 
-      // One doc per supporter (the ballot box): existence = support.
-      // The doc itself stores no counter — only the anchor above may
-      // move the parent's supporterCount, in the same batch.
       match /supporters/{supporterUid} {
         allow read: if isSuperAdmin()
           || (loggedUidIs(supporterUid));
@@ -3353,26 +2709,10 @@ service cloud.firestore {
       }
     }
 
-    // EVENTS + POLLS P0 (2026-10-24) — Trustee resolutions. Until this
-    // batch, resolutions rode the generic operational block: any staff
-    // member could rewrite the vote counters directly, the voters were
-    // never recorded, quorumMet was a display flag nobody computed,
-    // and nothing ever wrote Passed/Rejected. Now: votes land in a
-    // `voters` map ON the doc, written ONLY together with the matching
-    // count change and ONLY by the voter adding their own uid;
-    // conclusion is a one-way transition whose quorum + outcome the
-    // rules recompute from the stored board size and counts; decided
-    // resolutions are archive-only. ('resolutions' was removed from
-    // the generic block's lists — matching allow blocks are OR-ed, so
-    // these strict rules only bind once the generic path is gone.)
     function resBoardRoles() {
       return ['SuperAdmin', 'SUPER_ADMIN', 'Trustee', 'TRUSTEE', 'Manager', 'MANAGER'];
     }
-    // Quorum = strictly more than half the board has voted. When no
-    // board roster exists (boardSize 0 — the roster was never kept),
-    // the floor is two distinct voters (proposer + one more). This
-    // formula is mirrored in src/lib/resolutionLogic.ts — keep both
-    // in lockstep.
+
     function resQuorumOk(data) {
       let cast = data.get('votesInFavor', 0) + data.get('votesAgainst', 0);
       let board = data.get('boardSize', 0);
@@ -3450,15 +2790,13 @@ service cloud.firestore {
         || (isTenantMember(docWs()) && wsImmutable() && hasRole(docWs(), resBoardRoles()) && resVoteOk())
         || (isTenantMember(docWs()) && wsImmutable() && resConcludeOk())
         || (isTenantMember(docWs()) && wsImmutable() && roleIn(R_ANY_STAFF()) && resEditOk());
-      // Archive-only once decided; deletion only for never-voted
-      // drafts (the proposer's automatic vote is the one allowed mark).
+
       allow delete: if hasRole(docWs(), R_TRUSTEE())
         && resStatus() == 'Pending Review'
         && tkOldGet('votesInFavor', 0) + tkOldGet('votesAgainst', 0) <= 1
         && tkOldGet('voters', {}).size() <= 1;
     }
 
-    // YatraNet broadcasts â keyed by communityId.
     match /yatra_broadcasts/{bId} {
       allow read: if isSuperAdmin()
         || (isDemoWs(tkOldGet('communityId', null)) && (request.auth == null || effTenant() == tkOldGet('communityId', null)))
@@ -3470,7 +2808,6 @@ service cloud.firestore {
       allow delete: if isSuperAdmin();
     }
 
-    // Support threads
     match /global_support_threads/{tId} {
       allow read, create: if isLoggedIn();
       allow update, delete: if isSuperAdmin();
@@ -3480,10 +2817,6 @@ service cloud.firestore {
       allow update, delete: if isSuperAdmin();
     }
 
-    // Chats â participant-gated.
-    // Chats — 1:1 threads are participant-only. Trustees may access ONLY
-    // org-type support threads of their own org (2026-10-19 privacy fix:
-    // previously any trustee of any org could read every private chat).
     match /chats/{chatId} {
       allow read: if isSuperAdmin() || (isLoggedIn() && (
         (resource == null || (tkOldGet('participants', null) is list && request.auth.uid in tkOldGet('participants', []))) ||
@@ -3514,40 +2847,18 @@ service cloud.firestore {
       }
     }
 
-    // Upgrade requests
     match /upgrade_requests/{reqId} {
-      // QUEUED #54 (owner-approved): create tightened from any-logged-in —
-      // a request must name the filer's OWN tenant (previously any
-      // signed-in user could file against any communityId, spamming the
-      // owner's stats). Demo sandboxes file against their DEMO_ id and
-      // demo personas hold no membership edge, so the demo term mirrors
-      // the yatra_broadcasts create shape and keeps demo submission open.
+
       allow create: if isLoggedIn() && (isSuperAdmin()
         || isTenantMember(tkNewGet('communityId', ''))
         || isDemoWs(tkNewGet('communityId', null)));
-      // QUEUED #54 (owner-approved): the submitting org's own finance
-      // roles may read back its requests — Settings → Billing history
-      // queries where('communityId','==',workspaceId), and the previous
-      // SuperAdmin-only read denied every trustee their own history
-      // ("Missing or insufficient permissions", even for an empty list).
-      // Docs carry payer contact + sender numbers, so read is scoped to
-      // the owning tenant's finance roles (hasRole ANDs tenant
-      // membership, so a trustee of org A cannot read org B's requests).
-      // Pattern mirrors yatra_broadcasts (communityId-keyed member read).
-      // Demo carve-out mirrors yatra_broadcasts: demo personas hold no
-      // tenant membership, so DEMO_ workspaces' requests stay readable
-      // to any signed-in demo session.
+
       allow read: if isSuperAdmin()
         || hasRole(tkOldGet('communityId', ''), R_FINANCE())
         || (isDemoWs(tkOldGet('communityId', null)) && isLoggedIn());
       allow update, delete: if isSuperAdmin();
     }
 
-    // Live Darshan — public live-status cache. Any viewer can read whether
-    // a temple is live. Writes are schema-pinned: the polling client (any
-    // logged-in viewer) may only update the live-status fields; the orgId
-    // must match the document ID. Self-correcting: a wrong "live" flag is
-    // overwritten by the next honest poll.
     match /orgLiveStatus/{orgId} {
       allow read: if true;
       allow create, update: if isLoggedIn()
@@ -3561,10 +2872,6 @@ service cloud.firestore {
       allow delete: if isSuperAdmin() || isOwner();
     }
 
-    // Sangam Watch — unified video feed. Shared videos are community
-    // content: public read, authenticated create (schema-pinned), no edits
-    // (delete + re-share). Deletes are author-or-admin; reports are a
-    // counter any logged-in user may increment once per client.
     match /sangamVideos/{videoId} {
       allow read: if true;
       allow create: if isLoggedIn()
@@ -3587,12 +2894,6 @@ service cloud.firestore {
         || (loggedUidIs(tkOldGet('sharedBy', '')));
     }
 
-    // Sangam Stories — 24h disappearing moments. Ephemeral by design.
-    // read: any authenticated user (community moments, like the feed).
-    // create: author only, schema-pinned, expiresAt must be ~24h out.
-    // update: reportCount increment only. delete: author or superadmin.
-    // Expiry is lazy (queries filter expiresAt > now); a GodMode sweep
-    // deletes long-expired docs.
     match /sangamStories/{storyId} {
       allow read: if isLoggedIn();
       allow create: if loggedUidIs(reqAuthorUid())
@@ -3613,8 +2914,6 @@ service cloud.firestore {
       allow delete: if isSuperAdmin()
         || (loggedUidIs(resAuthorUid()));
 
-      // View tracking: authors see a COUNT; viewer identities are private.
-      // Write own uid only; read author-only.
       match /viewers/{uid} {
         allow read: if isSuperAdmin()
           || (loggedUidIs(docGet(/databases/$(database)/documents/sangamStories/$(storyId), 'authorUid', '')));
@@ -3622,11 +2921,6 @@ service cloud.firestore {
       }
     }
 
-    // Sangam Shorts — vertical sacred moments (YouTube Shorts embeds).
-    // read: any authenticated user (community content, like the feed).
-    // create: author only, schema-pinned (11-char youtubeId, title 1-120).
-    // update: counter increments only (view/ashirvad/comment/share/report).
-    // delete: author or superadmin. No edits — delete + re-share.
     match /sangamShorts/{shortId} {
       allow read: if isLoggedIn();
       allow create: if isLoggedIn()
@@ -3646,10 +2940,7 @@ service cloud.firestore {
           'commentCount', 'shareCount', 'reportCount',
           'serverCreatedAt'
         ]);
-      // Counters pinned (owner-approved 2026-10-20): one update touches
-      // exactly ONE counter and moves it by exactly one step -- the same
-      // pattern that guards sangamPosts. Views and reports only rise;
-      // toggles may fall but never below 0.
+
       allow update: if isLoggedIn() && (
         (bumpUpOk('viewCount'))
         || (bumpToggleOk('ashirvadCount'))
@@ -3660,9 +2951,6 @@ service cloud.firestore {
       allow delete: if isSuperAdmin()
         || (loggedUidIs(resAuthorUid()));
 
-      // Comments: community conversation on a short.
-      // read: any authenticated user. create: author-only, schema-pinned.
-      // delete: comment author or superadmin. No edits.
       match /comments/{commentId} {
         allow read: if isLoggedIn();
         allow create: if loggedUidIs(reqAuthorUid())
@@ -3677,9 +2965,6 @@ service cloud.firestore {
       }
     }
 
-    // --- devoteeProfiles/{uid}: public devotee identity surface.
-    // Public read (anyone can view a profile). Write = own uid only,
-    // schema-pinned. NEVER exposes users/{uid} (self-read-only).
     match /devoteeProfiles/{uid} {
       allow read: if true;
       allow create, update: if isSelf(uid)
@@ -3696,8 +2981,6 @@ service cloud.firestore {
         || (isSelf(uid));
     }
 
-    // --- follows/{followerUid}/following/{targetUid}: asymmetric follow.
-    // Read: follower themselves (or superadmin). Write: follower only, no self-follow.
     match /follows/{followerUid}/following/{targetUid} {
       allow read: if isSuperAdmin()
         || (isSelf(followerUid));
@@ -3709,9 +2992,6 @@ service cloud.firestore {
         || (isSelf(followerUid));
     }
 
-    // --- blocks/{blockerUid}/blocked/{targetUid}: user safety (Step 5).
-    // Read: blocker themselves (or superadmin) — blocked users can NEVER
-    // discover they were blocked. Write: blocker only, no self-block.
     match /blocks/{blockerUid}/blocked/{targetUid} {
       allow read: if isSuperAdmin()
         || (isSelf(blockerUid));
@@ -3723,8 +3003,6 @@ service cloud.firestore {
         || (isSelf(blockerUid));
     }
 
-    // --- mutes/{muterUid}/muted/{targetUid}: user safety (Step 5).
-    // Same privacy model as blocks. Mute hides posts; DMs still allowed.
     match /mutes/{muterUid}/muted/{targetUid} {
       allow read: if isSuperAdmin()
         || (isSelf(muterUid));
@@ -3736,8 +3014,6 @@ service cloud.firestore {
         || (isSelf(muterUid));
     }
 
-    // Group chats — private by default, invite-code only. No public
-    // discovery, no join-by-search. memberIds is the rules source of truth.
     match /chatGroups/{groupId} {      allow read: if isSuperAdmin() || (isLoggedIn() &&
         tkOldGet('memberIds', null) is list &&
         request.auth.uid in tkOldGet('memberIds', []));
@@ -3754,8 +3030,6 @@ service cloud.firestore {
         tkNewGet('inviteCode', '').size() == 8 &&
         uidIs(tkNewGet('createdBy', ''));
 
-      // Lane A (any member): thread-summary + presence fields only.
-      // Lane B (admin): member management + rename + invite rotation.
       allow update: if isSuperAdmin() || (isLoggedIn() &&
         tkOldGet('memberIds', null) is list &&
         request.auth.uid in tkOldGet('memberIds', []) && (
@@ -3770,7 +3044,6 @@ service cloud.firestore {
             tkNewGet('createdBy', '') == tkOldGet('createdBy', ''))
         ));
 
-      // Delete: admin, or the last member leaving (group dissolves).
       allow delete: if isSuperAdmin() || (isLoggedIn() &&
         tkOldGet('memberIds', null) is list &&
         request.auth.uid in tkOldGet('memberIds', []) && (
@@ -3788,7 +3061,7 @@ service cloud.firestore {
           (tkNewGet('kind', '') != 'system' ||
             tkNewGet('systemKind', '') in
               ['created', 'joined', 'left', 'added', 'removed', 'renamed', 'promoted']));
-        // Unsend: own message, within 5 minutes. No edits, ever.
+
         allow delete: if isSuperAdmin() || (loggedUidIs(tkOldGet('senderId', '')) &&
           request.time.toMillis() - tkOldGet('createdAt', 0) < 5 * 60 * 1000);
         allow update: if false;
@@ -3798,23 +3071,22 @@ service cloud.firestore {
         allow read: if isSuperAdmin() || (isLoggedIn() &&
           docGet(/databases/$(database)/documents/chatGroups/$(groupId), 'memberIds', null) is list &&
           request.auth.uid in docGet(/databases/$(database)/documents/chatGroups/$(groupId), 'memberIds', []));
-        // Create: self-join via code (uid == auth.uid) or admin adding.
+
         allow create: if isSuperAdmin() || (isLoggedIn() &&
           reqUid() == uid &&
           (uidIs(uid) ||
             request.auth.uid in docGet(/databases/$(database)/documents/chatGroups/$(groupId), 'adminIds', [])));
-        // Role change: admin only, role field only.
+
         allow update: if isSuperAdmin() || (isLoggedIn() &&
           request.auth.uid in docGet(/databases/$(database)/documents/chatGroups/$(groupId), 'adminIds', []) &&
           tkDiff(['role']));
-        // Delete: self (leaving) or admin (removing).
+
         allow delete: if isSuperAdmin() || (isLoggedIn() &&
           (uidIs(uid) ||
             request.auth.uid in docGet(/databases/$(database)/documents/chatGroups/$(groupId), 'adminIds', [])));
       }
     }
 
-    // Community subcollections (social feed, vivah, sadhana...)
     match /communities/{communityId}/{collectionName}/{docId} {
       allow read: if isSuperAdmin()
         || (isDemoWs(communityId) && (request.auth == null || effTenant() == communityId))
@@ -3822,9 +3094,6 @@ service cloud.firestore {
       allow write: if isLoggedIn() && (isDemoWs(communityId) || isTenantMember(communityId));
     }
 
-    // Purohit One â independent purohit identity + verification + marketplace
-
-    // --- purohits/{purohitId}: public read (marketplace); owner + admin write.
     match /purohits/{purohitId} {
       allow read: if true;
       allow create: if loggedUidIs(reqUid())
@@ -3832,65 +3101,41 @@ service cloud.firestore {
         && tkNewGet('ratingAggregate', 0) == 0
         && reqRatingCount() == 0
         && tkNewGet('completedGigs', 0) == 0
-        // PUROHIT-PARITY: a profile is also born with ZERO anchored
-        // endorsements — the claim branch reads this field, so it must
-        // not be self-granted at birth (mirrors jyotishProfiles).
+
         && request.resource.data.get('endorsementCount', 0) == 0;
       allow update: if isSuperAdmin()
         || (loggedUidIs(resUid())
           && uidIs(reqUid())
           && tkNewGet('id', '') == tkOldGet('id', '')
           && reqVerificationTier() == tkOldGet('verificationTier', '')
-          // PUROHIT-PARITY: the endorsement anchors are pinned here
-          // too — they move ONLY via the anchored endorsement branch
-          // below, never on the owner's plain say-so (mirrors the
-          // jyotishProfiles owner-branch anchor pins).
+
           && request.resource.data.get('endorsementCount', 0) == resource.data.get('endorsementCount', 0)
           && request.resource.data.get('lastEndorsementId', '') == resource.data.get('lastEndorsementId', '')
-          // SECURITY P1: the rating aggregate never moves on the
-          // owner's own say-so -- only via the anchored review branch
-          // below. completedGigs may stay, or rise by exactly 1
-          // anchored to a gig the owner just completed.
+
           && tkNewGet('ratingAggregate', 0) == tkOldGet('ratingAggregate', 0)
           && reqRatingCount() == tkOldGet('ratingCount', 0)
           && (tkNewGet('completedGigs', 0) == tkOldGet('completedGigs', 0)
             || p1CompletedGigOk()))
-        // SECURITY P1 -- anchored rating step (see p1PurohitRatingOk).
-        // The old branch let ANY signed-in user set ratingAggregate /
-        // ratingCount / completedGigs to any in-range value -- a fake
-        // 5.0 average in a single write.
+
         || (isLoggedIn()
           && diffKeys()
             .hasOnly(RATING_KEYS())
           && p1PurohitRatingOk(purohitId))
-        // PUROHIT-PARITY -- anchored endorsement step (see
-        // p1PurohitEndorsementOk): the endorsement counter moves only
-        // with the endorsement doc itself, in one transaction.
+
         || (isLoggedIn()
           && diffKeys()
             .hasOnly(['endorsementCount', 'lastEndorsementId', 'updatedAt'])
           && p1PurohitEndorsementOk(purohitId))
-        // PUROHIT-PARITY -- the tier CLAIM: before this branch, NO
-        // rules path let the owner advance their own verificationTier
-        // (the owner branch pins it), so claimTierAdvancement failed
-        // silently for every purohit — the JY-04 defect, one system
-        // over. The owner may now write ONLY verificationTier
-        // (+ updatedAt), and only to a step the doc's own anchored
-        // fields have earned (purohitTierClaimOk). Legacy note:
-        // endorsements recorded before this branch existed are not in
-        // the anchored count (rules cannot count a collection); an
-        // affected purohit's claim stays denied until their next
-        // (anchored) endorsement or a GodMode manual tier set.
+
         || (loggedUidIs(resUid())
           && diffKeys()
             .hasOnly(['verificationTier', 'updatedAt'])
           && purohitTierClaimOk())
-        // PHASE 3 â Pratham Seva counter advancement (order-anchored).
+
         || (isLoggedIn() && sevaProfileCompletionOk());
       allow delete: if false;
     }
 
-    // --- purohits availability: public read; owner write.
     match /purohitAvailability/{purohitId} {
       allow read: if true;
       allow write: if isSuperAdmin()
@@ -3899,7 +3144,6 @@ service cloud.firestore {
           && uidIs(docGet(/databases/$(database)/documents/purohits/$(purohitId), 'uid', '')));
     }
 
-    // Solo Sanatani â Universal Sanatani ID spine (sanataniProfiles/{uid})
     match /sanataniProfiles/{uid} {
       allow read: if true;
       allow create: if loggedUidIs(uid)
@@ -3919,7 +3163,6 @@ service cloud.firestore {
           ));
       allow delete: if false;
 
-      // A purohitId may be attached only when the referenced `purohits`
       function validPurohitAttach() {
         let newRoles = tkNewGet('roles', {});
         let oldRoles = tkOldGet('roles', {});
@@ -3931,7 +3174,6 @@ service cloud.firestore {
           && uidIs(docGet(/databases/$(database)/documents/purohits/$(newPid), 'uid', ''));
       }
 
-      // A jyotishId may be attached only when the referenced
       function validJyotishAttach() {
         let newRoles = tkNewGet('roles', {});
         let oldRoles = tkOldGet('roles', {});
@@ -3944,12 +3186,10 @@ service cloud.firestore {
       }
     }
 
-    // Solo Sanatani â private profile fields (gotra and future sensitive
     match /sanataniProfiles/{uid}/private/self {
       allow read, write: if loggedUidIs(uid);
     }
 
-// ------------------------- Section A: program config ----------------------
     match /prathamSevaConfig/{configId} {
       allow read: if isLoggedIn();
       allow create, update: if isSuperAdmin()
@@ -3958,12 +3198,6 @@ service cloud.firestore {
       allow delete: if false;
     }
 
-// ----------------- Section B: purohitApplications (REPLACES) --------------
-    // JY-FIX-B factoring: purohitApplications and jyotishApplications
-    // share ONE create shape (the Pratham Seva application is born
-    // PENDING with every reward/review field empty); only the profile
-    // id field name differs, passed as idField. Token-identical
-    // expansion at both call sites.
     function applicationCreateOk(idField) {
       return loggedUidIs(reqUid())
         && tkNewGet(idField, '') != ''
@@ -3982,22 +3216,12 @@ service cloud.firestore {
       allow delete: if false;
     }
 
-    // --- gigs: public read (marketplace); signed-in devotees post;
-    // JY-FIX-B compiled-size factoring: gigs and consultations share
-    // ONE status machine and ONE immutability shape (the two systems
-    // are mirrors by design). The shared bodies live here; the
-    // per-system names below delegate, token-identical in expansion.
     function bookingTransitionOk() {
       let from = resStatus();
       let to = reqStatus();
       return (from == 'OPEN' && to in ['ASSIGNED', 'CANCELLED'])
         || (from == 'ASSIGNED' && to in ['IN_PROGRESS', 'CANCELLED'])
-        // JY-13: IN_PROGRESS → CANCELLED is legitimate — a devotee
-        // may withdraw a request that has started. BOTH clients offer
-        // it (PurohitContext AND JyotishContext advance maps) while
-        // the rules denied it — a guaranteed error, fixed here. The
-        // update branches still require a PARTY, so this stays
-        // party-scoped.
+
         || (from == 'IN_PROGRESS' && to in ['COMPLETED', 'CANCELLED'])
         || (from == 'COMPLETED' && to in ['DAKSHINA_RELEASED'])
         || (from == to);
@@ -4027,14 +3251,13 @@ service cloud.firestore {
       allow update: if isSuperAdmin()
         || (isLoggedIn() && gigTransitionOk() && gigImmutableOk()
           && (isGigParty()
-            // Accept flow: any verified-path purohit may claim an OPEN gig;
+
             || (resStatus() == 'OPEN'
               && reqStatus() == 'ASSIGNED'
               && uidIs(tkNewGet('assignedPurohitUid', '')))));
       allow delete: if false;
     }
 
-    // --- endorsements: public read; Trustees (any real org) may endorse.
     match /endorsements/{endorsementId} {
       allow read: if true;
       allow create: if isLoggedIn()
@@ -4046,7 +3269,6 @@ service cloud.firestore {
       allow update, delete: if isSuperAdmin();
     }
 
-    // --- reviews: public read; deterministic ids (one rating per party per
     function reviewPartyOk() {
       let gigPath = /databases/$(database)/documents/gigs/$(tkNewGet('gigId', ''));
       return exists(gigPath)
@@ -4064,7 +3286,6 @@ service cloud.firestore {
       allow update, delete: if false;
     }
 
-    // --- purohitInvites: org â purohit staff invites. Readable by the invited
     match /purohitInvites/{inviteId} {
       allow read: if isSuperAdmin()
         || (isLoggedIn()
@@ -4084,11 +3305,6 @@ service cloud.firestore {
       allow delete: if false;
     }
 
-    // Jyotish One â independent jyotishi identity + verification +
-
-    // JY-02 helpers (shared by the profiles / consultations / tenders
-    // blocks below): contact-key freeze for public profile docs, and
-    // the jyotish-profile ownership anchor.
     function contactKeyFrozen(f) {
       return !reqKeys().hasAny([f])
         || tkNewGet(f, '') == tkOldGet(f, '');
@@ -4098,87 +3314,60 @@ service cloud.firestore {
         && uidIs(docGet(/databases/$(database)/documents/jyotishProfiles/$(jid), 'uid', ''));
     }
 
-    // --- jyotishProfiles/{jyotishId}: public read (marketplace); owner +
     match /jyotishProfiles/{jyotishId} {
       allow read: if true;
-      // JY-02: the public profile doc is born WITHOUT contact fields —
-      // phone/email live only in the owner-only private/self subdoc
-      // below (mirrors sanataniProfiles/{uid}/private/self).
+
       allow create: if loggedUidIs(reqUid())
         && reqVerificationTier() == 'REGISTERED'
         && tkNewGet('ratingAggregate', 0) == 0
         && reqRatingCount() == 0
         && tkNewGet('completedConsultations', 0) == 0
-        // JY-FIX-B (JY-04): a profile is also born with ZERO anchored
-        // endorsements — the claim branch reads this field, so it must
-        // not be self-granted at birth.
+
         && request.resource.data.get('endorsementCount', 0) == 0
         && !reqKeys().hasAny(['phone', 'email']);
       allow update: if isSuperAdmin()
         || (loggedUidIs(resUid())
-          // uid / id / tier / rating aggregates pinned by diff: none may
-          // be added, removed or changed on this branch (the factored
-          // form of the five field-equalities this branch used before).
+
           && !diffKeys()
             .hasAny(['uid', 'id', 'verificationTier', 'ratingAggregate', 'ratingCount',
-              // JY-FIX-B (JY-04): the endorsement anchors are pinned
-              // here too — they move ONLY via the anchored endorsement
-              // branch below, never on the owner's plain say-so.
+
               'endorsementCount', 'lastEndorsementId'])
-          // JY-02: legacy contact fields on the public doc are frozen —
-          // they may stay untouched or be REMOVED (the client migrates
-          // them into private/self), never changed or re-added.
+
           && contactKeyFrozen('phone')
           && contactKeyFrozen('email')
-          // SECURITY P1: the rating aggregate never moves on the
-          // owner's own say-so -- only via the anchored review branch
-          // below. completedConsultations may stay, or rise by exactly
-          // 1 anchored to a consultation the owner just completed.
+
           && (tkNewGet('completedConsultations', 0) == tkOldGet('completedConsultations', 0)
             || p1CompletedConsultationOk()))
-        // SECURITY P1 -- anchored rating step (see p1JyotishRatingOk).
-        // The old branch let ANY signed-in user set ratingAggregate /
-        // ratingCount / completedConsultations to any in-range value.
+
         || (isLoggedIn()
           && diffKeys()
             .hasOnly(RATING_KEYS())
           && p1JyotishRatingOk(jyotishId))
-        // JY-FIX-B (JY-04) -- anchored endorsement step (see
-        // p1JyotishEndorsementOk): the endorsement counter moves only
-        // with the endorsement doc itself, in one transaction.
+
         || (isLoggedIn()
           && diffKeys()
             .hasOnly(['endorsementCount', 'lastEndorsementId', 'updatedAt'])
           && p1JyotishEndorsementOk(jyotishId))
-        // JY-FIX-B (JY-04) -- the tier CLAIM: before this branch, NO
-        // rules path let the owner advance their own verificationTier
-        // (the owner branch pins it), so claimTierAdvancement failed
-        // silently for every jyotishi. The owner may now write ONLY
-        // verificationTier (+ updatedAt), and only to a step the doc's
-        // own anchored fields have earned (jyotishTierClaimOk).
+
         || (loggedUidIs(resUid())
           && diffKeys()
             .hasOnly(['verificationTier', 'updatedAt'])
           && jyotishTierClaimOk())
-        // PHASE 3 â Pratham Seva counter advancement (order-anchored).
+
         || (isLoggedIn() && sevaProfileCompletionOk());
       allow delete: if false;
 
-      // JY-02 — jyotishi contact fields (phone/email): owner-only,
-      // mirroring sanataniProfiles/{uid}/private/self.
       match /private/self {
         allow read, write: if isLoggedIn() && jyotishProfileOwnedByCaller(jyotishId);
       }
     }
 
-    // --- jyotishAvailability: public read; owner write.
     match /jyotishAvailability/{jyotishId} {
       allow read: if true;
       allow write: if isSuperAdmin()
         || (isLoggedIn() && jyotishProfileOwnedByCaller(jyotishId));
     }
 
-// ----------------- Section C: jyotishApplications (REPLACES) --------------
     match /jyotishApplications/{appId} {
       allow read: if isSuperAdmin()
         || (loggedUidIs(resUid()));
@@ -4187,14 +3376,12 @@ service cloud.firestore {
       allow update: if isSuperAdmin();
     }
 
-    // --- jyotishConsultations: public read (marketplace); signed-in
     function isConsultationParty() {
       return isLoggedIn()
         && (uidIs(tkOldGet('devoteeUid', ''))
           || uidIs(tkOldGet('assignedJyotishUid', '')));
     }
-    // JY-FIX-B factoring: the same party check BY ID, for the nested
-    // messages/remedies matches whose resource is the child doc.
+
     function consultationPartyById(cid) {
       let cpath = /databases/$(database)/documents/jyotishConsultations/$(cid);
       return isLoggedIn()
@@ -4208,23 +3395,18 @@ service cloud.firestore {
     function consultationImmutableOk() {
       return bookingImmutableOk();
     }
-    // JY-10: true when `jid` names a real jyotish profile owned by the
-    // caller (the same anchor validJyotishAttach uses on the spine).
+
     function callerOwnsJyotishProfile(jid) {
       return jid != '' && jyotishProfileOwnedByCaller(jid);
     }
-    // JY-02: true when the caller holds a jyotishi identity. The spine
-    // check suffices: roles.jyotishId could only have been attached by
-    // validJyotishAttach, which itself proved profile ownership then.
+
     function callerHasJyotishProfile() {
       let spath = /databases/$(database)/documents/sanataniProfiles/$(request.auth.uid);
       return exists(spath)
         && docGet(spath, 'roles', {}).get('jyotishId', '') != '';
     }
     match /jyotishConsultations/{consultationId} {
-      // JY-02: party-scoped read — the doc carries birth date/time/place,
-      // partner birth details, devotee phone and private notes. The open
-      // board reads the PII-free jyotishTenders projection instead.
+
       allow read: if isSuperAdmin() || isConsultationParty();
       allow create: if loggedUidIs(tkNewGet('devoteeUid', ''))
         && reqStatus() == 'OPEN'
@@ -4232,9 +3414,7 @@ service cloud.firestore {
       allow update: if isSuperAdmin()
         || (isLoggedIn() && consultationTransitionOk() && consultationImmutableOk()
           && (isConsultationParty()
-            // Accept flow: a jyotishi may claim an UNASSIGNED open
-            // consultation only as themself — JY-10: the claimed
-            // assignedJyotishId must be a real profile THEY own.
+
             || (resStatus() == 'OPEN'
               && tkOldGet('assignedJyotishUid', '') == ''
               && reqStatus() == 'ASSIGNED'
@@ -4242,7 +3422,6 @@ service cloud.firestore {
               && callerOwnsJyotishProfile(tkNewGet('assignedJyotishId', '')))));
       allow delete: if false;
 
-      // --- messages subcollection: only the two parties read/write.
       match /messages/{messageId} {
         function isMsgParty() {
           return consultationPartyById(consultationId);
@@ -4254,7 +3433,6 @@ service cloud.firestore {
         allow update, delete: if false;
       }
 
-      // --- remedies subcollection (Seva Pro Phase 4): the assigned jyotish
       match /remedies/{remedyId} {
         function isRemedyParty() {
           return consultationPartyById(consultationId);
@@ -4276,11 +3454,6 @@ service cloud.firestore {
       }
     }
 
-    // --- jyotishTenders/{consultationId}: JY-02 — the PII-free open-
-    // board projection of a consultation (same doc id). Carries ONLY
-    // category, the devotee's public one-line summary, budget, language
-    // and timing. The key whitelist in tenderShapeOk is the guarantee:
-    // birth fields, phone and notes cannot exist here at all.
     function TENDER_KEYS() {
       return ['id', 'consultationType', 'topicSummary', 'mode', 'city',
         'language', 'preferredDate', 'budgetMin', 'budgetMax',
@@ -4308,7 +3481,6 @@ service cloud.firestore {
         || (isLoggedIn() && tenderAcceptedByCaller(consultationId));
     }
 
-    // --- jyotishEndorsements: public read; Trustees (any real org) endorse.
     match /jyotishEndorsements/{endorsementId} {
       allow read: if true;
       allow create: if isLoggedIn()
@@ -4320,7 +3492,6 @@ service cloud.firestore {
       allow update, delete: if isSuperAdmin();
     }
 
-    // --- jyotishReviews: public read; deterministic ids (one rating per
     function consultationReviewPartyOk() {
       let cpath = /databases/$(database)/documents/jyotishConsultations/$(tkNewGet('consultationId', ''));
       return exists(cpath)
@@ -4334,12 +3505,7 @@ service cloud.firestore {
         && tkNewGet('consultationId', '') != ''
         && reqRating() >= 1
         && reqRating() <= 5
-        // JY-FIX-B (JY-09): the doc id is PINNED to the deterministic
-        // form the client already writes —
-        // {consultationId}_{reviewerUid}_{reviewerKind} — the polls
-        // ballot-box pattern. Without the pin, a crafted client could
-        // file a SECOND review for the same consultation under a fresh
-        // id and move the anchored rating aggregate twice.
+
         && reviewId == tkNewGet('consultationId', '')
           + '_' + request.auth.uid
           + '_' + tkNewGet('reviewerKind', '')
@@ -4347,7 +3513,6 @@ service cloud.firestore {
       allow update, delete: if false;
     }
 
-    // --- jyotishInvites: org â jyotishi staff invites. Readable by the
     match /jyotishInvites/{inviteId} {
       allow read: if isSuperAdmin()
         || (isLoggedIn()
@@ -4367,10 +3532,6 @@ service cloud.firestore {
       allow delete: if false;
     }
 
-
-    // ================= Seva Pro Phase 4 â referral pipeline =================
-
-    // --- referredBy anchoring on gig create (jyotish -> purohit) ---
     function remedyAnchorOk() {
       return exists(/databases/$(database)/documents/jyotishConsultations/$(reqReferredBy().get('consultationId', ''))/remedies/$(reqReferredBy().get('remedyId', '')))
         && uidIs(docGet(/databases/$(database)/documents/jyotishConsultations/$(reqReferredBy().get('consultationId', ''))/remedies/$(reqReferredBy().get('remedyId', '')), 'devoteeUid', ''))
@@ -4387,7 +3548,6 @@ service cloud.firestore {
           && remedyAnchorOk());
     }
 
-    // --- referredBy anchoring on consultation create (purohit -> jyotish) ---
     function referralAnchorOk() {
       return exists(/databases/$(database)/documents/jyotishReferrals/$(reqReferredBy().get('referralId', '')))
         && docGet(/databases/$(database)/documents/jyotishReferrals/$(reqReferredBy().get('referralId', '')), 'fromKind', '') == 'purohit'
@@ -4403,7 +3563,6 @@ service cloud.firestore {
           && referralAnchorOk());
     }
 
-    // --- referralAttributions/{orderId} ---
     function attributionGigOk() {
       return reqOrderType() == 'gig'
         && exists(/databases/$(database)/documents/gigs/$(reqOrderId()))
@@ -4427,7 +3586,7 @@ service cloud.firestore {
         || (reqOrderType() == 'consultation'
           && reqConsultDoc().data.get('status', '') == 'DAKSHINA_RELEASED');
     }
-    // Only an order party may move the attribution (prevents griefing the
+
     function attributionPartyOk() {
       return (reqOrderType() == 'gig'
           && (uidIs(reqGigDoc().data.get('devoteeUid', ''))
@@ -4437,7 +3596,6 @@ service cloud.firestore {
             || uidIs(reqConsultDoc().data.get('assignedJyotishUid', ''))));
     }
 
-    // --- referralCredits/rc_{orderId} ---
     function creditGigOk() {
       return reqOrderType() == 'gig'
         && exists(/databases/$(database)/documents/gigs/$(reqOrderId()))
@@ -4497,7 +3655,6 @@ service cloud.firestore {
             || uidIs(docGet(/databases/$(database)/documents/jyotishConsultations/$(tkOldGet('orderId', '')), 'assignedJyotishUid', ''))));
     }
 
-    // --- wallet credit anchored to a validated referral credit doc ---
     function referralCreditDocOk(uid) {
       return reqLastReferralCreditId() != ''
         && reqLastReferralCreditId() != tkOldGet('lastReferralCreditId', '')
@@ -4524,10 +3681,7 @@ service cloud.firestore {
         && tkNewGet('totalToppedUp', -1) == 0
         && tkNewGet('totalSpent', -1) == 0;
     }
-    // =============== end Seva Pro Phase 4 helpers ===============
 
-
-    // --- jyotishReferrals: cross-referrals jyotish â purohit. Public read
     match /jyotishReferrals/{referralId} {
       allow read: if true;
       allow create: if loggedUidIs(tkNewGet('fromUid', ''))
@@ -4538,8 +3692,6 @@ service cloud.firestore {
       allow update, delete: if isSuperAdmin();
     }
 
-
-    // --- referralAttributions/{orderId}: one row per referred order.
     match /referralAttributions/{orderId} {
       allow read: if isSuperAdmin()
         || (isLoggedIn()
@@ -4562,10 +3714,6 @@ service cloud.firestore {
       allow delete: if false;
     }
 
-    // --- referralClaims/{orderId}: share-referral thanks claims (QUEUED #25).
-    // One row per referred order, written by the BOOKER's device; the sharer
-    // reads their own claims and self-listens for the thanks bell. The create
-    // rule is order-anchored (mirrors referralAttributions): no forged thanks.
     match /referralClaims/{orderId} {
       allow read: if isSuperAdmin()
         || (loggedUidIs(tkOldGet('sharerUid', '')));
@@ -4585,7 +3733,6 @@ service cloud.firestore {
       allow update, delete: if false;
     }
 
-    // --- referralCredits/{creditId}: settled guidance credits.
     match /referralCredits/{creditId} {
       allow read: if isSuperAdmin()
         || (loggedUidIs(tkOldGet('referrerUid', '')))
@@ -4604,12 +3751,6 @@ service cloud.firestore {
       allow delete: if false;
     }
 
-
-    // NOTE: no catch-all allow â default deny.
-
-    // Sangam â the Sanatani social layer (personal view)
-
-    // Badge validation: devotee/org authors carry no tier; purohit/jyotish
     function sangamAuthorTierOk() {
       let kind = tkNewGet('authorKind', '');
       let tier = tkNewGet('authorTier', '');
@@ -4626,19 +3767,11 @@ service cloud.firestore {
           && tier == docGet(/databases/$(database)/documents/jyotishProfiles/$(roleId), 'verificationTier', ''));
     }
 
-    // Seva Bazar service_card: the editorial bar, enforced server-side.
-    // Only providers (purohit/jyotish) may post them; the devotional text
-    // (≥30 chars) and honest dakshina are non-negotiable. Cheap-signal
-    // language is a client + moderation concern; the rules hold the shape.
-    // NOTE: the 1-card/72h/provider spam line is enforced client-side in the
-    // composer; true server-side rate limiting needs a Cloud Function
-    // (Blaze-gated — unavailable on the $0 plan).
     function serviceCardOk() {
       let kind = tkNewGet('kind', '');
       let authorKind = tkNewGet('authorKind', '');
       let card = tkNewGet('serviceCard', {});
-      // NOTE: Firestore Rules functions have no imperative `if` — the
-      // early-return is expressed as a ternary/or-chain instead.
+
       return kind != 'service_card'
         || ((authorKind == 'purohit' || authorKind == 'jyotish')
           && card != null
@@ -4649,7 +3782,6 @@ service cloud.firestore {
           && card.get('providerTier', '') in ['REGISTERED', 'VERIFIED', 'TRUSTED']);
     }
 
-    // Official page posts: only a trustee of that org may post as the page.
     function sangamPagePostOk() {
       let official = tkNewGet('isOfficialPagePost', false);
       let orgId = reqOrgId();
@@ -4657,8 +3789,6 @@ service cloud.firestore {
         || (orgId != '' && orgId != null && isOrgTrustee(orgId));
     }
 
-    // --- sangamPosts: public read (the community feed); author create;
-    // service_card (Seva Bazar): provider-only, editorial bar enforced.
     match /sangamPosts/{postId} {
       allow read: if true;
       allow create: if loggedUidIs(reqAuthorUid())
@@ -4667,8 +3797,7 @@ service cloud.firestore {
            'orgId', 'orgName', 'isOfficialPagePost', 'kind', 'text', 'imageUrl', 'shlokaRef',
            'seva', 'serviceCard', 'eventRef', 'sharedFrom', 'createdAt', 'ashirvadCount', 'commentCount',
            'shareCount', 'visibility', 'status',
-           // Phase 3+4: gratitude (providerUid/providerName), festival moments (festival),
-           // consultation answers (anonymized)
+
            'providerUid', 'providerName', 'festival', 'anonymized'])
         && tkNewGet('ashirvadCount', -1) == 0
         && tkNewGet('commentCount', -1) == 0
@@ -4683,13 +3812,10 @@ service cloud.firestore {
         || (loggedUidIs(resAuthorUid())
           && tkDiff(['text', 'imageUrl', 'updatedAt'])
           && reqAuthorUid() == resAuthorUid())
-        // Step 4 (comment multi-device sync): any signed-in user may nudge
-        // commentCount by exactly ±1 (never below 0) and touch nothing else.
-        // This lets commenters keep the count honest on posts they don't own.
+
         || (isLoggedIn()
           && bumpToggleOk('commentCount'))
-        // Audit Fix #1: same ±1 pattern for ashirvadCount and shareCount —
-        // any signed-in user may nudge exactly ±1 (never below 0), nothing else.
+
         || (isLoggedIn()
           && bumpToggleOk('ashirvadCount'))
         || (isLoggedIn()
@@ -4698,21 +3824,18 @@ service cloud.firestore {
         || (loggedUidIs(resAuthorUid()));
     }
 
-    // --- sangamPosts/{postId}/ashirvad/{uid}: one Ashirvad per user (toggle).
     match /sangamPosts/{postId}/ashirvad/{uid} {
       allow read: if true;
       allow create, delete: if isSelf(uid);
       allow update: if false;
     }
 
-    // --- sangamPosts/{postId}/volunteers/{uid}: seva volunteering (toggle).
     match /sangamPosts/{postId}/volunteers/{uid} {
       allow read: if true;
       allow create, delete: if isSelf(uid);
       allow update: if false;
     }
 
-    // --- sangamComments: public read; signed-in create (author pinned,
     match /sangamComments/{commentId} {
       allow read: if true;
       allow create: if loggedUidIs(reqAuthorUid())
@@ -4725,7 +3848,6 @@ service cloud.firestore {
         || (loggedUidIs(resAuthorUid()));
     }
 
-    // --- sangamCircles: public read; signed-in create; creator/admin update.
     match /sangamCircles/{circleId} {
       allow read: if true;
       allow create: if loggedUidIs(tkNewGet('creatorUid', ''))
@@ -4735,22 +3857,18 @@ service cloud.firestore {
       allow update: if isSuperAdmin()
         || (loggedUidIs(tkOldGet('creatorUid', ''))
           && tkDiff(['name', 'topic', 'description', 'updatedAt']))
-        // Member count path (owner-approved 2026-10-20): any signed-in
-        // user may nudge memberCount by exactly +-1 (never below 0) and
-        // touch nothing else -- mirrors the sangamPosts pattern.
+
         || (isLoggedIn()
           && bumpToggleOk('memberCount'));
       allow delete: if isSuperAdmin();
     }
 
-    // --- sangamCircles/{circleId}/members/{uid}: join/leave (toggle).
     match /sangamCircles/{circleId}/members/{uid} {
       allow read: if true;
       allow create, delete: if isSelf(uid);
       allow update: if false;
     }
 
-    // --- sangamEvents: public read; signed-in create (org events need
     match /sangamEvents/{eventId} {
       allow read: if true;
       allow create: if loggedUidIs(tkNewGet('creatorUid', ''))
@@ -4758,39 +3876,22 @@ service cloud.firestore {
         && (reqOrgId() == ''
           || tkNewGet('orgId', null) == null
           || isOrgTrustee(reqOrgId()))
-        // EVENTS P0 (L8): the official badge may not float free — an
-        // official event must name its org AND be posted by that org's
-        // own trustee.
+
         && (tkNewGet('isOfficial', false) != true
           || (reqOrgId() != ''
               && isOrgTrustee(reqOrgId())))
         && reqKeys().hasOnly(
           ['title', 'kind', 'description', 'venue', 'startsAt', 'endsAt', 'orgId', 'orgName',
            'isOfficial', 'creatorUid', 'creatorName', 'rsvpCount', 'createdAt',
-           // EVENTS P1: hall capacity + recurrence rule (lib/eventRecurrence).
+
            'capacity', 'recurrence']);
       allow update: if isSuperAdmin()
         || (loggedUidIs(tkOldGet('creatorUid', ''))
-          && diffKeysOnly(reqData(), resource.data, 
+          && diffKeysOnly(reqData(), resource.data,
             ['title', 'kind', 'description', 'venue', 'startsAt', 'endsAt', 'updatedAt',
-             // EVENTS P1: the creator may set the hall size and the
-             // recurrence rule; occurrences derive from the rule, so
-             // editing it rewrites the future on every surface.
+
              'capacity', 'recurrence']))
-        // RSVP count path (EVENTS + POLLS P0, 2026-10-24): the count
-        // moves by exactly +-1 ONLY in the same batch as the caller's
-        // own rsvps/{uid} doc being created (+1) or deleted (-1) —
-        // anchored, so the number can no longer be nudged on its own.
-        // (Was: any signed-in user could move it freely, 2026-10-20.)
-        // EVENTS P1 extends the count path below: 'going' is the only
-        // counted state. Create/delete keep the P0 anchor — a fresh
-        // record defaults to 'going', and a record holding another
-        // state never moved the count, so its deletion must not move
-        // it either (the state checks pin exactly that). Two new
-        // flips move the count when an EXISTING record changes state
-        // to or from 'going'. Every +1 path must respect the event's
-        // capacity when one is set — a full event takes waitlist
-        // joins, never a 101st 'going'.
+
         || (isLoggedIn()
           && tkDiff(['rsvpCount'])
           && tkNewGet('rsvpCount', -1) >= 0
@@ -4814,20 +3915,14 @@ service cloud.firestore {
                 && existsAfter(/databases/$(database)/documents/sangamEvents/$(eventId)/rsvps/$(request.auth.uid))
                 && docGet(/databases/$(database)/documents/sangamEvents/$(eventId)/rsvps/$(request.auth.uid), 'state', 'going') == 'going'
                 && afterDocGet(/databases/$(database)/documents/sangamEvents/$(eventId)/rsvps/$(request.auth.uid), 'state', '') in ['interested', 'waitlisted'])));
-      // QUEUED FIX #1 (flagged): creators may delete their own events so
-      // trustees can "unshare" an org event bridged to Sangam.
+
       allow delete: if isSuperAdmin()
         || (loggedUidIs(tkOldGet('creatorUid', '')));
     }
 
-    // --- sangamEvents/{eventId}/rsvps/{uid}: RSVP (toggle).
     match /sangamEvents/{eventId}/rsvps/{uid} {
       allow read: if true;
-      // EVENTS P1: a record carries the member's state ('going' |
-      // 'interested' | 'waitlisted'); pre-P1 records have no state
-      // and read as 'going' everywhere (the counter anchor's default).
-      // Flips are own-record only, state + join-time fields only; the
-      // counted consequences live in the event doc's anchor above.
+
       allow create: if isSelf(uid)
         && tkNewGet('state', 'going') in ['going', 'interested', 'waitlisted'];
       allow update: if isSelf(uid)
@@ -4836,7 +3931,6 @@ service cloud.firestore {
       allow delete: if isSelf(uid);
     }
 
-    // --- sangamFollows/{followerUid}_{targetType}_{targetId}: public read;
     match /sangamFollows/{followId} {
       allow read: if true;
       allow create: if loggedUidIs(tkNewGet('followerUid', ''))
@@ -4846,7 +3940,6 @@ service cloud.firestore {
       allow delete: if loggedUidIs(tkOldGet('followerUid', ''));
     }
 
-    // --- sangamReports: reporter create; reporter+admin read; admin triage.
     match /sangamReports/{reportId} {
       allow read: if isSuperAdmin() || isOwner()
         || (loggedUidIs(tkOldGet('reporterUid', '')));
@@ -4858,9 +3951,6 @@ service cloud.firestore {
       allow update, delete: if isSuperAdmin() || isOwner();
     }
 
-    // Membership sprint â Organisation Membership System
-
-    // --- orgGlance/{workspaceId}: per-org glance summaries for the Solo
     match /orgGlance/{workspaceId} {
       allow read: if isSuperAdmin()
         || (isLoggedIn() && isTenantMember(workspaceId));
@@ -4870,7 +3960,6 @@ service cloud.firestore {
       allow delete: if false;
     }
 
-    // --- orgPages/{orgId}: public read (discovery + public org page).
     match /orgPages/{orgId} {
       allow read: if true;
       allow create, update: if isSuperAdmin() || (
@@ -4883,11 +3972,7 @@ service cloud.firestore {
            'eightyGURN', 'twelveARegistered', 'verified', 'pinnedAarti',
            'aartiSchedules', 'updatedAt'])
         && reqOrgId() == orgId
-        // SECURITY P1 (Finding 3): trustees may carry 'verified' (a
-        // merged doc holds it, so it stays in the key whitelist) but
-        // may never CHANGE it -- verification is granted only by the
-        // platform owner (the SuperAdmin branch above). On create the
-        // flag must be absent/false; on update it must be unchanged.
+
         && (resource == null
           ? tkNewGet('verified', false) == false
           : tkNewGet('verified', false) == tkOldGet('verified', false))
@@ -4895,9 +3980,6 @@ service cloud.firestore {
       allow delete: if isSuperAdmin();
     }
 
-    // --- orgPages/{orgId}/sevaCards/{cardId}: tangible giving cards (Phase 2).
-    // Public read (giving cards are public information); trustee write.
-    // Devotees tap a card → Phase 1's express dana sheet opens prefilled.
     match /orgPages/{orgId}/sevaCards/{cardId} {
       allow read: if true;
       allow create, update: if isSuperAdmin()
@@ -4912,18 +3994,6 @@ service cloud.firestore {
       allow delete: if isSuperAdmin() || isOrgTrustee(orgId);
     }
 
-    // --- orgBroadcasts/{broadcastId}: org announcements (QUEUED #14,
-    // owner-approved 2026-10-20). Public read (announcements are public);
-    // create only by a trustee of the org named in the doc, schema-pinned,
-    // createdBy == caller, non-empty title; a broadcast is a sent letter --
-    // no updates; delete by superadmin or the org's trustee.
-    // NOTIFICATION WAVE 4 (owner-approved 2026-11-24): OPTIONAL audience
-    // addressing — 'audience' in {'followers','members','staff'} (absent ==
-    // 'followers', the legacy behaviour) + OPTIONAL 'audienceRole' (a staff
-    // role name, only alongside audience == 'staff'). Create-side enum
-    // validation only; reads stay public and receivers resolve the
-    // audience on their own device (the sender never learns who was
-    // excluded).
     match /orgBroadcasts/{broadcastId} {
       allow read: if true;
       allow create: if isOrgTrustee(reqOrgId())
@@ -4942,19 +4012,6 @@ service cloud.firestore {
         || isOrgTrustee(tkOldGet('orgId', ''));
     }
 
-    // --- platformNotices/{noticeId}: platform announcements from GodMode
-    // (NOTIFICATION WAVE 4 — new collection flagged to the owner and
-    // approved 2026-11-24). The platform's one voice: maintenance
-    // windows, new versions, policy changes. Read by any signed-in user
-    // (each device self-listens and rings its own Suchana once);
-    // writes are SuperAdmin-only — create is schema-pinned (title
-    // non-empty, kind enum, both ms clocks numeric), update may flip
-    // ONLY 'active' (a published notice's words are never rewritten),
-    // delete is SuperAdmin-only. No ordinary-user writes, ever.
-    // ('active' carries no is-bool check: receivers ring only on
-    // active == true exactly, so any non-bool value is inert — the
-    // fail-safe direction — and the check's tokens went to the
-    // compiled-size budget instead. See notify-w4/RULES-DELTA.md.)
     match /platformNotices/{noticeId} {
       allow read: if isLoggedIn();
       allow create: if isSuperAdmin()
@@ -4969,20 +4026,10 @@ service cloud.firestore {
       allow delete: if isSuperAdmin();
     }
 
-    // --- familyLinks/{uid}: family safety circles (crisis module). ---
-    // Each user's doc holds linkedUids, consents, incomingInvites, outgoingInvites.
-    // Read: own doc, or a linked member's doc (consent-gated SOS history view).
-    //   A denied read means "no consent" — callers treat it as an empty list.
-    // Write own doc: top-level fields pinned. Cross-user writes are parties-only:
-    //   sending an invite writes incomingInvites.{ownUid} (pending) on the
-    //   target's doc; accept/decline/revoke touch only self-scoped keys and are
-    //   anchored to a pending invite or an existing link, so a stranger can
-    //   never forge a family link to read someone's SOS history.
-    // Only the writer's own key may differ inside one of the link maps.
     function familyLinkMapOnlySelfChanged(beforeMap, afterMap) {
       return diffKeysOnly(afterMap, beforeMap, [request.auth.uid]);
     }
-    // A well-formed pending invite FROM the writer (no one can invite as another).
+
     function familyLinkInviteContentOk(invite) {
       return invite != null
         && uidIs(invite.get('fromUid', ''))
@@ -4990,10 +4037,7 @@ service cloud.firestore {
         && invite.keys().hasOnly(
           ['fromUid', 'fromName', 'fromPhoto', 'fromSanId', 'status', 'createdAt']);
     }
-    // Cross-user update on someone else's familyLinks doc. Three legitimate
-    // shapes: (1) send/resend my pending invite, (2) accept their invite to me
-    // (gain link + consent), (3) decline/revoke (remove my keys). Anything else
-    // — including granting myself a link without their invite — is denied.
+
     function familyLinkCrossUpdateOk() {
       let me = request.auth.uid;
       let before = resource.data;
@@ -5011,15 +4055,14 @@ service cloud.firestore {
           .difference(before.get('linkedUids', []).toSet()).hasOnly([me])
         && before.get('linkedUids', []).toSet()
           .difference(after.get('linkedUids', []).toSet()).hasOnly([me]);
-      // (1) send/resend: only my incoming invite changes, and it is well-formed.
+
       let onlyInvite = topChanged.hasOnly(['incomingInvites'])
         && familyLinkInviteContentOk(after.get('incomingInvites', {}).get(me, null));
-      // (2) accept: THEY invited me (pending outgoing invite on their doc).
+
       let accept = before.get('outgoingInvites', {}).get(me, {}).get('status', '') == 'pending'
         && (me in after.get('linkedUids', []))
         && after.get('consents', {}).get(me, {}).get('granted', false) == true;
-      // (3) decline/revoke: I remove my keys, anchored to their pending invite
-      // or to an existing link. Never grants anything.
+
       let withdraw = (before.get('outgoingInvites', {}).get(me, null) != null
           || (me in before.get('linkedUids', [])))
         && !(me in after.get('linkedUids', []))
@@ -5034,21 +4077,17 @@ service cloud.firestore {
         && reqKeys().hasOnly(
           ['linkedUids', 'consents', 'incomingInvites', 'outgoingInvites']);
       allow delete: if isSelf(docUid);
-      // Invite send → the TARGET's doc (create on first invite).
+
       allow create: if isLoggedIn() && request.auth.uid != docUid
         && reqKeys().hasOnly(['incomingInvites'])
         && tkNewGet('incomingInvites', {}).keys().hasOnly([request.auth.uid])
         && familyLinkInviteContentOk(
           tkNewGet('incomingInvites', {}).get(request.auth.uid, null));
-      // Invite resend / accept / decline / revoke → the other party's doc.
+
       allow update: if isLoggedIn() && request.auth.uid != docUid
         && familyLinkCrossUpdateOk();
     }
 
-    // --- qrCodes/{region}: owner-uploaded regional payment QRs. ---
-    // GodMode → Geo Payments → QR Codes. Public read: payers must see the QR
-    // at checkout (paymentMethods.ts). Owner-only write/delete, content pinned
-    // to image data URLs so the collection can never become a file dump.
     match /qrCodes/{region} {
       allow read: if true;
       allow create, update: if isOwner()
@@ -5059,20 +4098,16 @@ service cloud.firestore {
       allow delete: if isOwner();
     }
 
-    // --- vdaAliases/{alias}: speakable devotee-ID claims (Phase 2).
-    // Doc id IS the normalized alias (`aarav@kashi`); first-write-wins.
-    // SAN-XXXXXX stays canonical — this is the friendly layer on top.
     match /vdaAliases/{aliasId} {
       allow read: if isLoggedIn();
       allow create: if loggedUidIs(reqUid())
         && tkNewGet('alias', '') == aliasId
         && reqKeys().hasOnly(['alias', 'uid', 'sanId', 'createdAt']);
-      // Releasing = delete; only the owning uid may release. No updates ever.
+
       allow update: if false;
       allow delete: if loggedUidIs(resUid());
     }
 
-    // --- followers/{orgId}/users/{uid}: public read (counts); owner write.
     match /followers/{orgId}/users/{uid} {
       allow read: if true;
       allow create: if isSelf(uid)
@@ -5081,7 +4116,6 @@ service cloud.firestore {
       allow delete: if isSelf(uid);
     }
 
-    // --- joinRequests/{orgId}_{uid}: deterministic id = one pending per
     match /joinRequests/{requestId} {
       allow read: if isSuperAdmin()
         || (loggedUidIs(tkOldGet('userUid', '')))
@@ -5102,7 +4136,6 @@ service cloud.firestore {
       allow delete: if false;
     }
 
-    // --- orgInvites/{inviteId}: org â user invitations.
     function inviteMatchesMe() {
       return isLoggedIn() && (
         uidIs(tkOldGet('invitedUid', '')) ||
@@ -5133,7 +4166,6 @@ service cloud.firestore {
       allow delete: if false;
     }
 
-    // --- workspaceMembers/{workspaceId}_{uid}: the rules-enforced membership
     function inviteAcceptOk(inviteId, workspaceId, role) {
       let ipath = /databases/$(database)/documents/orgInvites/$(inviteId);
       return inviteId != '' && exists(ipath)
@@ -5154,17 +4186,17 @@ service cloud.firestore {
         && reqUid() != ''
         && reqRole() != ''
         && (
-          // (a) Trustee grants for another user (join approval / direct add)
+
           (isOrgTrustee(reqWorkspaceId())
             && grantableRole(reqWorkspaceId(),
               reqRole()))
-          // (b) Self-accept of an invite: the invite must name me, be
+
           || (uidIs(reqUid())
             && inviteAcceptOk(
               tkNewGet('viaInviteId', ''),
               reqWorkspaceId(),
               reqRole()))
-          // (c) Workspace creator self-provisions as the first Trustee.
+
           || (uidIs(reqUid())
             && reqRole() == 'Trustee'
             && uidIs(docData(/databases/$(database)/documents/workspaces/$(request.resource.data.workspaceId)).createdBy))
@@ -5177,11 +4209,9 @@ service cloud.firestore {
         || (isLoggedIn() && isOrgTrustee(tkOldGet('workspaceId', '')));
     }
 
-    // NotificationCenter collections (Phase 3 merge of
     match /notifications/{uid} {
       allow read, write: if false;
 
-      // --- In-app notification center --------------------
       match /items/{itemId} {
         allow read: if isSelf(uid);
         allow create: if isSelf(uid)
@@ -5202,18 +4232,11 @@ service cloud.firestore {
         allow update, delete: if false;
       }
 
-      // --- Owner-only preferences ------------------------
       match /prefs {
         allow read, write: if isSelf(uid);
       }
     }
 
-    // App Growth funnel (/get-app QR smart link). The landing page is
-    // PUBLIC, so scan/install/waitlist logging must be anonymously
-    // writable â but tightly validated: exact key allow-list, bounded
-    // campaign ids, server timestamps only. Reads are owner-only
-    // (GodMode Analytics tab). Campaign + config docs are publicly
-    // readable (the landing page renders them); writes are owner-only.
     match /appGrowthScans/{scanId} {
       allow create: if reqKeys().hasOnly(['campaignId', 'platform', 'ts'])
         && (tkNewGet('campaignId', null) == null
@@ -5252,7 +4275,6 @@ service cloud.firestore {
       allow create, update, delete: if isOwner();
     }
 
-    // P2P money requests (chat-embedded): parties-only, strict state machine, no delete.
     match /p2pRequests/{reqId} {
       allow read: if isLoggedIn()
         && (uidIs(tkOldGet('senderId', ''))
@@ -5280,10 +4302,6 @@ service cloud.firestore {
       allow delete: if false;
     }
 
-    // File Vault (zero-cost Storage replacement: Firestore + IndexedDB).
-        // Campus maps — public temple layouts (Phase 1: builder + visitor view).
-    // Read is public: a temple map is public information. Write is org-admin
-    // only (trustee/superadmin of that workspace). No personal data here.
     match /campusMaps/{orgId} {
       allow read: if true;
       allow create, update: if isLoggedIn() && (
@@ -5292,11 +4310,7 @@ service cloud.firestore {
       );
       allow delete: if false;
     }
-    // Sevadar live reports — "human sensors" for campus conditions.
-    // Read is public (live conditions are public information).
-    // Write: sevadar+ of that workspace (role-gated). Reports EXPIRE
-    // (expiresAt); no delete needed — clients filter expired, cleanup
-    // removes them. Never per-user tracking data here.
+
     match /zoneReports/{reportId} {
       allow read: if true;
       allow create: if isLoggedIn()
@@ -5323,25 +4337,20 @@ match /fileVault/{fileId} {
           'size', 'hash', 'category', 'visibility', 'ownerUid', 'createdAt',
           'localOnly', 'chunkCount', 'tenantId'])
         && (
-          // Single-doc upload: the whole file is inline — `size` (the declared
-          // byte count) stays ≤ 1 MiB, and Firestore's own document cap bounds
-          // the actual bytes anyway.
+
           (tkNewGet('chunkCount', 0) == 0
             && tkNewGet('localOnly', false) != true
             && tkNewGet('size', 99999999) <= 1048576)
-          // Chunked upload: metadata only — bytes live in /chunks, so no
-          // inline `data` key; the declared total may reach 10 MiB across
-          // ≤ 28 chunks (500 KB base64 each, mirroring VAULT_CHUNK_B64).
+
           || (tkNewGet('chunkCount', 0) > 0
             && tkNewGet('chunkCount', 9999) <= 28
             && !reqKeys().hasAny(['data'])
             && tkNewGet('size', 99999999) <= 10485760)
-          // Private files: bytes never leave this device — Firestore holds
-          // only a tiny metadata pointer, so `size` may exceed 1 MiB.
+
           || tkNewGet('localOnly', false) == true);
       allow update: if false;
       allow delete: if loggedUidIs(tkOldGet('ownerUid', ''));
-      // Chunks carry denormalized gating fields: authorized from the chunk doc alone.
+
       match /chunks/{n} {
         allow read: if isLoggedIn()
           && (tkOldGet('visibility', 'private') == 'public'
@@ -5359,16 +4368,6 @@ match /fileVault/{fileId} {
       }
     }
 
-    /* ── Translation Quality System ────────────────────────────────────
-     * Devotees suggest better wording for draft strings
-     * (`translationSuggestions`); owner-approved corrections ship as
-     * runtime overrides (`translationOverrides/{lang}`) — live in the app
-     * without a redeploy. UI strings ship in the client bundle anyway, so
-     * override reads are public; writes are owner-only.
-     * Regional vocabulary suggestions may carry `region` (a RegionId) and
-     * `termKey` (e.g. 'temple'); the approved text lands verbatim under
-     * `regional.{region}.{termKey}` in the override doc.
-     */
     match /translationSuggestions/{suggestionId} {
       allow create: if loggedUidIs(reqUid())
         && reqStatus() == 'pending'
@@ -5386,29 +4385,17 @@ match /fileVault/{fileId} {
         && (tkNewGet('termKey', '') == ''
           || (tkNewGet('termKey', '').size() <= 40
             && tkNewGet('termKey', '').matches('^[a-zA-Z]+$')));
-      // A devotee may read their own suggestions; the owner reads the queue.
+
       allow read: if isLoggedIn()
         && (uidIs(resUid()) || isOwner());
-      // Owner triage: approve or reject. Records are kept, never edited.
+
       allow update: if isOwner()
         && reqStatus() in ['approved', 'rejected'];
       allow delete: if isOwner();
     }
 
-
-    /* =====================================================================
-     * TIRTHA DIARY (Map Phase 2) — personal pilgrimage journal.
-     * ---------------------------------------------------------------------
-     * PRIVACY LAW, ENFORCED AT THE DATABASE LEVEL:
-     *  - Owner-only: {uid} MUST equal request.auth.uid on every op.
-     *  - No public reads. No family/org reads. No sharing at the rules
-     *    level — there is no share path in this phase.
-     *  - Writes are schema-pinned: visits and yatras carry only the
-     *    fields the client needs; uid is immutable after create.
-     *  - Deletes are always allowed for the owner ("forget in one tap").
-     * ===================================================================== */
     match /tirthaVisits/{uid} {
-      allow read, write: if false; // no collection-level access
+      allow read, write: if false;
 
       match /visits/{visitId} {
         allow read: if isSelf(uid);
@@ -5427,7 +4414,7 @@ match /fileVault/{fileId} {
     }
 
     match /tirthaYatras/{uid} {
-      allow read, write: if false; // no collection-level access
+      allow read, write: if false;
 
       match /yatras/{yatraId} {
         allow read: if isSelf(uid);
@@ -5446,20 +4433,16 @@ match /fileVault/{fileId} {
     }
 
     match /translationOverrides/{lang} {
-      // UI strings are public by nature — they ship in the client bundle.
+
       allow read: if true;
-      // Owner-only corrections; the per-language map stays bounded.
+
       allow create, update: if isOwner()
         && request.resource.data.size() <= 2000;
       allow delete: if false;
     }
 
-    // --- QR Intelligence Phase 1: aggregate scan analytics. ---
-    // Privacy law: only the SHA-256 scanner hash leaves the device — the raw
-    // uid is never written. Phase 1 is aggregate-only; the dashboard reads
-    // qrScanStats, never the raw event stream.
     match /qrScanEvents/{eventId} {
-      // Any signed-in user may append their own scan event. Append-only.
+
       allow create: if isLoggedIn()
         && reqKeys().hasOnly([
           'qrId', 'qrType', 'scannerHash', 'outcome', 'scannedAt', 'amount', 'currency'
@@ -5469,13 +4452,13 @@ match /fileVault/{fileId} {
           'parsed', 'invalid', 'expired', 'payment_completed', 'payment_failed'
         ]
         && tkNewGet('scannerHash', '').matches('^[0-9a-f]{64}$');
-      // Owner-only reads — no per-user browsing, even of hashes.
+
       allow read: if isOwner();
       allow update, delete: if false;
     }
 
     match /qrScanStats/{qrId} {
-      // Any signed-in user may create the aggregate doc for a QR they scanned.
+
       allow create: if isLoggedIn()
         && tkNewGet('qrId', '') == qrId
         && reqKeys().hasOnly([
@@ -5483,8 +4466,7 @@ match /fileVault/{fileId} {
           'parsed', 'invalid', 'expired', 'completions', 'failures',
           'lastScannedAt', 'firstSeenAt', 'receiverId'
         ]);
-      // Any signed-in user may fold a scan into the counters. Counters only
-      // move forward; identity and type are immutable after creation.
+
       allow update: if isLoggedIn()
         && tkDiff([
           'totalScans', 'uniqueScanners', 'scannerHashes',
@@ -5494,7 +4476,7 @@ match /fileVault/{fileId} {
         && tkNewGet('totalScans', 0) >= tkOldGet('totalScans', 0)
         && tkNewGet('qrId', '') == tkOldGet('qrId', '')
         && tkNewGet('qrType', '') == tkOldGet('qrType', '');
-      // Owner-only reads — aggregates contain no PII, but owner-only is safer.
+
       allow read: if isOwner();
       allow delete: if false;
     }
