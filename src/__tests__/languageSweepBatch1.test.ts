@@ -166,7 +166,13 @@ describe('surfaces + vibe dict completeness (en/hi/bn authored)', () => {
     // SOS + PILLARS (2026-11-24) adds 4 surfaces.pillars keys
     // (personal, social, locations, management — the section headers
     // inside Personal) in all 10 languages, taking the pin to 1176.
-    expect(keysOf(en).length).toBe(1176);
+    // NOTIFICATION WAVE 3 (2026-11-24) adds 176 surfaces.notify keys
+    // (aartiReminderStartingSoonBody…walletTopupRejectedTitle — the
+    // Suchana centre's copy migrated from the trilingual warmCopy
+    // store: 88 entries x title/body) in all 10 languages, taking
+    // the pin to 1352. en/hi/bn authored verbatim from warmCopy;
+    // ta/te/mr/gu/kn/ml/sa are labelled drafts (proofread follow-up).
+    expect(keysOf(en).length).toBe(1352);
     for (const bucket of Object.keys(en)) {
       for (const leaf of Object.keys(en[bucket])) {
         for (const dict of [en, hi, bn]) {

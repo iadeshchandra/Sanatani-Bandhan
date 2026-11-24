@@ -290,6 +290,12 @@ export interface TranslationSchema {
     nilam?: { [key: string]: string };
     // FOUR PILLARS (2026-11-24) — the section headers inside Personal.
     pillars?: { [key: string]: string };
+    // NOTIFICATION WAVE 3 (2026-11-24) — the Suchana centre's copy,
+    // migrated from the trilingual warmCopy store to the dictionary:
+    // 176 leaves (88 entries x title/body). en/hi/bn authored (carried
+    // over from warmCopy verbatim); ta/te/mr/gu/kn/ml/sa are labelled
+    // drafts in the standing native-speaker proofread follow-up.
+    notify?: { [key: string]: string };
   };
   // Error-Polish batch (G-E4/G-E5): friendlyError targets — the ONLY
   // strings a non-auth failure may ever render (see lib/friendlyError.ts).
