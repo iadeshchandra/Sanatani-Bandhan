@@ -63,6 +63,24 @@ export interface ReleaseEntry {
 
 export const RELEASES: readonly ReleaseEntry[] = [
   {
+    version: 'v2026.11.26-fc81a68',
+    date: '2026-11-26',
+    sections: {
+      new: [
+        { text: {
+          en: 'Nilam gains live lots: registered bidders whose earnest money is recorded can now bid live in the app — every bid is public the moment it lands, the highest bid stands on the lot, and a bid in the last five minutes extends the close by five minutes, so no lot is ever snatched at the final second.',
+          hi: 'नीलाम में अब लाइव लॉट: जिन पंजीकृत बोलीदाताओं की बयाना राशि दर्ज है, वे अब ऐप में लाइव बोली लगा सकते हैं — हर बोली लगते ही सार्वजनिक होती है, सबसे ऊँची बोली लॉट पर दर्ज रहती है, और अंतिम पाँच मिनट की बोली समापन को पाँच मिनट बढ़ा देती है, ताकि कोई लॉट आख़िरी क्षण में छीना न जा सके।',
+          bn: 'নিলামে এখন লাইভ লট: যেসব নিবন্ধিত দরদাতার বায়না নথিভুক্ত আছে, তাঁরা এখন অ্যাপে লাইভ দর দিতে পারেন — প্রতিটি দর পড়ার সঙ্গে সঙ্গে প্রকাশ্য, সর্বোচ্চ দরটি লটে লেখা থাকে, এবং শেষ পাঁচ মিনিটের দর সমাপ্তি পাঁচ মিনিট বাড়িয়ে দেয়, যাতে কোনো লট শেষ মুহূর্তে ছিনিয়ে নেওয়া না যায়।',
+        } },
+        { text: {
+          en: 'Festival stalls can now be allotted by auction: from the Utsav stall register, one tap creates a Nilam lot for the stall, and when the lot settles, the winner is stamped back onto the stall register automatically.',
+          hi: 'उत्सव स्टॉल अब नीलामी से आवंटित हो सकते हैं: उत्सव स्टॉल पंजी से एक टैप में स्टॉल के लिए नीलाम लॉट बनता है, और लॉट के निपटान पर विजेता अपने आप स्टॉल पंजी में दर्ज हो जाता है।',
+          bn: 'উৎসবের স্টল এখন নিলামে বরাদ্দ করা যায়: উৎসব স্টল খাতা থেকে এক ট্যাপে স্টলের জন্য নিলাম লট তৈরি হয়, এবং লট নিষ্পত্তি হলে বিজয়ীর নাম নিজে নিজে স্টল খাতায় লেখা হয়ে যায়।',
+        } },
+      ],
+    },
+  },
+  {
     version: 'v2026.11.25-a4f652f',
     date: '2026-11-25',
     sections: {
