@@ -63,6 +63,18 @@ export interface ReleaseEntry {
 
 export const RELEASES: readonly ReleaseEntry[] = [
   {
+    version: 'v2026.11.25-a4f652f',
+    date: '2026-11-25',
+    sections: {
+      fixed: [
+        { text: { en: 'Fixed a rare hang where the app could sit on the opening screen forever on a phone holding an older saved copy. If opening ever takes too long now, the opening screen offers a \'Refresh the app\' button — and tries one automatic refresh on its own.', hi: 'एक दुर्लभ अटकाव ठीक किया गया जिसमें पुरानी सहेजी हुई प्रति वाले फ़ोन पर ऐप खुलने वाली स्क्रीन पर हमेशा के लिए रुक सकता था। अब खुलने में देर लगे तो खुलने वाली स्क्रीन पर \'ऐप रीफ़्रेश करें\' बटन आता है — और एक बार अपने आप रीफ़्रेश भी हो जाता है।', bn: 'একটি বিরল আটকে-যাওয়া ঠিক করা হয়েছে যেখানে পুরনো সংরক্ষিত কপি থাকা ফোনে অ্যাপটি খোলার পর্দায় চিরকাল আটকে থাকতে পারত। এখন খুলতে দেরি হলে খোলার পর্দায় \'অ্যাপ রিফ্রেশ করুন\' বোতাম আসে — এবং একবার নিজে নিজে রিফ্রেশও হয়।' } },
+      ],
+      improved: [
+        { text: { en: 'One calm opening screen: the duplicate loading screen inside the app is gone, so the app now opens with a single light splash — the app\'s name in orange, its tagline, and a progress bar.', hi: 'एक ही शांत खुलने वाली स्क्रीन: ऐप के अंदर की दूसरी लोडिंग स्क्रीन हटा दी गई है, इसलिए अब ऐप एक ही हल्की स्प्लैश के साथ खुलता है — नारंगी रंग में ऐप का नाम, उसकी टैगलाइन और एक प्रगति पट्टी।', bn: 'একটাই শান্ত খোলার পর্দা: অ্যাপের ভেতরের দ্বিতীয় লোডিং পর্দাটি সরিয়ে দেওয়া হয়েছে, তাই এখন অ্যাপ একটাই হালকা স্প্ল্যাশ দিয়ে খোলে — কমলা রঙে অ্যাপের নাম, তার ট্যাগলাইন ও একটি অগ্রগতি বার।' } },
+      ],
+    },
+  },
+  {
     version: 'v2026.11.24-158167f',
     date: '2026-11-24',
     sections: {
