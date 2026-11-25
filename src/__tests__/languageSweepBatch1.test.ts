@@ -196,7 +196,14 @@ describe('surfaces + vibe dict completeness (en/hi/bn authored)', () => {
     // dictionary, not surfaces.) en/hi/bn authored;
     // ta/te/mr/gu/kn/ml/sa are careful drafts (proofread
     // follow-up).
-    expect(keysOf(en).length).toBe(1458);
+    // AUCTION A3 (2026-11-26) adds 53 surfaces.nilam keys (the
+    // live mode: mode_live...regBidderUidHintLive — the desk's
+    // live arena + hall entry + EMD chips + the defaulter bar,
+    // the stall bridge lines, the live error lines, and the
+    // bidder's own live card) in all 10 languages, taking the
+    // pin to 1511. en/hi/bn authored; ta/te/mr/gu/kn/ml/sa are
+    // careful drafts (proofread follow-up).
+    expect(keysOf(en).length).toBe(1511);
     for (const bucket of Object.keys(en)) {
       for (const leaf of Object.keys(en[bucket])) {
         for (const dict of [en, hi, bn]) {

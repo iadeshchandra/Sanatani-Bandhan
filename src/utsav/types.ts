@@ -89,6 +89,11 @@ export interface FestivalStall {
   linkedTxId?: string;
   zone?: string;
   note?: string;
+  /** AUCTION A3 — stamped by the Nilam desk when this stall was
+   *  allotted by auction and the lot settled: the winning lot,
+   *  the winning amount (which is also the stall's fee), and
+   *  when the stamp landed. The holder is the winner's name. */
+  allottedVia?: { lotId: string; amount: number; at: number };
 }
 
 /**

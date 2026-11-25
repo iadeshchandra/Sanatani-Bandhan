@@ -2703,3 +2703,265 @@ describe('AUCTION A2 — sealed bids (auction_lots/{lotId}/bids)', () => {
     await assertFails(bidRef(staffDb()).delete());
   });
 });
+
+describe('AUCTION A3 — live bids (auction_lots/{lotId}/liveBids) + the defaulter bar', () => {
+  const LOT = 'lot-a3-1';
+  const serverTs = () => firebase.firestore.FieldValue.serverTimestamp();
+  const liveLotDoc = (over: Record<string, unknown> = {}) => ({
+    workspaceId: 'ws-1',
+    source: { kind: 'standalone', label: 'Brass lamps (12)' },
+    lotClass: 'movables',
+    title: 'Brass lamps, set of twelve',
+    description: 'Store-room surplus',
+    mediaRefs: [],
+    reservePrice: 4000,
+    valuationBasis: { kind: 'committee-estimate', figure: 4500, valuedOn: '2026-11-01' },
+    sanction: null,
+    leaseTermYears: null,
+    status: 'open',
+    history: { draft: { at: 1, by: 'admin-1' } },
+    notice: { auctionAt: Date.now() + 3_600_000, auctionPlace: 'Temple hall', emdAmount: 400, objectionDeadline: Date.now() + 3_600_000, publishedAt: 1 },
+    affixtures: [],
+    objections: [],
+    registrations: [
+      { id: 'reg-1', name: 'Bidder One', phone: '9000000000', idReference: 'Aadhaar ****1234', relatedParty: false, emdAmount: 400, emdMode: 'cash', receivedAt: 1, bidderUid: 'user-1' },
+      { id: 'reg-2', name: 'Bidder Two', phone: '9000000001', idReference: 'Aadhaar ****5678', relatedParty: false, emdAmount: 400, emdMode: 'cash', receivedAt: 1, bidderUid: 'user-2' },
+    ],
+    outcome: null,
+    settlement: { depositAmount: 0, depositTxId: '', balanceTxId: '' },
+    failReason: null,
+    lotMode: 'live',
+    bidderUids: ['user-1', 'user-2'],
+    bidIncrement: 250,
+    closeAt: Date.now() + 3_600_000,
+    highestBid: 0,
+    highestBidderUid: '',
+    highestBidderName: '',
+    highestBidId: '',
+    bidCount: 0,
+    extensions: 0,
+    liveEmdUids: ['user-1'],
+    createdAt: 1,
+    updatedAt: 1,
+    ...over,
+  });
+  const arenaDoc = (lot: Record<string, unknown>) => ({
+    highestBid: 0, highestBidderUid: '', highestBidderName: '', highestBidId: '',
+    bidCount: 0, extensions: 0, closeAt: lot.closeAt, bidIncrement: 250, reservePrice: 4000,
+  });
+  const liveBidDoc = (over: Record<string, unknown> = {}) => ({
+    bidderUid: 'user-1', bidderName: 'Bidder One', registrationId: 'reg-1',
+    amount: 5000, createdAt: serverTs(), entryMode: 'self', ...over,
+  });
+  const seedLiveLot = async (over: Record<string, unknown> = {}) => {
+    const lot = liveLotDoc(over);
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      const db = context.firestore();
+      await db.collection('auction_lots').doc(LOT).set(lot);
+      await db.collection('auction_lots').doc(LOT).collection('liveBids').doc('_arena').set(arenaDoc(lot));
+    });
+    return lot;
+  };
+  const staffDb = () => testEnv.authenticatedContext('admin-1').firestore();
+  const acctDb = () => testEnv.authenticatedContext('acct-1').firestore();
+  const bidderDb = () => testEnv.authenticatedContext('user-1').firestore();
+  const bidder2Db = () => testEnv.authenticatedContext('user-2').firestore();
+  const strangerDb = () => testEnv.authenticatedContext('user-9').firestore();
+  const anonDb = () => testEnv.unauthenticatedContext().firestore();
+  const lotRef = (db: any) => db.collection('auction_lots').doc(LOT);
+  const liveRef = (db: any, bidId: string) => lotRef(db).collection('liveBids').doc(bidId);
+  /** The one-writer batch: bid + lot stamps + arena stamps, as placeLiveBid writes them. */
+  const bidBatch = (db: any, lot: Record<string, unknown>, bidId: string, bidOver: Record<string, unknown> = {}, stampOver: Record<string, unknown> = {}) => {
+    const bid = liveBidDoc(bidOver);
+    const stamps = {
+      highestBid: bid.amount, highestBidderUid: bid.bidderUid, highestBidderName: bid.bidderName,
+      highestBidId: bidId, bidCount: (lot.bidCount as number) + 1,
+      extensions: lot.extensions, closeAt: lot.closeAt, ...stampOver,
+    };
+    const batch = db.batch();
+    batch.set(liveRef(db, bidId), bid);
+    batch.update(lotRef(db), { ...stamps, updatedAt: 2 });
+    batch.update(liveRef(db, '_arena'), { ...stamps });
+    return batch.commit();
+  };
+
+  it('197. Live birth: a live lot is born with a positive increment and zeroed stamps; a stalled birth is refused', async () => {
+    const birth = { status: 'draft', notice: null, registrations: [], bidderUids: [], liveEmdUids: [], closeAt: 0 };
+    await assertSucceeds(lotRef(staffDb()).set(liveLotDoc(birth)));
+    await assertFails(lotRef(staffDb()).set(liveLotDoc({ ...birth, bidIncrement: 0 })));
+    await assertFails(lotRef(staffDb()).set(liveLotDoc({ ...birth, highestBid: 500 })));
+    await assertFails(lotRef(staffDb()).set(liveLotDoc({ ...birth, bidCount: 2 })));
+    await assertSucceeds(lotRef(staffDb()).set(liveLotDoc({ ...birth, stallRef: { festivalId: 'fest-1', stallId: 'stall-1' } })));
+  });
+
+  it('198. The increment and the stall link are frozen at birth; the bidder register still grows clean', async () => {
+    await seedLiveLot();
+    await assertFails(lotRef(staffDb()).update({ bidIncrement: 500, updatedAt: 2 }));
+    await assertFails(lotRef(staffDb()).update({ stallRef: { festivalId: 'fest-9', stallId: 'stall-9' }, updatedAt: 2 }));
+    await assertSucceeds(lotRef(staffDb()).update({ bidderUids: ['user-1', 'user-2', 'user-9'], updatedAt: 2 }));
+  });
+
+  it('199. The close clock is born once: the notice publication stamps it to the auction moment, and no other move is allowed', async () => {
+    const auctionAt = Date.now() + 15 * 86_400_000;
+    await seedLiveLot({ status: 'approved', notice: null, closeAt: 0 });
+    const notice = { auctionAt, auctionPlace: 'Temple hall', emdAmount: 400, objectionDeadline: auctionAt, publishedAt: 2 };
+    await assertSucceeds(lotRef(staffDb()).update({ status: 'noticed', notice, closeAt: auctionAt, updatedAt: 2 }));
+    await seedLiveLot({ status: 'approved', notice: null, closeAt: 0 });
+    await assertFails(lotRef(staffDb()).update({ status: 'noticed', notice, closeAt: auctionAt + 1, updatedAt: 2 }));
+    await seedLiveLot();
+    await assertFails(lotRef(staffDb()).update({ closeAt: Date.now() + 7_200_000, updatedAt: 2 }));
+  });
+
+  it('200. The arena seed: the desk seeds the mirror in its pinned shape; a bidder cannot, and a wrong shape is refused', async () => {
+    const lot = liveLotDoc();
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await context.firestore().collection('auction_lots').doc(LOT).set(lot);
+    });
+    await assertSucceeds(liveRef(staffDb(), '_arena').set(arenaDoc(lot)));
+    await assertFails(liveRef(bidderDb(), '_arena').set(arenaDoc(lot)));
+    await assertFails(liveRef(staffDb(), '_arena').set({ ...arenaDoc(lot), bidCount: 3 }));
+  });
+
+  it('201. A registered, EMD-recorded bidder lands a bid: bid + lot stamps + arena stamps move together', async () => {
+    const lot = await seedLiveLot();
+    await assertSucceeds(bidBatch(bidderDb(), lot, 'lb_1'));
+    const after = await lotRef(staffDb()).get();
+    expect(after.data().highestBid).toBe(5000);
+    expect(after.data().bidCount).toBe(1);
+  });
+
+  it('202. Bid refusals: unregistered, registered-without-EMD, below the floor, after the close, on the wrong mode', async () => {
+    const lot = await seedLiveLot();
+    // user-2 is registered but carries no EMD stamp on this lot
+    await assertFails(bidBatch(bidder2Db(), lot, 'lb_1', { bidderUid: 'user-2', bidderName: 'Bidder Two', registrationId: 'reg-2' }));
+    // a stranger is not on the register at all
+    await assertFails(bidBatch(strangerDb(), lot, 'lb_1', { bidderUid: 'user-9', bidderName: 'Nine', registrationId: 'reg-9' }));
+    // the first bid must clear the reserve (4000)
+    await assertFails(bidBatch(bidderDb(), lot, 'lb_1', { amount: 3999 }));
+    // after the close clock, no bid lands
+    const closed = await seedLiveLot({ closeAt: 1000, notice: { auctionAt: 1000, auctionPlace: 'Hall', emdAmount: 400, objectionDeadline: 1000, publishedAt: 1 } });
+    await assertFails(bidBatch(bidderDb(), closed, 'lb_1'));
+    // a sealed lot takes no live bids
+    const sealed = await seedLiveLot({ lotMode: 'sealed' });
+    await assertFails(bidBatch(bidderDb(), sealed, 'lb_1'));
+  });
+
+  it('203. THE BAR: board roles write the workspace bar through the narrow branch — and only that field', async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await context.firestore().collection('users').doc('mgr-1').set({ workspaceId: 'ws-1', role: 'Manager' });
+    });
+    const mgrDb = () => testEnv.authenticatedContext('mgr-1').firestore();
+    const wsRef = (db: any) => db.collection('workspaces').doc('ws-1');
+    await assertSucceeds(wsRef(mgrDb()).update({ auctionBarredUids: ['user-1'] }));
+    await assertFails(wsRef(mgrDb()).update({ auctionBarredUids: ['user-1'], name: 'Renamed' }));
+    await assertFails(wsRef(acctDb()).update({ auctionBarredUids: ['user-1'] }));
+    await assertSucceeds(wsRef(mgrDb()).update({ pollTemplates: [], updatedAt: 2 }));
+  });
+
+  it('204. A barred bidder cannot bid — live or sealed — and cannot be registered onto a lot', async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await context.firestore().collection('workspaces').doc('ws-1').update({ auctionBarredUids: ['user-1'] });
+    });
+    const lot = await seedLiveLot();
+    await assertFails(bidBatch(bidderDb(), lot, 'lb_1'));
+    await seedLiveLot({ bidderUids: ['user-2'] });
+    await assertFails(lotRef(staffDb()).update({ bidderUids: ['user-2', 'user-1'], updatedAt: 2 }));
+    await assertSucceeds(lotRef(staffDb()).update({ bidderUids: ['user-2', 'user-9'], updatedAt: 2 }));
+    const sealedLot = liveLotDoc({ lotMode: 'sealed', bidderUids: ['user-1'] });
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await context.firestore().collection('auction_lots').doc('lot-a3-sealed').set(sealedLot);
+    });
+    const sealedBid = bidderDb().collection('auction_lots').doc('lot-a3-sealed').collection('bids').doc('user-1');
+    await assertFails(sealedBid.set({ bidderUid: 'user-1', amount: 5000, createdAt: 1, updatedAt: 1 }));
+  });
+
+  it('205. The log is append-only: no one edits or removes a landed bid — not the bidder, not the desk', async () => {
+    const lot = await seedLiveLot();
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await context.firestore().collection('auction_lots').doc(LOT).collection('liveBids').doc('lb_1').set(liveBidDoc());
+    });
+    void lot;
+    await assertFails(liveRef(bidderDb(), 'lb_1').update({ amount: 9000 }));
+    await assertFails(liveRef(bidderDb(), 'lb_1').delete());
+    await assertFails(liveRef(staffDb(), 'lb_1').delete());
+    await assertFails(liveRef(staffDb(), 'lb_1').update({ amount: 9000 }));
+  });
+
+  it('206. THE OPEN ARENA: any signed-in user may watch a running lot’s log; the unsigned and the unopened are refused', async () => {
+    await seedLiveLot();
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await context.firestore().collection('auction_lots').doc(LOT).collection('liveBids').doc('lb_1').set(liveBidDoc());
+    });
+    await assertSucceeds(liveRef(strangerDb(), 'lb_1').get());
+    await assertSucceeds(liveRef(strangerDb(), '_arena').get());
+    await assertSucceeds(liveRef(bidder2Db(), 'lb_1').get());
+    await assertFails(liveRef(anonDb(), 'lb_1').get());
+    await seedLiveLot({ status: 'draft' });
+    await assertFails(liveRef(strangerDb(), '_arena').get());
+  });
+
+  it('207. Hall entry: a conductor enters a bid for a present bidder, stamped as the conductor’s entry', async () => {
+    const lot = await seedLiveLot();
+    await assertSucceeds(bidBatch(staffDb(), lot, 'lb_1', { entryMode: 'hall', enteredByUid: 'admin-1' }));
+    await assertFails(bidBatch(staffDb(), lot, 'lb_2', { entryMode: 'hall', enteredByUid: 'user-1' }));
+    await assertFails(bidBatch(bidderDb(), lot, 'lb_3', { entryMode: 'hall', enteredByUid: 'user-1' }));
+    await assertFails(bidBatch(bidderDb(), lot, 'lb_4', { enteredByUid: 'user-1' }));
+  });
+
+  it('208. Stamp forgery is refused: the lot’s stamps move only with a real new bid in the same write', async () => {
+    const lot = await seedLiveLot();
+    // stamps move with no bid at all
+    await assertFails(lotRef(staffDb()).update({
+      highestBid: 9000, highestBidderUid: 'user-1', highestBidderName: 'Bidder One',
+      highestBidId: 'lb_x', bidCount: 1, updatedAt: 2,
+    }));
+    // a bid batch whose stamps run two counts ahead of the log
+    await assertFails(bidBatch(bidderDb(), lot, 'lb_1', {}, { bidCount: 2 }));
+    // a second batch pointing back at the SAME (now existing) bid doc
+    await assertSucceeds(bidBatch(bidderDb(), lot, 'lb_1'));
+    const after = await lotRef(staffDb()).get();
+    await assertFails(bidBatch(bidderDb(), after.data(), 'lb_1', { amount: 6000 }, { highestBidId: 'lb_1' }));
+  });
+
+  it('209. The extension: a bid inside the last 5 minutes moves the close to the bid’s moment + 5 — inside the band only', async () => {
+    const closing = await seedLiveLot({ closeAt: Date.now() + 240_000 });
+    const extended = Date.now() + 300_000;
+    await assertSucceeds(bidBatch(bidderDb(), closing, 'lb_1', {}, { closeAt: extended, extensions: 1 }));
+    const closing2 = await seedLiveLot({ closeAt: Date.now() + 240_000 });
+    await assertFails(bidBatch(bidderDb(), closing2, 'lb_1', {}, { closeAt: Date.now() + 900_000, extensions: 1 }));
+    const closing3 = await seedLiveLot({ closeAt: Date.now() + 240_000 });
+    await assertFails(bidBatch(bidderDb(), closing3, 'lb_1', {}, { closeAt: extended, extensions: 0 }));
+  });
+
+  it('210. The arena cannot drift: its stamps must equal the lot’s verified after-state, its fixed fields never move', async () => {
+    const lot = await seedLiveLot();
+    const bid = liveBidDoc({ entryMode: 'hall', enteredByUid: 'admin-1' });
+    const stamps = {
+      highestBid: 5000, highestBidderUid: 'user-1', highestBidderName: 'Bidder One',
+      highestBidId: 'lb_1', bidCount: 1, extensions: 0, closeAt: lot.closeAt,
+    };
+    const drift = staffDb().batch();
+    drift.set(liveRef(staffDb(), 'lb_1'), bid);
+    drift.update(lotRef(staffDb()), { ...stamps, updatedAt: 2 });
+    drift.update(liveRef(staffDb(), '_arena'), { ...stamps, highestBid: 9999 });
+    await assertFails(drift.commit());
+    const inc = staffDb().batch();
+    inc.update(liveRef(staffDb(), '_arena'), { bidIncrement: 500 });
+    await assertFails(inc.commit());
+  });
+
+  it('211. A live bid’s moment is the server’s: a client-stamped createdAt is refused', async () => {
+    const lot = await seedLiveLot();
+    await assertFails(bidBatch(bidderDb(), lot, 'lb_1', { createdAt: Date.now() }));
+    await assertFails(bidBatch(bidderDb(), lot, 'lb_2', { createdAt: 1 }));
+  });
+
+  it('212. CONTROL: A2’s seal is untouched by A3 — a sealed bid still lands on a sealed lot', async () => {
+    const sealedLot = liveLotDoc({ lotMode: 'sealed', bidderUids: ['user-1', 'user-2'] });
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await context.firestore().collection('auction_lots').doc('lot-a3-sealed').set(sealedLot);
+    });
+    const sealedBid = bidderDb().collection('auction_lots').doc('lot-a3-sealed').collection('bids').doc('user-1');
+    await assertSucceeds(sealedBid.set({ bidderUid: 'user-1', amount: 5000, createdAt: 1, updatedAt: 1 }));
+  });
+});

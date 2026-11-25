@@ -7,7 +7,7 @@ service cloud.firestore {
   match /databases/{database}/documents {
 
     function isLoggedIn() {
-      return request.auth != null && request.auth.uid != null;
+      return request.auth != null && authUid() != null;
     }
 
     function isAnonymous() {
@@ -21,8 +21,8 @@ service cloud.firestore {
         request.auth.token.role in ['SuperAdmin', 'SUPER_ADMIN'] ||
         (request.auth.token.roles is list &&
           request.auth.token.roles.hasAny(['SuperAdmin', 'SUPER_ADMIN'])) ||
-        (exists(/databases/$(database)/documents/platform_admins/$(request.auth.uid)) &&
-          docGet(/databases/$(database)/documents/platform_admins/$(request.auth.uid), 'active', true) != false)
+        (exists(/databases/$(database)/documents/platform_admins/$(authUid())) &&
+          docGet(/databases/$(database)/documents/platform_admins/$(authUid()), 'active', true) != false)
       );
     }
 
@@ -33,16 +33,16 @@ service cloud.firestore {
     function effTenant() {
       return request.auth == null ? null :
         (request.auth.token.tenantId != null ? request.auth.token.tenantId :
-          (exists(/databases/$(database)/documents/users/$(request.auth.uid)) ?
-            docGet(/databases/$(database)/documents/users/$(request.auth.uid), 'workspaceId', null) : null));
+          (exists(usrPath(authUid())) ?
+            docGet(usrPath(authUid()), 'workspaceId', null) : null));
     }
 
     function roleIn(roles) {
       return request.auth != null && (
         request.auth.token.role in roles ||
         (request.auth.token.roles is list && request.auth.token.roles.hasAny(roles)) ||
-        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
-          docGet(/databases/$(database)/documents/users/$(request.auth.uid), 'role', null) in roles)
+        (exists(usrPath(authUid())) &&
+          docGet(usrPath(authUid()), 'role', null) in roles)
       );
     }
 
@@ -58,7 +58,7 @@ service cloud.firestore {
     }
 
     function wsMemberPath(tenantId) {
-      return /databases/$(database)/documents/workspaceMembers/$(tenantId + '_' + request.auth.uid);
+      return /databases/$(database)/documents/workspaceMembers/$(tenantId + '_' + authUid());
     }
     function isWsMember(tenantId) {
       return isLoggedIn() && tenantId != null && exists(wsMemberPath(tenantId));
@@ -118,6 +118,54 @@ service cloud.firestore {
     }
     function demoWriteOk(wsId) {
       return isLoggedIn() && isDemoWs(wsId);
+    }
+    function dwNew(roles) {
+      return dwoNew() || hasRole(newDocWs(), roles);
+    }
+    function dwDoc(roles) {
+      return dwoDoc() || hasRole(docWs(), roles);
+    }
+    function dpDoc() {
+      return demoPublicRead(docWs());
+    }
+    function hrDoc(roles) {
+      return hasRole(docWs(), roles);
+    }
+    function hrNew(roles) {
+      return hasRole(newDocWs(), roles);
+    }
+    function hrT(tid, roles) {
+      return hasRole(tid, roles);
+    }
+    function dprDoc(roles) {
+      return dpDoc() || hrDoc(roles);
+    }
+    function tmDoc() {
+      return isTenantMember(docWs());
+    }
+    function tmNew() {
+      return isTenantMember(newDocWs());
+    }
+    function tkWsOld() {
+      return tkOldGet('workspaceId', '');
+    }
+    function authUid() {
+      return request.auth.uid;
+    }
+    function nowMs() {
+      return request.time.toMillis();
+    }
+    function tkStatusNew() {
+      return tkNewGet('status', '');
+    }
+    function tkStatusOld() {
+      return tkOldGet('status', '');
+    }
+    function dwoDoc() {
+      return demoWriteOk(docWs());
+    }
+    function dwoNew() {
+      return demoWriteOk(newDocWs());
     }
 
     function docWs() {
@@ -292,10 +340,10 @@ service cloud.firestore {
       return lad[i].get('percent', 0);
     }
     function tkPlanRes() {
-      return docData(/databases/$(database)/documents/festival_plans/$(tkOldGet('festivalId', '')));
+      return docData(fplPath(tkOldGet('festivalId', '')));
     }
     function tkStaffVenue() {
-      return hasRole(docWs(), R_ANY_STAFF())
+      return hrDoc(R_ANY_STAFF())
         && tkOldGet('paymentState', '') == 'pay-at-venue';
     }
     function tkBuyerGuard() {
@@ -338,7 +386,7 @@ service cloud.firestore {
 
     function tkUnitPrice(tk, tierId) {
       let early = tk.get('tierEarly', {}).get(tierId, {});
-      return (early.size() > 0 && request.time.toMillis() <= early.get('untilMs', 0))
+      return (early.size() > 0 && nowMs() <= early.get('untilMs', 0))
         ? early.get('price', 0) : tk.get('tierPrices', {}).get(tierId, -1);
     }
     function tkDisc(tk, code, price) {
@@ -378,7 +426,7 @@ service cloud.firestore {
     }
 
     function tkCreateShapeOk(d, plan) {
-      return tkShapeOk(d, plan, request.auth.uid);
+      return tkShapeOk(d, plan, authUid());
     }
     function tkShapeOk(d, plan, rsvpUid) {
       let tk = tkPlanCfg(plan);
@@ -402,7 +450,7 @@ service cloud.firestore {
 
     function tkRefundPct(plan, ev) {
       let lad = tkPlanCfg(plan).get('refundLadder', []);
-      let days = (tkPlanCfg(plan).get('startMs', 0) - request.time.toMillis()) / 86400000;
+      let days = (tkPlanCfg(plan).get('startMs', 0) - nowMs()) / 86400000;
       return ev.get('festivalCancelled', false) == true ? 100
         : lad.size() == 0 ? 0
         : days >= tkLadMin(lad, 0) ? tkLadPct(lad, 0)
@@ -415,7 +463,7 @@ service cloud.firestore {
 
     function tkBuyerCancelOk() {
       let plan = tkPlanRes();
-      let ev = docData(/databases/$(database)/documents/festival_events/$(tkFestOf(resource.data)));
+      let ev = docData(fevPath(tkFestOf(resource.data)));
       let pct = tkRefundPct(plan, ev);
       let due = (tkTotalOf(resource.data) * pct) / 100;
       let ns = tkStateOf(reqData());
@@ -438,7 +486,7 @@ service cloud.firestore {
         && !('transferState' in reqData())
         && tkDiff(['buyerUid', 'buyerName', 'transferFromUid', 'transferredAt',
              'transferToUid', 'transferToName', 'transferState', 'offeredAt', 'rsvpId', 'updatedAt'])
-        && request.time.toMillis() < tkPlanCfg(plan).get('startMs', 0);
+        && nowMs() < tkPlanCfg(plan).get('startMs', 0);
     }
 
     function tkWalletDebitOk() {
@@ -479,7 +527,7 @@ service cloud.firestore {
     function anchoredDiscountUse(planId) {
       let oldTk = tkPlanCfg(resource.data);
       let newTk = tkPlanCfg(reqData());
-      let evAfter = tkAfterData(/databases/$(database)/documents/festival_events/$(planId));
+      let evAfter = tkAfterData(fevPath(planId));
       let tp = ticketPath(evAfter.get('tierAnchorTicketId', ''));
       let tk = tkAfterData(tp);
       let code = tk.get('discountCode', '');
@@ -497,23 +545,50 @@ service cloud.firestore {
 
     function tkReleaseOpen(ev) {
       return ev.get('ticketReleaseAtMs', 0) <= 0
-        || request.time.toMillis() >= ev.get('ticketReleaseAtMs', 0);
+        || nowMs() >= ev.get('ticketReleaseAtMs', 0);
     }
 
     function dipPath(festivalId, tierId, uid) {
       return /databases/$(database)/documents/event_dip_entries/$(festivalId + '__' + tierId + '__' + uid);
+    }
+    function moPath(id) {
+      return /databases/$(database)/documents/marketplaceOrders/$(id);
+    }
+    function cgPath(id) {
+      return /databases/$(database)/documents/chatGroups/$(id);
+    }
+    function p2pPath(id) {
+      return /databases/$(database)/documents/p2pRequests/$(id);
+    }
+    function gigPath(id) {
+      return /databases/$(database)/documents/gigs/$(id);
+    }
+    function usrPath(id) {
+      return /databases/$(database)/documents/users/$(id);
+    }
+    function rcPath(id) {
+      return /databases/$(database)/documents/referralCredits/$(id);
+    }
+    function fevPath(id) {
+      return /databases/$(database)/documents/festival_events/$(id);
+    }
+    function chatPath(id) {
+      return /databases/$(database)/documents/chats/$(id);
+    }
+    function fplPath(id) {
+      return /databases/$(database)/documents/festival_plans/$(id);
     }
     function dipIsDipTier(ev, tierId) {
       return ev.get('dipOpensAtMs', {}).get(tierId, 0) > 0;
     }
     function tkDipOk(d, ev) {
       let tierId = tkTierOf(d);
-      let ep = dipPath(tkFestOf(d), tierId, request.auth.uid);
+      let ep = dipPath(tkFestOf(d), tierId, authUid());
       return !dipIsDipTier(ev, tierId)
         || (exists(ep)
             && docGet(ep, 'status', '') == 'selected'
             && ev.get('dipDraws', {}).get(tierId, {}).get('claimByMs', 0)
-                 >= request.time.toMillis());
+                 >= nowMs());
     }
 
     function tkDocsAgreeOk(d, ev, plan) {
@@ -524,8 +599,8 @@ service cloud.firestore {
     }
     function tkCreateOk() {
       let d = reqData();
-      let ev = docData(/databases/$(database)/documents/festival_events/$(tkFestOf(d)));
-      let plan = docData(/databases/$(database)/documents/festival_plans/$(tkFestOf(d)));
+      let ev = docData(fevPath(tkFestOf(d)));
+      let plan = docData(fplPath(tkFestOf(d)));
       return uidIs(tkBuyerOf(d))
         && tkDocsAgreeOk(d, ev, plan)
         && d.keys().hasOnly(
@@ -540,8 +615,8 @@ service cloud.firestore {
 
     function tkDeskCreateOk(ticketId) {
       let d = reqData();
-      let ev = docData(/databases/$(database)/documents/festival_events/$(tkFestOf(d)));
-      let plan = docData(/databases/$(database)/documents/festival_plans/$(tkFestOf(d)));
+      let ev = docData(fevPath(tkFestOf(d)));
+      let plan = docData(fplPath(tkFestOf(d)));
       return hasRole(tkWsOf(d), R_ANY_STAFF())
         && tkDocsAgreeOk(d, ev, plan)
         && d.get('deskSale', false) == true
@@ -654,10 +729,10 @@ service cloud.firestore {
     }
 
     function isSelf(x) {
-      return isLoggedIn() && request.auth.uid == x;
+      return isLoggedIn() && authUid() == x;
     }
     function uidIs(x) {
-      return x == request.auth.uid;
+      return x == authUid();
     }
 
     function docGet(p, k, dv) {
@@ -680,16 +755,16 @@ service cloud.firestore {
     }
 
     function reqGigDoc() {
-      return get(/databases/$(database)/documents/gigs/$(tkNewGet('orderId', '')));
+      return get(gigPath(tkNewGet('orderId', '')));
     }
     function reqConsultDoc() {
       return get(/databases/$(database)/documents/jyotishConsultations/$(tkNewGet('orderId', '')));
     }
     function reqCreditDoc() {
-      return get(/databases/$(database)/documents/referralCredits/$(tkNewGet('lastReferralCreditId', '')));
+      return get(rcPath(tkNewGet('lastReferralCreditId', '')));
     }
     function reqStatus() {
-      return tkNewGet('status', '');
+      return tkStatusNew();
     }
     function reqOrderId() {
       return tkNewGet('orderId', '');
@@ -755,7 +830,7 @@ service cloud.firestore {
       return tkNewGet('rsvpCount', 0);
     }
     function resStatus() {
-      return tkOldGet('status', '');
+      return tkStatusOld();
     }
     function resProviderUid() {
       return tkOldGet('providerUid', '');
@@ -820,7 +895,7 @@ service cloud.firestore {
     }
 
     match /users/{userId} {
-      allow read: if isLoggedIn() && (request.auth.uid == userId || isSuperAdmin() || isOwner());
+      allow read: if isLoggedIn() && (authUid() == userId || isSuperAdmin() || isOwner());
       allow create: if isSelf(userId)
         && !reqKeys().hasAny(['admin', 'isGlobalAdmin', 'status', 'tenantId',
 
@@ -869,37 +944,37 @@ service cloud.firestore {
     match /tenants/{tenantId} {
       allow read: if true;
       allow create: if isSuperAdmin();
-      allow update: if hasRole(tenantId, R_TRUSTEE())
+      allow update: if hrT(tenantId, R_TRUSTEE())
         && diffKeys()
             .hasOnly(['name', 'city', 'state', 'country', 'type', 'logoUrl', 'tagline', 'updatedAt']);
       allow delete: if isSuperAdmin();
 
       match /private/{docId} {
-        allow read, write: if hasRole(tenantId, R_TRUSTEE());
+        allow read, write: if hrT(tenantId, R_TRUSTEE());
       }
 
       match /publicProfile/{docId} {
         allow read: if true;
-        allow write: if hasRole(tenantId, R_TRUSTEE());
+        allow write: if hrT(tenantId, R_TRUSTEE());
       }
 
       match /treasury/{docId} {
-        allow read: if demoPublicRead(tenantId) || hasRole(tenantId, R_OVERSIGHT());
-        allow create: if demoWriteOk(tenantId) || hasRole(tenantId, R_FINANCE());
-        allow update: if (demoWriteOk(tenantId) || hasRole(tenantId, R_FINANCE()));
+        allow read: if demoPublicRead(tenantId) || hrT(tenantId, R_OVERSIGHT());
+        allow create: if demoWriteOk(tenantId) || hrT(tenantId, R_FINANCE());
+        allow update: if (demoWriteOk(tenantId) || hrT(tenantId, R_FINANCE()));
         allow delete: if false;
       }
 
       match /devotees/{docId} {
         allow read: if demoPublicRead(tenantId) || isTenantMember(tenantId);
-        allow create, update: if demoWriteOk(tenantId) || hasRole(tenantId, R_STAFF());
-        allow delete: if hasRole(tenantId, R_TRUSTEE());
+        allow create, update: if demoWriteOk(tenantId) || hrT(tenantId, R_STAFF());
+        allow delete: if hrT(tenantId, R_TRUSTEE());
       }
 
       match /yatranet_alerts/{docId} {
         allow read: if demoPublicRead(tenantId) || isTenantMember(tenantId);
         allow create: if demoWriteOk(tenantId) || isTenantMember(tenantId);
-        allow update, delete: if hasRole(tenantId, R_TRUSTEE());
+        allow update, delete: if hrT(tenantId, R_TRUSTEE());
       }
     }
 
@@ -916,57 +991,54 @@ service cloud.firestore {
           && !diffKeys().hasAny(['adminPinHash', 'adminPin']))
 
         || (hasRole(workspaceId, R_BOARD())
-          && tkDiff(['pollTemplates', 'updatedAt']));
+          && (tkDiff(['pollTemplates', 'updatedAt'])
+            || tkDiff(['auctionBarredUids', 'updatedAt'])));
       allow delete: if isSuperAdmin();
     }
 
     match /treasury/{docId} {
-      allow read: if demoPublicRead(docWs())
-        || hasRole(docWs(), R_OVERSIGHT())
-        || (isTenantMember(docWs()) && uidIs(tkOldGet('devoteeId', '')));
-      allow create: if hasRole(newDocWs(), R_FINANCE());
-      allow update: if hasRole(docWs(), R_FINANCE()) && wsImmutable();
+      allow read: if dprDoc(R_OVERSIGHT())
+        || (tmDoc() && uidIs(tkOldGet('devoteeId', '')));
+      allow create: if hrNew(R_FINANCE());
+      allow update: if hrDoc(R_FINANCE()) && wsImmutable();
       allow delete: if false;
     }
 
     match /treasury_ledgers/{docId} {
-      allow read: if demoPublicRead(docWs())
-        || hasRole(docWs(), R_OVERSIGHT())
-        || (isTenantMember(docWs()) && uidIs(tkOldGet('devoteeId', '')));
-      allow create: if (demoWriteOk(newDocWs()) || hasRole(newDocWs(), R_FINANCE()));
-      allow update: if (demoWriteOk(docWs()) || hasRole(docWs(), R_FINANCE())) && wsImmutable();
+      allow read: if dprDoc(R_OVERSIGHT())
+        || (tmDoc() && uidIs(tkOldGet('devoteeId', '')));
+      allow create: if (dwNew(R_FINANCE()));
+      allow update: if (dwDoc(R_FINANCE())) && wsImmutable();
       allow delete: if false;
     }
 
     match /donations/{donationId} {
-      allow read: if demoPublicRead(docWs())
-        || hasRole(docWs(), R_OVERSIGHT())
-        || (isTenantMember(docWs()) && uidIs(tkOldGet('donorId', '')));
-      allow create: if (demoWriteOk(newDocWs()) || hasRole(newDocWs(), R_FINANCE())
-        || (isTenantMember(newDocWs()) && uidIs(tkNewGet('donorId', ''))
+      allow read: if dprDoc(R_OVERSIGHT())
+        || (tmDoc() && uidIs(tkOldGet('donorId', '')));
+      allow create: if (dwNew(R_FINANCE())
+        || (tmNew() && uidIs(tkNewGet('donorId', ''))
             && reqStatus() == 'pledged'));
-      allow update: if (demoWriteOk(docWs()) || hasRole(docWs(), R_FINANCE())) && wsImmutable();
-      allow delete: if hasRole(docWs(), R_TRUSTEE());
+      allow update: if (dwDoc(R_FINANCE())) && wsImmutable();
+      allow delete: if hrDoc(R_TRUSTEE());
     }
 
     match /tax_receipts/{receiptId} {
-      allow read: if demoPublicRead(docWs())
-        || hasRole(docWs(), R_OVERSIGHT())
-        || (isTenantMember(docWs()) && uidIs(tkOldGet('donorId', '')));
-      allow create: if (demoWriteOk(newDocWs()) || hasRole(newDocWs(), R_FINANCE()));
-      allow update: if (demoWriteOk(docWs()) || hasRole(docWs(), R_FINANCE())) && wsImmutable();
+      allow read: if dprDoc(R_OVERSIGHT())
+        || (tmDoc() && uidIs(tkOldGet('donorId', '')));
+      allow create: if (dwNew(R_FINANCE()));
+      allow update: if (dwDoc(R_FINANCE())) && wsImmutable();
       allow delete: if false;
     }
 
     match /receiptCounters/{counterId} {
       allow read: if resource == null
-        || hasRole(tkOldGet('workspaceId', ''), R_OVERSIGHT());
-      allow create: if (demoWriteOk(newDocWs()) || hasRole(newDocWs(), R_FINANCE()))
+        || hasRole(tkWsOld(), R_OVERSIGHT());
+      allow create: if (dwNew(R_FINANCE()))
         && reqWorkspaceId() != ''
         && counterId == reqWorkspaceId() + '_' + tkNewGet('series', '') + '_' + string(tkNewGet('year', 0))
         && tkNewGet('series', '') in ['SB-80G', 'SB-CHANDA']
         && tkNewGet('seq', -1) >= 0;
-      allow update: if (demoWriteOk(docWs()) || hasRole(docWs(), R_FINANCE()))
+      allow update: if (dwDoc(R_FINANCE()))
         && wsImmutable()
         && tkNewGet('series', '') == tkOldGet('series', '')
         && tkNewGet('year', 0) == tkOldGet('year', 0)
@@ -975,65 +1047,65 @@ service cloud.firestore {
     }
 
     match /devotees/{devoteeId} {
-      allow read: if demoPublicRead(docWs()) || isTenantMember(docWs())
+      allow read: if dpDoc() || tmDoc()
         || uidIs(tkOldGet('userId', '')) || uidIs(devoteeId);
-      allow create: if (demoWriteOk(newDocWs()) || hasRole(newDocWs(), R_STAFF())
-        || (isTenantMember(newDocWs()) && uidIs(tkNewGet('userId', ''))));
-      allow update: if (demoWriteOk(docWs()) || hasRole(docWs(), R_STAFF())
-        || (isTenantMember(docWs()) && uidIs(tkOldGet('userId', '')))) && wsImmutable();
-      allow delete: if hasRole(docWs(), R_TRUSTEE());
+      allow create: if (dwNew(R_STAFF())
+        || (tmNew() && uidIs(tkNewGet('userId', ''))));
+      allow update: if (dwDoc(R_STAFF())
+        || (tmDoc() && uidIs(tkOldGet('userId', '')))) && wsImmutable();
+      allow delete: if hrDoc(R_TRUSTEE());
     }
 
     match /households/{householdId} {
-      allow read: if demoPublicRead(docWs()) || isTenantMember(docWs());
-      allow create, update: if (demoWriteOk(newDocWs()) || hasRole(newDocWs(), R_STAFF())) && (resource == null || wsImmutable());
-      allow delete: if hasRole(docWs(), R_TRUSTEE());
+      allow read: if dpDoc() || tmDoc();
+      allow create, update: if (dwNew(R_STAFF())) && (resource == null || wsImmutable());
+      allow delete: if hrDoc(R_TRUSTEE());
     }
 
     match /puja_bookings/{bookingId} {
-      allow read: if demoPublicRead(docWs()) || isTenantMember(docWs());
-      allow create: if (demoWriteOk(newDocWs()) || hasRole(newDocWs(), R_RITUAL())
-        || (isTenantMember(newDocWs()) && uidIs(tkNewGet('devoteeId', ''))));
-      allow update: if (demoWriteOk(docWs()) || hasRole(docWs(), R_RITUAL())) && wsImmutable();
-      allow delete: if hasRole(docWs(), R_TRUSTEE());
+      allow read: if dpDoc() || tmDoc();
+      allow create: if (dwNew(R_RITUAL())
+        || (tmNew() && uidIs(tkNewGet('devoteeId', ''))));
+      allow update: if (dwDoc(R_RITUAL())) && wsImmutable();
+      allow delete: if hrDoc(R_TRUSTEE());
     }
 
     match /poojaBookings/{bookingId} {
-      allow read: if demoPublicRead(docWs()) || isTenantMember(docWs());
-      allow create: if (demoWriteOk(newDocWs()) || hasRole(newDocWs(), R_RITUAL())
-        || (isTenantMember(newDocWs()) && uidIs(tkNewGet('devoteeId', ''))));
-      allow update: if (demoWriteOk(docWs()) || hasRole(docWs(), R_RITUAL())) && wsImmutable();
-      allow delete: if hasRole(docWs(), R_TRUSTEE());
+      allow read: if dpDoc() || tmDoc();
+      allow create: if (dwNew(R_RITUAL())
+        || (tmNew() && uidIs(tkNewGet('devoteeId', ''))));
+      allow update: if (dwDoc(R_RITUAL())) && wsImmutable();
+      allow delete: if hrDoc(R_TRUSTEE());
     }
 
     match /festival_plans/{planId} {
-      allow read: if demoPublicRead(docWs()) || isTenantMember(docWs());
-      allow create: if (demoWriteOk(newDocWs()) || hasRole(newDocWs(), R_STAFF()))
+      allow read: if dpDoc() || tmDoc();
+      allow create: if (dwNew(R_STAFF()))
         && (resource == null || wsImmutable());
-      allow update: if ((demoWriteOk(newDocWs()) || hasRole(newDocWs(), R_STAFF()))
+      allow update: if ((dwNew(R_STAFF()))
           && wsImmutable())
 
         || (isLoggedIn() && anchoredDiscountUse(planId));
-      allow delete: if hasRole(docWs(), R_TRUSTEE());
+      allow delete: if hrDoc(R_TRUSTEE());
     }
 
     match /festival_events/{eventId} {
       allow read: if tkOldGet('published', false) == true
-        || demoPublicRead(docWs()) || isTenantMember(docWs());
-      allow create: if demoWriteOk(newDocWs())
-        || hasRole(newDocWs(), R_BOARD());
-      allow update: if demoWriteOk(docWs())
-        || hasRole(docWs(), R_BOARD())
+        || dpDoc() || tmDoc();
+      allow create: if dwoNew()
+        || hrNew(R_BOARD());
+      allow update: if dwoDoc()
+        || hrDoc(R_BOARD())
         || (isLoggedIn() && wsImmutable() && anchoredFestivalCounter(eventId))
 
         || (isLoggedIn() && wsImmutable() && anchoredTierCounter(eventId))
 
         || (isLoggedIn() && wsImmutable() && anchoredDeskCounter(eventId));
-      allow delete: if hasRole(docWs(), R_TRUSTEE());
+      allow delete: if hrDoc(R_TRUSTEE());
     }
 
     match /festival_rsvps/{rsvpId} {
-      allow read: if isTenantMember(docWs())
+      allow read: if tmDoc()
         || (loggedUidIs(resUid()));
       allow create: if loggedUidIs(reqUid())
         && festRsvpShapeOk()
@@ -1055,9 +1127,9 @@ service cloud.firestore {
           && (tkNewGet('status', 'confirmed') == tkOldGet('status', 'confirmed')
               || (tkOldGet('status', 'confirmed') == 'waitlisted'
                   && reqStatus() == 'confirmed')))
-        || hasRole(docWs(), R_TRUSTEE());
+        || hrDoc(R_TRUSTEE());
       allow delete: if (loggedUidIs(resUid()))
-        || hasRole(docWs(), R_TRUSTEE())
+        || hrDoc(R_TRUSTEE())
 
         || (isLoggedIn() && festRsvpTransferDeleteOk());
     }
@@ -1066,7 +1138,7 @@ service cloud.firestore {
       allow read: if isLoggedIn()
         && (uidIs(tkOldGet('buyerUid', ''))
           || tkIsTransferTo()
-          || hasRole(docWs(), R_ANY_STAFF()));
+          || hrDoc(R_ANY_STAFF()));
       allow create: if isLoggedIn() && tkCreateOk();
 
       allow create: if isLoggedIn() && tkDeskCreateOk(ticketId);
@@ -1108,7 +1180,7 @@ service cloud.firestore {
         && tkStateOf(reqData()) == 'cancelled'
         && tkDiff(['paymentState', 'updatedAt']);
 
-      allow update: if hasRole(docWs(), R_ANY_STAFF())
+      allow update: if hrDoc(R_ANY_STAFF())
         && tkNewGet('treasuryTxId', '') != ''
         && tkDiff(['treasuryTxId', 'treasuryPostedAt', 'updatedAt']);
       allow delete: if false;
@@ -1138,9 +1210,9 @@ service cloud.firestore {
     }
     match /event_feedback/{feedbackId} {
       allow read: if (loggedUidIs(resAuthorUid()))
-        || hasRole(docWs(), R_STAFF());
+        || hrDoc(R_STAFF());
       allow create: if loggedUidIs(tkNewGet('authorUid', ''))
-        && feedbackId == tkNewGet('festivalId', '') + '__' + request.auth.uid
+        && feedbackId == tkNewGet('festivalId', '') + '__' + authUid()
         && newDocWs() != null && newDocWs() != ''
         && tkNewGet('festivalId', '') != ''
         && tkNewGet('authorName', '').size() >= 2
@@ -1166,7 +1238,7 @@ service cloud.firestore {
           && fbTextOk()
           && tkNewGet('wouldReturn', false) is bool
           && fbDayOk())
-        || (hasRole(docWs(), R_STAFF())
+        || (hrDoc(R_STAFF())
           && tkDiff(['state', 'orgResponse', 'updatedAt'])
           && tkNewGet('state', '') in ['visible', 'hidden']
           && (!('orgResponse' in reqData())
@@ -1178,12 +1250,12 @@ service cloud.firestore {
 
     function dipEntryCreateOk(entryId) {
       let d = reqData();
-      let ev = docData(/databases/$(database)/documents/festival_events/$(tkNewGet('festivalId', '')));
-      let plan = docData(/databases/$(database)/documents/festival_plans/$(tkNewGet('festivalId', '')));
+      let ev = docData(fevPath(tkNewGet('festivalId', '')));
+      let plan = docData(fplPath(tkNewGet('festivalId', '')));
       let opens = ev.get('dipOpensAtMs', {}).get(tkNewGet('tierId', ''), 0);
       let closes = ev.get('dipClosesAtMs', {}).get(tkNewGet('tierId', ''), 0);
       return uidIs(tkNewGet('uid', ''))
-        && entryId == tkNewGet('festivalId', '') + '__' + tkNewGet('tierId', '') + '__' + request.auth.uid
+        && entryId == tkNewGet('festivalId', '') + '__' + tkNewGet('tierId', '') + '__' + authUid()
         && tkNewGet('festivalId', '') != ''
         && tkNewGet('tierId', '') != ''
         && tkWsOf(d) != ''
@@ -1196,20 +1268,20 @@ service cloud.firestore {
         && tkNewGet('attendees', []).size() <= 20
         && tkNewGet('heads', 0) == tkNewGet('attendees', []).size()
         && tkNewGet('heads', 0) <= tkPlanCfg(plan).get('tierMax', {}).get(tkNewGet('tierId', ''), 6)
-        && tkNewGet('status', '') == 'entered'
+        && tkStatusNew() == 'entered'
         && tkNewGet('createdAt', 0) is number
         && tkNewGet('createdAt', 0) > 0
         && d.keys().hasOnly(['festivalId', 'tierId', 'workspaceId', 'uid', 'buyerName',
              'attendees', 'heads', 'createdAt', 'status'])
         && opens > 0
-        && request.time.toMillis() >= opens
-        && request.time.toMillis() <= closes;
+        && nowMs() >= opens
+        && nowMs() <= closes;
     }
 
     function dipStaffUpdateOk() {
-      let os = tkOldGet('status', '');
-      let ns = tkNewGet('status', '');
-      return hasRole(docWs(), R_ANY_STAFF())
+      let os = tkStatusOld();
+      let ns = tkStatusNew();
+      return hrDoc(R_ANY_STAFF())
         && tkDiff(['status', 'dipPosition', 'updatedAt'])
         && ((os == 'entered' && ns in ['selected', 'waitlisted'])
             || (os == 'waitlisted' && ns == 'selected')
@@ -1218,11 +1290,11 @@ service cloud.firestore {
     }
 
     function dipClaimConsumeOk() {
-      let evAfter = tkAfterData(/databases/$(database)/documents/festival_events/$(tkOldGet('festivalId', '')));
+      let evAfter = tkAfterData(fevPath(tkOldGet('festivalId', '')));
       let tp = ticketPath(evAfter.get('tierAnchorTicketId', ''));
       let tk = existsAfter(tp) ? tkAfterData(tp) : {};
-      return tkOldGet('status', '') == 'selected'
-        && tkNewGet('status', '') == 'claimed'
+      return tkStatusOld() == 'selected'
+        && tkStatusNew() == 'claimed'
         && tkDiff(['status', 'updatedAt'])
         && tk.size() > 0
         && uidIs(tkBuyerOf(tk))
@@ -1232,18 +1304,18 @@ service cloud.firestore {
     }
 
     function dipWithdrawOk() {
-      let ev = docData(/databases/$(database)/documents/festival_events/$(tkOldGet('festivalId', '')));
+      let ev = docData(fevPath(tkOldGet('festivalId', '')));
       let closes = ev.get('dipClosesAtMs', {}).get(tkOldGet('tierId', ''), 0);
       return uidIs(tkOldGet('uid', ''))
-        && tkOldGet('status', '') == 'entered'
+        && tkStatusOld() == 'entered'
         && closes > 0
-        && request.time.toMillis() <= closes;
+        && nowMs() <= closes;
     }
 
     match /event_dip_entries/{entryId} {
       allow read: if isSuperAdmin()
         || (loggedUidIs(tkOldGet('uid', '')))
-        || hasRole(docWs(), R_ANY_STAFF());
+        || hrDoc(R_ANY_STAFF());
       allow create: if isLoggedIn() && dipEntryCreateOk(entryId);
       allow update: if dipStaffUpdateOk()
         || (loggedUidIs(tkOldGet('uid', '')) && dipClaimConsumeOk());
@@ -1261,15 +1333,20 @@ service cloud.firestore {
         && d.title is string && d.title.size() > 0 && d.title.size() <= 120
         && d.reservePrice is number && d.reservePrice >= 0
         && d.registrations is list && d.registrations.size() == 0
-        && tkNewGet('lotMode', 'hall') in ['hall', 'sealed']
+        && tkNewGet('lotMode', 'hall') in ['hall', 'sealed', 'live']
         && tkNewGet('bidderUids', []) == []
-        && reqKeys().hasOnly(['workspaceId', 'source', 'lotClass', 'title', 'description', 'mediaRefs', 'reservePrice', 'valuationBasis', 'sanction', 'leaseTermYears', 'status', 'history', 'notice', 'affixtures', 'objections', 'registrations', 'outcome', 'settlement', 'failReason', 'createdAt', 'updatedAt', 'lotMode', 'bidderUids']);
+        && reqKeys().hasOnly(['workspaceId', 'source', 'lotClass', 'title', 'description', 'mediaRefs', 'reservePrice', 'valuationBasis', 'sanction', 'leaseTermYears', 'status', 'history', 'notice', 'affixtures', 'objections', 'registrations', 'outcome', 'settlement', 'failReason', 'createdAt', 'updatedAt', 'lotMode', 'bidderUids', 'bidIncrement', 'closeAt', 'highestBid', 'highestBidderUid', 'highestBidderName', 'highestBidId', 'bidCount', 'extensions', 'liveEmdUids', 'stallRef'])
+        && (tkNewGet('lotMode', 'hall') != 'live'
+          || (tkNewGet('bidIncrement', 0) is number && tkNewGet('bidIncrement', 0) > 0
+            && tkNewGet('highestBid', 0) == 0 && tkNewGet('bidCount', 0) == 0
+            && tkNewGet('closeAt', 0) == 0));
     }
-    function lotUpdateOk() {
+    function lotUpdateOk(lotId) {
       let os = resData().status;
       let ns = reqData().status;
       let d = reqData();
       let o = resData();
+      let barred = barredUids(tkWsOf(o));
       return wsImmutable()
         && d.lotClass == o.lotClass
         && d.title is string && d.title.size() > 0
@@ -1293,15 +1370,27 @@ service cloud.firestore {
         && d.registrations.size() >= o.registrations.size()
         && d.registrations.size() <= 100
         && d.objections.size() >= o.objections.size()
-        && d.affixtures.size() >= o.affixtures.size();
+        && d.affixtures.size() >= o.affixtures.size()
+        && tkNewGet('bidIncrement', 0) == tkOldGet('bidIncrement', 0)
+        && tkNewGet('stallRef', {}) == tkOldGet('stallRef', {})
+        && (tkNewGet('bidderUids', []).size() <= tkOldGet('bidderUids', []).size()
+          || !tkNewGet('bidderUids', []).hasAny(barred)
+          || tkOldGet('bidderUids', []).hasAny(barred))
+        && (tkNewGet('closeAt', 0) == tkOldGet('closeAt', 0)
+          || (os == 'approved' && ns == 'noticed'
+            && tkNewGet('closeAt', 0) == d.get('notice', {}).get('auctionAt', 0))
+          || liveBidMoveOk(lotId, o, d))
+        && (!diffKeys().hasAny(['highestBid', 'highestBidderUid', 'highestBidderName', 'highestBidId', 'bidCount', 'extensions'])
+          || liveBidMoveOk(lotId, o, d));
     }
     function lotWriteGate(ws) {
       return demoWriteOk(ws) || hasRole(ws, R_BOARD()) || hasRole(ws, R_FINANCE());
     }
     match /auction_lots/{lotId} {
-      allow read: if isSuperAdmin() || hasRole(docWs(), R_ANY_STAFF()) || demoPublicRead(docWs());
+      allow read: if isSuperAdmin() || hrDoc(R_ANY_STAFF()) || dpDoc();
       allow create: if (lotWriteGate(newDocWs())) && lotCreateOk();
-      allow update: if (lotWriteGate(newDocWs())) && lotUpdateOk();
+      allow update: if (lotWriteGate(newDocWs()) && lotUpdateOk(lotId))
+        || liveBidStampWriteOk(lotId);
       allow delete: if false;
 
       match /bids/{bidId} {
@@ -1311,6 +1400,16 @@ service cloud.firestore {
           && tkNewGet('amount', 0) > 0;
         allow delete: if bidOwnWindowOk(lotId);
       }
+      match /liveBids/{bidId} {
+        allow read: if isSuperAdmin() || liveReadOk(lotId);
+        allow create: if isLoggedIn()
+          && (bidId == '_arena' ? liveArenaSeedOk(lotId) : liveBidCreateOk(lotId));
+        allow update: if bidId == '_arena' && liveArenaMoveOk(lotId);
+        allow delete: if false;
+      }
+    }
+    function lotDoc(lotId) {
+      return docData(lotPath(lotId));
     }
     function lotPath(lotId) {
       return /databases/$(database)/documents/auction_lots/$(lotId);
@@ -1322,31 +1421,116 @@ service cloud.firestore {
     function lotSealedWindowOpen(l) {
       return l.get('status', '') == 'open'
         && l.get('lotMode', 'hall') == 'sealed'
-        && request.time.toMillis() < lotCloseOf(l);
+        && nowMs() < lotCloseOf(l);
     }
     function bidCreateOk(lotId, bidId) {
-      let l = docData(lotPath(lotId));
-      return bidId == request.auth.uid
+      let l = lotDoc(lotId);
+      return bidId == authUid()
         && uidIs(tkNewGet('bidderUid', ''))
         && lotSealedWindowOpen(l)
-        && (request.auth.uid in l.get('bidderUids', [])
-            || demoWriteOk(l.get('workspaceId', '')))
+        && (authUid() in l.get('bidderUids', [])
+            || demoWriteOk(tkWsOf(l)))
+        && !(authUid() in barredUids(tkWsOf(l)))
         && tkNewGet('amount', 0) > 0
         && reqKeys().hasOnly(['bidderUid', 'amount', 'createdAt', 'updatedAt']);
     }
 
     function bidOwnWindowOk(lotId) {
       return uidIs(tkOldGet('bidderUid', ''))
-        && lotSealedWindowOpen(docData(lotPath(lotId)));
+        && lotSealedWindowOpen(lotDoc(lotId));
     }
 
     function bidReadOk(lotId) {
-      let l = docData(lotPath(lotId));
+      let l = lotDoc(lotId);
       return lotCloseOf(l) > 0
-        && request.time.toMillis() >= lotCloseOf(l)
-        && (hasRole(l.get('workspaceId', ''), R_BOARD())
-            || hasRole(l.get('workspaceId', ''), R_FINANCE())
-            || demoPublicRead(l.get('workspaceId', '')));
+        && nowMs() >= lotCloseOf(l)
+        && (hasRole(tkWsOf(l), R_BOARD())
+            || hasRole(tkWsOf(l), R_FINANCE())
+            || demoPublicRead(tkWsOf(l)));
+    }
+
+    function barredUids(ws) {
+      return docData(/databases/$(database)/documents/workspaces/$(ws)).get('auctionBarredUids', []);
+    }
+    function liveBidPath(lotId, bidId) {
+      return /databases/$(database)/documents/auction_lots/$(lotId)/liveBids/$(bidId);
+    }
+    function liveBidMoveOk(lotId, o, d) {
+      let bp = liveBidPath(lotId, d.get('highestBidId', ''));
+      let b = tkAfterData(bp);
+      let hb = d.get('highestBid', 0);
+      let ohb = o.get('highestBid', 0);
+      let oc = o.get('closeAt', 0);
+      let nc = d.get('closeAt', 0);
+      let oe = o.get('extensions', 0);
+      let ne = d.get('extensions', 0);
+      let nm = nowMs();
+      return d.get('lotMode', 'hall') == 'live'
+        && o.status == 'open' && d.status == 'open'
+        && d.get('highestBidId', '') != ''
+        && !exists(bp)
+        && b.get('amount', 0) == hb
+        && b.get('bidderUid', '') == d.get('highestBidderUid', '')
+        && b.get('bidderName', '') == d.get('highestBidderName', '')
+        && d.get('bidCount', 0) == o.get('bidCount', 0) + 1
+        && hb >= ohb + d.get('bidIncrement', 0)
+        && (o.get('bidCount', 0) > 0 || hb >= d.get('reservePrice', 0))
+        && ((nc == oc && ne == oe)
+          || (oc > nm && oc - nm <= 300000 && ne == oe + 1
+            && nc >= nm + 285000 && nc <= nm + 315000));
+    }
+    function liveBidStampWriteOk(lotId) {
+      return tkDiff(['highestBid', 'highestBidderUid', 'highestBidderName', 'highestBidId', 'bidCount', 'extensions', 'closeAt', 'updatedAt'])
+        && liveBidMoveOk(lotId, resData(), reqData());
+    }
+    function liveReadOk(lotId) {
+      let l = lotDoc(lotId);
+      return hasRole(tkWsOf(l), R_ANY_STAFF())
+        || demoPublicRead(tkWsOf(l))
+        || (isLoggedIn() && l.get('lotMode', 'hall') == 'live'
+          && l.get('status', '') in ['noticed', 'open', 'accepted', 'settled', 'failed']);
+    }
+    function liveArenaSeedOk(lotId) {
+      let l = lotDoc(lotId);
+      return l.get('lotMode', 'hall') == 'live'
+        && lotWriteGate(tkWsOf(l))
+        && tkNewGet('bidCount', -1) == 0
+        && tkNewGet('highestBid', -1) == 0
+        && reqKeys().hasOnly(['highestBid', 'highestBidderUid', 'highestBidderName', 'highestBidId', 'bidCount', 'extensions', 'closeAt', 'bidIncrement', 'reservePrice']);
+    }
+    function liveArenaMoveOk(lotId) {
+      let s = tkAfterData(lotPath(lotId));
+      return isLoggedIn()
+        && tkDiff(['highestBid', 'highestBidderUid', 'highestBidderName', 'highestBidId', 'bidCount', 'extensions', 'closeAt'])
+        && tkNewGet('highestBid', 0) == s.get('highestBid', 0)
+        && tkNewGet('highestBidderUid', '') == s.get('highestBidderUid', '')
+        && tkNewGet('bidCount', 0) == s.get('bidCount', 0)
+        && tkNewGet('extensions', 0) == s.get('extensions', 0)
+        && tkNewGet('closeAt', 0) == s.get('closeAt', 0);
+    }
+    function liveBidCreateOk(lotId) {
+      let l = lotDoc(lotId);
+      let ws = tkWsOf(l);
+      let bu = tkNewGet('bidderUid', '');
+      let em = tkNewGet('entryMode', '');
+      let amt = tkNewGet('amount', 0);
+      let eu = tkNewGet('enteredByUid', '');
+      return l.get('lotMode', 'hall') == 'live'
+        && l.get('status', '') == 'open'
+        && nowMs() < l.get('closeAt', 0)
+        && tkNewGet('bidderName', '') != ''
+        && tkNewGet('registrationId', '') != ''
+        && (bu in l.get('liveEmdUids', []) || demoWriteOk(ws))
+        && !(bu in barredUids(ws))
+        && (em == 'hall'
+          ? (lotWriteGate(ws) && eu == authUid())
+          : (em == 'self' && uidIs(bu) && eu == ''))
+        && amt > 0
+        && (l.get('bidCount', 0) == 0
+          ? amt >= l.get('reservePrice', 0)
+          : amt >= l.get('highestBid', 0) + l.get('bidIncrement', 0))
+        && tkNewGet('createdAt', 0) == request.time
+        && reqKeys().hasOnly(['bidderUid', 'bidderName', 'registrationId', 'amount', 'createdAt', 'entryMode', 'enteredByUid']);
     }
 
     match /utsav_stores/{workspaceId} {
@@ -1358,53 +1542,53 @@ service cloud.firestore {
     }
 
     match /inventory_items/{itemId} {
-      allow read: if demoPublicRead(docWs()) || isTenantMember(docWs());
-      allow create, update: if (demoWriteOk(newDocWs()) || hasRole(newDocWs(), R_ANY_STAFF())) && (resource == null || wsImmutable());
-      allow delete: if hasRole(docWs(), R_TRUSTEE());
+      allow read: if dpDoc() || tmDoc();
+      allow create, update: if (dwNew(R_ANY_STAFF())) && (resource == null || wsImmutable());
+      allow delete: if hrDoc(R_TRUSTEE());
     }
     match /inventory/{itemId} {
-      allow read: if demoPublicRead(docWs()) || isTenantMember(docWs());
-      allow create, update: if (demoWriteOk(newDocWs()) || hasRole(newDocWs(), R_ANY_STAFF())) && (resource == null || wsImmutable());
-      allow delete: if hasRole(docWs(), R_TRUSTEE());
+      allow read: if dpDoc() || tmDoc();
+      allow create, update: if (dwNew(R_ANY_STAFF())) && (resource == null || wsImmutable());
+      allow delete: if hrDoc(R_TRUSTEE());
     }
     match /assets/{assetId} {
-      allow read: if demoPublicRead(docWs()) || hasRole(docWs(), R_FINANCE()) || hasRole(docWs(), R_STAFF());
-      allow create, update: if (demoWriteOk(newDocWs()) || hasRole(newDocWs(), R_FINANCE())) && (resource == null || wsImmutable());
-      allow delete: if hasRole(docWs(), R_TRUSTEE());
+      allow read: if dprDoc(R_FINANCE()) || hrDoc(R_STAFF());
+      allow create, update: if (dwNew(R_FINANCE())) && (resource == null || wsImmutable());
+      allow delete: if hrDoc(R_TRUSTEE());
     }
     match /fixed_assets/{assetId} {
-      allow read: if demoPublicRead(docWs()) || hasRole(docWs(), R_FINANCE()) || hasRole(docWs(), R_STAFF());
-      allow create, update: if (demoWriteOk(newDocWs()) || hasRole(newDocWs(), R_FINANCE())) && (resource == null || wsImmutable());
-      allow delete: if hasRole(docWs(), R_TRUSTEE());
+      allow read: if dprDoc(R_FINANCE()) || hrDoc(R_STAFF());
+      allow create, update: if (dwNew(R_FINANCE())) && (resource == null || wsImmutable());
+      allow delete: if hrDoc(R_TRUSTEE());
     }
 
     match /cows/{cattleId} {
-      allow read: if demoPublicRead(docWs()) || isTenantMember(docWs());
-      allow create, update: if (demoWriteOk(newDocWs()) || hasRole(newDocWs(), R_STAFF())) && (resource == null || wsImmutable());
-      allow delete: if hasRole(docWs(), R_TRUSTEE());
+      allow read: if dpDoc() || tmDoc();
+      allow create, update: if (dwNew(R_STAFF())) && (resource == null || wsImmutable());
+      allow delete: if hrDoc(R_TRUSTEE());
     }
     match /gaushala_cattle/{cattleId} {
-      allow read: if demoPublicRead(docWs()) || isTenantMember(docWs());
-      allow create, update: if (demoWriteOk(newDocWs()) || hasRole(newDocWs(), R_STAFF())) && (resource == null || wsImmutable());
-      allow delete: if hasRole(docWs(), R_TRUSTEE());
+      allow read: if dpDoc() || tmDoc();
+      allow create, update: if (dwNew(R_STAFF())) && (resource == null || wsImmutable());
+      allow delete: if hrDoc(R_TRUSTEE());
     }
     match /rooms/{roomId} {
-      allow read: if demoPublicRead(docWs()) || isTenantMember(docWs());
-      allow create, update: if (demoWriteOk(newDocWs()) || hasRole(newDocWs(), R_STAFF())) && (resource == null || wsImmutable());
-      allow delete: if hasRole(docWs(), R_TRUSTEE());
+      allow read: if dpDoc() || tmDoc();
+      allow create, update: if (dwNew(R_STAFF())) && (resource == null || wsImmutable());
+      allow delete: if hrDoc(R_TRUSTEE());
     }
     match /dharamshala_rooms/{roomId} {
-      allow read: if demoPublicRead(docWs()) || isTenantMember(docWs());
-      allow create, update: if (demoWriteOk(newDocWs()) || hasRole(newDocWs(), R_STAFF())) && (resource == null || wsImmutable());
-      allow delete: if hasRole(docWs(), R_TRUSTEE());
+      allow read: if dpDoc() || tmDoc();
+      allow create, update: if (dwNew(R_STAFF())) && (resource == null || wsImmutable());
+      allow delete: if hrDoc(R_TRUSTEE());
     }
 
     match /qrPairTokens/{tokenId} {
       allow create: if isLoggedIn()
         && reqKeys().hasAll(['memberId', 'workspaceId', 'role', 'expiresAt'])
         && request.resource.data.role in ['Devotee', 'Sevadar', 'Priest', 'Accountant', 'Trustee']
-        && (demoWriteOk(newDocWs())
-            || hasRole(newDocWs(), R_ANY_STAFF()))
+        && (dwoNew()
+            || hrNew(R_ANY_STAFF()))
         && request.resource.data.expiresAt is timestamp
         && request.resource.data.expiresAt > request.time
         && request.resource.data.expiresAt <= request.time + duration.value(600, 's');
@@ -1414,19 +1598,19 @@ service cloud.firestore {
 
     match /{collection}/{docId} {
       allow read: if collection in UTSAV_COLLECTIONS()
-        && (demoPublicRead(docWs()) || isTenantMember(docWs()));
+        && (dpDoc() || tmDoc());
       allow create: if collection in UTSAV_COLLECTIONS()
-        && (demoWriteOk(newDocWs()) || (isTenantMember(newDocWs()) && roleIn(R_ANY_STAFF())));
+        && (dwoNew() || (tmNew() && roleIn(R_ANY_STAFF())));
       allow update: if collection in UTSAV_COLLECTIONS()
-        && (demoWriteOk(docWs()) || (isTenantMember(docWs()) && roleIn(R_ANY_STAFF()))) && wsImmutable();
+        && (dwoDoc() || (tmDoc() && roleIn(R_ANY_STAFF()))) && wsImmutable();
       allow delete: if collection in UTSAV_COLLECTIONS()
-        && hasRole(docWs(), R_TRUSTEE());
+        && hrDoc(R_TRUSTEE());
     }
 
     match /audit_logs/{logId} {
-      allow read: if isOwner() || demoPublicRead(docWs()) || hasRole(docWs(), R_FINANCE());
+      allow read: if isOwner() || dprDoc(R_FINANCE());
       allow create: if (isOwner() && uidIs(tkNewGet('actorUid', '')))
-        || ((demoWriteOk(newDocWs()) || isTenantMember(newDocWs()))
+        || ((dwoNew() || tmNew())
           && uidIs(tkNewGet('actorId', '')));
       allow update, delete: if false;
     }
@@ -1475,7 +1659,7 @@ service cloud.firestore {
       allow read: if isSuperAdmin() || isOwner()
         || (loggedUidIs(tkOldGet('applicantUid', '')))
 
-        || (isLoggedIn() && hasRole(tkOldGet('workspaceId', ''), R_FINANCE()));
+        || (isLoggedIn() && hasRole(tkWsOld(), R_FINANCE()));
       allow create: if loggedUidIs(tkNewGet('applicantUid', ''))
         && reqStatus() == 'pending';
       allow update: if isOwner();
@@ -1492,40 +1676,39 @@ service cloud.firestore {
 
     match /workspaceSummaries/{workspaceId} {
       allow read: if demoPublicRead(workspaceId) || hasRole(workspaceId, R_OVERSIGHT());
-      allow create, update: if hasRole(newDocWs(), R_FINANCE()) && (resource == null || wsImmutable());
+      allow create, update: if hrNew(R_FINANCE()) && (resource == null || wsImmutable());
       allow delete: if false;
     }
 
     match /auditEvents/{eventId} {
-      allow read: if demoPublicRead(docWs()) || hasRole(docWs(), R_OVERSIGHT());
-      allow create: if (demoWriteOk(newDocWs()) || isTenantMember(newDocWs()))
+      allow read: if dprDoc(R_OVERSIGHT());
+      allow create: if (dwoNew() || tmNew())
         && uidIs(tkNewGet('actorUid', ''));
       allow update, delete: if false;
     }
 
     match /cashCustodyStates/{workspaceId} {
       allow read: if demoPublicRead(workspaceId) || hasRole(workspaceId, R_OVERSIGHT());
-      allow create, update: if hasRole(newDocWs(), R_FINANCE()) && (resource == null || wsImmutable()) && uidIs(tkNewGet('savedByUid', ''));
+      allow create, update: if hrNew(R_FINANCE()) && (resource == null || wsImmutable()) && uidIs(tkNewGet('savedByUid', ''));
       allow delete: if false;
     }
 
     match /publishedAccounts/{docId} {
       allow read: if true;
-      allow create: if hasRole(newDocWs(), R_FINANCE());
-      allow update: if hasRole(docWs(), R_FINANCE()) && wsImmutable();
-      allow delete: if hasRole(docWs(), R_FINANCE());
+      allow create: if hrNew(R_FINANCE());
+      allow update: if hrDoc(R_FINANCE()) && wsImmutable();
+      allow delete: if hrDoc(R_FINANCE());
     }
 
     match /approvalRequests/{requestId} {
-      allow read: if demoPublicRead(docWs())
-        || hasRole(docWs(), R_OVERSIGHT())
+      allow read: if dprDoc(R_OVERSIGHT())
         || (loggedUidIs(tkOldGet('requestedBy', '')));
-      allow create: if isTenantMember(newDocWs())
+      allow create: if tmNew()
         && uidIs(tkNewGet('requestedBy', ''))
         && reqStatus() == 'PENDING';
       allow update: if
 
-        (hasRole(docWs(), R_OVERSIGHT())
+        (hrDoc(R_OVERSIGHT())
           && resStatus() == 'PENDING'
           && reqStatus() in ['APPROVED', 'REJECTED']
           && uidIs(tkNewGet('decidedBy', ''))
@@ -1534,7 +1717,7 @@ service cloud.firestore {
             .hasOnly(DECISION_KEYS())
           && wsImmutable())
 
-        || (hasRole(docWs(), R_OVERSIGHT())
+        || (hrDoc(R_OVERSIGHT())
           && resStatus() == 'APPROVED'
           && reqStatus() == 'APPROVED'
           && diffKeys()
@@ -1680,8 +1863,8 @@ service cloud.firestore {
         && reqRating() <= 5
         && reqKeys().hasOnly(
           ['gigId', 'orderId', 'clientUid', 'providerUid', 'rating', 'review', 'createdAt'])
-        && docData(/databases/$(database)/documents/marketplaceOrders/$(orderId)).status == 'completed'
-        && uidIs(docData(/databases/$(database)/documents/marketplaceOrders/$(orderId)).clientUid);
+        && docData(moPath(orderId)).status == 'completed'
+        && uidIs(docData(moPath(orderId)).clientUid);
       allow update, delete: if false;
     }
 
@@ -1757,15 +1940,15 @@ service cloud.firestore {
     match /commissionFreezeRequests/{orderId} {
       allow read: if isOwner() || isSuperAdmin()
         || (isLoggedIn() && (
-          uidIs(docGet(/databases/$(database)/documents/marketplaceOrders/$(orderId), 'providerUid', ''))
-          || uidIs(docGet(/databases/$(database)/documents/marketplaceOrders/$(orderId), 'clientUid', ''))));
+          uidIs(docGet(moPath(orderId), 'providerUid', ''))
+          || uidIs(docGet(moPath(orderId), 'clientUid', ''))));
       allow create: if isLoggedIn()
         && reqOrderId() == orderId
         && uidIs(tkNewGet('requestedBy', ''))
         && reqStatus() == 'requested'
-        && docGet(/databases/$(database)/documents/marketplaceOrders/$(orderId), 'status', '') == 'completed'
-        && (uidIs(docGet(/databases/$(database)/documents/marketplaceOrders/$(orderId), 'providerUid', ''))
-          || uidIs(docGet(/databases/$(database)/documents/marketplaceOrders/$(orderId), 'clientUid', '')));
+        && docGet(moPath(orderId), 'status', '') == 'completed'
+        && (uidIs(docGet(moPath(orderId), 'providerUid', ''))
+          || uidIs(docGet(moPath(orderId), 'clientUid', '')));
       allow update: if isOwner();
       allow delete: if false;
     }
@@ -1838,8 +2021,8 @@ service cloud.firestore {
       allow create: if isLoggedIn()
         && reqStatus() == 'pending'
         && reqProviderUid() ==
-           docGet(/databases/$(database)/documents/marketplaceOrders/$(reqOrderId()), 'providerUid', '')
-        && docGet(/databases/$(database)/documents/marketplaceOrders/$(reqOrderId()), 'rail', '') == 'rail2';
+           docGet(moPath(reqOrderId()), 'providerUid', '')
+        && docGet(moPath(reqOrderId()), 'rail', '') == 'rail2';
       allow update: if isOwner();
       allow delete: if false;
     }
@@ -1855,7 +2038,7 @@ service cloud.firestore {
       let data = reqData();
       let old = resource.data;
       let orderId = data.get('lastDebitOrderId', '');
-      let opath = /databases/$(database)/documents/marketplaceOrders/$(orderId);
+      let opath = moPath(orderId);
       let gross = docGet(opath, 'amountGross', 0);
       return diffKeysOnly(data, old, ['balance', 'totalSpent', 'updatedAt', 'lastDebitOrderId', 'currency'])
         && orderId != '' && orderId != old.get('lastDebitOrderId', '')
@@ -1873,7 +2056,7 @@ service cloud.firestore {
       let data = reqData();
       let old = resource.data;
       let requestId = data.get('lastDebitP2PRequestId', '');
-      let rpath = /databases/$(database)/documents/p2pRequests/$(requestId);
+      let rpath = p2pPath(requestId);
       let amount = docGet(rpath, 'amount', 0);
       return diffKeysOnly(data, old, ['balance', 'totalSpent', 'updatedAt', 'lastDebitP2PRequestId', 'currency'])
         && requestId != '' && requestId != old.get('lastDebitP2PRequestId', '')
@@ -1891,7 +2074,7 @@ service cloud.firestore {
       let data = reqData();
       let old = resource.data;
       let requestId = data.get('lastCreditP2PRequestId', '');
-      let rpath = /databases/$(database)/documents/p2pRequests/$(requestId);
+      let rpath = p2pPath(requestId);
       let rdata = docData(rpath);
       let amount = rdata.get('amount', 0);
       return diffKeysOnly(data, old,
@@ -1914,7 +2097,7 @@ service cloud.firestore {
     function p2pSettlementCreditCreateOk(uid) {
       let data = reqData();
       let requestId = data.get('lastCreditP2PRequestId', '');
-      let rpath = /databases/$(database)/documents/p2pRequests/$(requestId);
+      let rpath = p2pPath(requestId);
       let rdata = docData(rpath);
       let amount = rdata.get('amount', 0);
       return requestId != ''
@@ -1933,7 +2116,7 @@ service cloud.firestore {
       let data = reqData();
       let old = resource.data;
       let orderId = data.get('lastCreditOrderId', '');
-      let opath = /databases/$(database)/documents/marketplaceOrders/$(orderId);
+      let opath = moPath(orderId);
       let net = docGet(opath, 'providerNet', 0);
       return diffKeysOnly(data, old, ['balance', 'totalReceived', 'totalToppedUp', 'totalSpent', 'updatedAt', 'lastCreditOrderId', 'currency', 'uid'])
         && orderId != '' && orderId != old.get('lastCreditOrderId', '')
@@ -1953,7 +2136,7 @@ service cloud.firestore {
       let data = reqData();
       let old = resource.data;
       let orderId = data.get('lastCommissionOrderId', '');
-      let opath = /databases/$(database)/documents/marketplaceOrders/$(orderId);
+      let opath = moPath(orderId);
       let order = docData(opath);
       let cap = order.get('commissionAmount', 0);
       let debit = old.get('balance', 0) - data.get('balance', 0);
@@ -1973,7 +2156,7 @@ service cloud.firestore {
       let data = reqData();
       let old = resource.data;
       let orderId = data.get('lastCommissionOrderId', '');
-      let opath = /databases/$(database)/documents/marketplaceOrders/$(orderId);
+      let opath = moPath(orderId);
       let freeOld = old.get('freeSevasRemaining', 0);
       let freeNew = data.get('freeSevasRemaining', -1);
       return uidIs(resUid())
@@ -2012,7 +2195,7 @@ service cloud.firestore {
         && existsAfter(rpath)
         && uidIs(afterDocGet(rpath, 'reviewerUid', ''))
         && afterDocGet(rpath, 'reviewerKind', '') == 'devotee'
-        && docGet(/databases/$(database)/documents/gigs/$(afterDocGet(rpath, 'gigId', '')), 'assignedPurohitId', '') == purohitId
+        && docGet(gigPath(afterDocGet(rpath, 'gigId', '')), 'assignedPurohitId', '') == purohitId
         && newCount == oldCount + 1
         && newSum >= oldSum + afterDocGet(rpath, 'rating', 0) - (0.06 * newCount + 0.1)
         && newSum <= oldSum + afterDocGet(rpath, 'rating', 0) + (0.06 * newCount + 0.1);
@@ -2082,7 +2265,7 @@ service cloud.firestore {
 
     function p1CompletedGigOk() {
       let gid = tkNewGet('lastCompletedGigId', '');
-      let gpath = /databases/$(database)/documents/gigs/$(gid);
+      let gpath = gigPath(gid);
       return tkNewGet('completedGigs', 0) == tkOldGet('completedGigs', 0) + 1
         && gid != '' && gid != tkOldGet('lastCompletedGigId', '')
         && exists(gpath)
@@ -2102,7 +2285,7 @@ service cloud.firestore {
     function walletCreditCreateOk(uid) {
       let data = reqData();
       let orderId = data.get('lastCreditOrderId', '');
-      let opath = /databases/$(database)/documents/marketplaceOrders/$(orderId);
+      let opath = moPath(orderId);
       let net = docGet(opath, 'providerNet', 0);
       return orderId != ''
         && exists(opath)
@@ -2150,29 +2333,29 @@ service cloud.firestore {
         || (isLoggedIn()
           && tkNewGet('type', '') in ['receive', 'commission']
           && reqOrderId() != ''
-          && (uidIs(docGet(/databases/$(database)/documents/marketplaceOrders/$(reqOrderId()), 'clientUid', ''))
-            || uidIs(docGet(/databases/$(database)/documents/marketplaceOrders/$(reqOrderId()), 'providerUid', ''))))
+          && (uidIs(docGet(moPath(reqOrderId()), 'clientUid', ''))
+            || uidIs(docGet(moPath(reqOrderId()), 'providerUid', ''))))
 
         || (isLoggedIn()
           && tkNewGet('type', '') == 'referral_credit'
           && reqUid() != ''
           && tkNewGet('creditId', '') != ''
           && reqAmount() > 0
-          && exists(/databases/$(database)/documents/referralCredits/$(tkNewGet('creditId', '')))
-          && docGet(/databases/$(database)/documents/referralCredits/$(tkNewGet('creditId', '')), 'referrerUid', '') == reqUid()
-          && docGet(/databases/$(database)/documents/referralCredits/$(tkNewGet('creditId', '')), 'status', '') == 'SETTLED'
-          && docGet(/databases/$(database)/documents/referralCredits/$(tkNewGet('creditId', '')), 'creditAmount', 0) == reqAmount())
+          && exists(rcPath(tkNewGet('creditId', '')))
+          && docGet(rcPath(tkNewGet('creditId', '')), 'referrerUid', '') == reqUid()
+          && docGet(rcPath(tkNewGet('creditId', '')), 'status', '') == 'SETTLED'
+          && docGet(rcPath(tkNewGet('creditId', '')), 'creditAmount', 0) == reqAmount())
 
         || (isLoggedIn()
           && tkNewGet('type', '') == 'p2p_receive'
           && tkNewGet('requestId', '') != ''
           && reqAmount() > 0
-          && reqUid() != request.auth.uid
-          && uidIs(docGet(/databases/$(database)/documents/p2pRequests/$(tkNewGet('requestId', '')), 'senderId', ''))
-          && docGet(/databases/$(database)/documents/p2pRequests/$(tkNewGet('requestId', '')), 'receiverId', '') == reqUid()
-          && docGet(/databases/$(database)/documents/p2pRequests/$(tkNewGet('requestId', '')), 'amount', 0) == reqAmount()
-          && docGet(/databases/$(database)/documents/p2pRequests/$(tkNewGet('requestId', '')), 'currency', '') == tkNewGet('currency', '')
-          && docGet(/databases/$(database)/documents/p2pRequests/$(tkNewGet('requestId', '')), 'status', '') == 'accepted')
+          && reqUid() != authUid()
+          && uidIs(docGet(p2pPath(tkNewGet('requestId', '')), 'senderId', ''))
+          && docGet(p2pPath(tkNewGet('requestId', '')), 'receiverId', '') == reqUid()
+          && docGet(p2pPath(tkNewGet('requestId', '')), 'amount', 0) == reqAmount()
+          && docGet(p2pPath(tkNewGet('requestId', '')), 'currency', '') == tkNewGet('currency', '')
+          && docGet(p2pPath(tkNewGet('requestId', '')), 'status', '') == 'accepted')
 
         || (loggedUidIs(reqUid())
           && tkNewGet('type', '') == 'refund'
@@ -2212,9 +2395,9 @@ service cloud.firestore {
         && uidIs(tkNewGet('recordedBy', ''))
         && tkNewGet('amount', -1) >= 0
         && tkNewGet('amount', -1) <=
-             docGet(/databases/$(database)/documents/marketplaceOrders/$(orderId), 'commissionAmount', -1)
-        && (uidIs(docGet(/databases/$(database)/documents/marketplaceOrders/$(orderId), 'providerUid', ''))
-          || uidIs(docGet(/databases/$(database)/documents/marketplaceOrders/$(orderId), 'clientUid', '')));
+             docGet(moPath(orderId), 'commissionAmount', -1)
+        && (uidIs(docGet(moPath(orderId), 'providerUid', ''))
+          || uidIs(docGet(moPath(orderId), 'clientUid', '')));
       allow update: if isOwner();
       allow delete: if false;
     }
@@ -2225,17 +2408,17 @@ service cloud.firestore {
       }
       function isCrisisCoord(ws) {
         return isLoggedIn() && ws != null
-          && exists(/databases/$(database)/documents/crisisCoordinators/$(ws + '_' + request.auth.uid));
+          && exists(/databases/$(database)/documents/crisisCoordinators/$(ws + '_' + authUid()));
       }
-      allow read: if demoPublicRead(docWs()) || isTenantMember(docWs())
+      allow read: if dpDoc() || tmDoc()
         || (loggedUidIs(tkOldGet('senderUid', '')))
 
         || (isLoggedIn() && resStatus() == 'active'
-          && exists(/databases/$(database)/documents/crisis_events/$(eventId)/notified/$(request.auth.uid)));
+          && exists(/databases/$(database)/documents/crisis_events/$(eventId)/notified/$(authUid())));
       allow create: if loggedUidIs(tkNewGet('senderUid', ''))
-        && (demoWriteOk(newDocWs()) || isTenantMember(newDocWs()) || newDocWs() == null);
-      allow update: if (demoWriteOk(docWs())
-          || hasRole(docWs(), R_TRUSTEE())
+        && (dwoNew() || tmNew() || newDocWs() == null);
+      allow update: if (dwoDoc()
+          || hrDoc(R_TRUSTEE())
 
           || (loggedUidIs(tkOldGet('senderUid', ''))
             && diffKeys()
@@ -2259,12 +2442,12 @@ service cloud.firestore {
               in ['active', 'responding', 'acknowledged']
             && tkNewGet('assignments', []) is list)
 
-          || (isTenantMember(docWs())
+          || (tmDoc()
             && diffKeys()
               .hasOnly(['status', 'ackCount', 'responderCount', 'updatedAt'])
             && reqStatus() == 'acknowledged'))
         && wsImmutable();
-      allow delete: if hasRole(docWs(), R_TRUSTEE());
+      allow delete: if hrDoc(R_TRUSTEE());
       match /responses/{uid} {
         allow read: if isTenantMember(parent().get('workspaceId', null))
           || (loggedUidIs(parent().get('senderUid', '')));
@@ -2283,7 +2466,7 @@ service cloud.firestore {
             .hasOnly(['uid', 'notifiedAt', 'distanceM'])
           && (
 
-            (request.auth.uid == uid
+            (authUid() == uid
               && isTenantMember(parent().get('workspaceId', null)))
 
             || uidIs(parent().get('senderUid', ''))
@@ -2423,10 +2606,10 @@ service cloud.firestore {
     }
 
     function pollVoteHeadOk() {
-      return (demoWriteOk(docWs()) || isTenantMember(docWs())) && wsImmutable();
+      return (dwoDoc() || tmDoc()) && wsImmutable();
     }
     function pollVoteAnchorOk(pollId) {
-      let vp = /databases/$(database)/documents/polls/$(pollId)/votes/$(request.auth.uid);
+      let vp = /databases/$(database)/documents/polls/$(pollId)/votes/$(authUid());
       let oldOpts = tkOldGet('options', {});
       let newOpts = reqOptions();
 
@@ -2448,7 +2631,7 @@ service cloud.firestore {
       return newOpts.get(id, {}).get('votes', 0) == oldOpts.get(id, {}).get('votes', 0) + 1;
     }
     function pollMultiVoteAnchorOk(pollId) {
-      let vp = /databases/$(database)/documents/polls/$(pollId)/votes/$(request.auth.uid);
+      let vp = /databases/$(database)/documents/polls/$(pollId)/votes/$(authUid());
       let oldOpts = tkOldGet('options', {});
       let newOpts = reqOptions();
       return !exists(vp) && existsAfter(vp)
@@ -2472,7 +2655,7 @@ service cloud.firestore {
     }
 
     function pollTextVoteAnchorOk(pollId) {
-      let vp = /databases/$(database)/documents/polls/$(pollId)/votes/$(request.auth.uid);
+      let vp = /databases/$(database)/documents/polls/$(pollId)/votes/$(authUid());
       return !exists(vp) && existsAfter(vp)
         && resStatus() == 'ACTIVE'
         && reqStatus() == 'ACTIVE'
@@ -2486,7 +2669,7 @@ service cloud.firestore {
     }
 
     function pollAbstainVoteAnchorOk(pollId) {
-      let vp = /databases/$(database)/documents/polls/$(pollId)/votes/$(request.auth.uid);
+      let vp = /databases/$(database)/documents/polls/$(pollId)/votes/$(authUid());
       return !exists(vp) && existsAfter(vp)
         && resStatus() == 'ACTIVE'
         && reqStatus() == 'ACTIVE'
@@ -2497,7 +2680,7 @@ service cloud.firestore {
     }
 
     function pollCountedVoteAnchorOk(pollId) {
-      let vp = /databases/$(database)/documents/polls/$(pollId)/votes/$(request.auth.uid);
+      let vp = /databases/$(database)/documents/polls/$(pollId)/votes/$(authUid());
       let kind = tkOldGet('kind', 'choice');
       return !exists(vp) && existsAfter(vp)
         && resStatus() == 'ACTIVE'
@@ -2819,30 +3002,30 @@ service cloud.firestore {
 
     match /chats/{chatId} {
       allow read: if isSuperAdmin() || (isLoggedIn() && (
-        (resource == null || (tkOldGet('participants', null) is list && request.auth.uid in tkOldGet('participants', []))) ||
+        (resource == null || (tkOldGet('participants', null) is list && authUid() in tkOldGet('participants', []))) ||
         isChatOrgTrustee(resource.data)));
       allow create: if isSuperAdmin() || (isLoggedIn() && (
-        (tkNewGet('participants', null) is list && request.auth.uid in tkNewGet('participants', [])) ||
+        (tkNewGet('participants', null) is list && authUid() in tkNewGet('participants', [])) ||
         (tkNewGet('type', '') == 'org' &&
           tkNewGet('participants', null) is list &&
           tkNewGet('participants', []).size() == 2 &&
           isOrgTrustee(chatOrgId(reqData())))));
       allow update: if isSuperAdmin() || (isLoggedIn() && (
-        (tkOldGet('participants', null) is list && request.auth.uid in tkOldGet('participants', []) &&
+        (tkOldGet('participants', null) is list && authUid() in tkOldGet('participants', []) &&
           !diffKeys().hasAny(['participants'])) ||
         (isChatOrgTrustee(resource.data) &&
           !diffKeys().hasAny(['participants', 'type', 'orgId']))));
       allow delete: if false;
       match /messages/{messageId} {
         allow read: if isSuperAdmin() || (isLoggedIn() && (
-          (docGet(/databases/$(database)/documents/chats/$(chatId), 'participants', null) is list &&
-            request.auth.uid in docGet(/databases/$(database)/documents/chats/$(chatId), 'participants', [])) ||
-          isChatOrgTrustee(docData(/databases/$(database)/documents/chats/$(chatId)))));
+          (docGet(chatPath(chatId), 'participants', null) is list &&
+            authUid() in docGet(chatPath(chatId), 'participants', [])) ||
+          isChatOrgTrustee(docData(chatPath(chatId)))));
         allow create: if isSuperAdmin() || (isLoggedIn() && (
-          (docGet(/databases/$(database)/documents/chats/$(chatId), 'participants', null) is list &&
-            request.auth.uid in docGet(/databases/$(database)/documents/chats/$(chatId), 'participants', []) &&
+          (docGet(chatPath(chatId), 'participants', null) is list &&
+            authUid() in docGet(chatPath(chatId), 'participants', []) &&
             uidIs(tkNewGet('senderId', ''))) ||
-          isChatOrgTrustee(docData(/databases/$(database)/documents/chats/$(chatId)))));
+          isChatOrgTrustee(docData(chatPath(chatId)))));
         allow update, delete: if false;
       }
     }
@@ -2902,8 +3085,8 @@ service cloud.firestore {
         && reqAuthorName().size() <= 60
         && tkNewGet('mediaType', '') in ['photo', 'text']
         && tkNewGet('expiresAt', 0) is number
-        && tkNewGet('expiresAt', 0) > request.time.toMillis()
-        && tkNewGet('expiresAt', 0) <= request.time.toMillis() + 25 * 60 * 60 * 1000
+        && tkNewGet('expiresAt', 0) > nowMs()
+        && tkNewGet('expiresAt', 0) <= nowMs() + 25 * 60 * 60 * 1000
         && reqKeys().hasOnly([
           'authorUid', 'authorName', 'authorAvatar', 'authorSanId',
           'mediaType', 'mediaUrl', 'text', 'backgroundId', 'caption',
@@ -2985,7 +3168,7 @@ service cloud.firestore {
       allow read: if isSuperAdmin()
         || (isSelf(followerUid));
       allow create: if isLoggedIn()
-        && request.auth.uid == followerUid
+        && authUid() == followerUid
         && followerUid != targetUid
         && reqKeys().hasOnly(['followerUid', 'targetUid', 'createdAt']);
       allow delete: if isSuperAdmin()
@@ -2996,7 +3179,7 @@ service cloud.firestore {
       allow read: if isSuperAdmin()
         || (isSelf(blockerUid));
       allow create: if isLoggedIn()
-        && request.auth.uid == blockerUid
+        && authUid() == blockerUid
         && blockerUid != targetUid
         && reqKeys().hasOnly(['blockerUid', 'targetUid', 'createdAt']);
       allow delete: if isSuperAdmin()
@@ -3007,7 +3190,7 @@ service cloud.firestore {
       allow read: if isSuperAdmin()
         || (isSelf(muterUid));
       allow create: if isLoggedIn()
-        && request.auth.uid == muterUid
+        && authUid() == muterUid
         && muterUid != targetUid
         && reqKeys().hasOnly(['muterUid', 'targetUid', 'createdAt']);
       allow delete: if isSuperAdmin()
@@ -3016,13 +3199,13 @@ service cloud.firestore {
 
     match /chatGroups/{groupId} {      allow read: if isSuperAdmin() || (isLoggedIn() &&
         tkOldGet('memberIds', null) is list &&
-        request.auth.uid in tkOldGet('memberIds', []));
+        authUid() in tkOldGet('memberIds', []));
 
       allow create: if isLoggedIn() &&
         tkNewGet('memberIds', null) is list &&
-        request.auth.uid in tkNewGet('memberIds', []) &&
+        authUid() in tkNewGet('memberIds', []) &&
         tkNewGet('adminIds', null) is list &&
-        request.auth.uid in tkNewGet('adminIds', []) &&
+        authUid() in tkNewGet('adminIds', []) &&
         reqName() is string &&
         reqName().size() >= 2 &&
         reqName().size() <= 60 &&
@@ -3032,10 +3215,10 @@ service cloud.firestore {
 
       allow update: if isSuperAdmin() || (isLoggedIn() &&
         tkOldGet('memberIds', null) is list &&
-        request.auth.uid in tkOldGet('memberIds', []) && (
+        authUid() in tkOldGet('memberIds', []) && (
           tkDiff(['lastMessage', 'lastMessageAt', 'updatedAt', 'unreadCounts',
              'lastReadAt', 'lastDeliveredAt', 'typing', 'archivedBy']) ||
-          (request.auth.uid in tkOldGet('adminIds', []) &&
+          (authUid() in tkOldGet('adminIds', []) &&
             tkDiff(['lastMessage', 'lastMessageAt', 'updatedAt', 'unreadCounts',
                'lastReadAt', 'lastDeliveredAt', 'typing', 'archivedBy',
                'name', 'description', 'memberIds', 'adminIds', 'memberInfo', 'inviteCode']) &&
@@ -3046,44 +3229,44 @@ service cloud.firestore {
 
       allow delete: if isSuperAdmin() || (isLoggedIn() &&
         tkOldGet('memberIds', null) is list &&
-        request.auth.uid in tkOldGet('memberIds', []) && (
-          request.auth.uid in tkOldGet('adminIds', []) ||
+        authUid() in tkOldGet('memberIds', []) && (
+          authUid() in tkOldGet('adminIds', []) ||
           tkOldGet('memberIds', []).size() == 1));
 
       match /messages/{messageId} {
         allow read: if isSuperAdmin() || (isLoggedIn() &&
-          docGet(/databases/$(database)/documents/chatGroups/$(groupId), 'memberIds', null) is list &&
-          request.auth.uid in docGet(/databases/$(database)/documents/chatGroups/$(groupId), 'memberIds', []));
+          docGet(cgPath(groupId), 'memberIds', null) is list &&
+          authUid() in docGet(cgPath(groupId), 'memberIds', []));
         allow create: if isSuperAdmin() || (isLoggedIn() &&
-          docGet(/databases/$(database)/documents/chatGroups/$(groupId), 'memberIds', null) is list &&
-          request.auth.uid in docGet(/databases/$(database)/documents/chatGroups/$(groupId), 'memberIds', []) &&
+          docGet(cgPath(groupId), 'memberIds', null) is list &&
+          authUid() in docGet(cgPath(groupId), 'memberIds', []) &&
           uidIs(tkNewGet('senderId', '')) &&
           (tkNewGet('kind', '') != 'system' ||
             tkNewGet('systemKind', '') in
               ['created', 'joined', 'left', 'added', 'removed', 'renamed', 'promoted']));
 
         allow delete: if isSuperAdmin() || (loggedUidIs(tkOldGet('senderId', '')) &&
-          request.time.toMillis() - tkOldGet('createdAt', 0) < 5 * 60 * 1000);
+          nowMs() - tkOldGet('createdAt', 0) < 5 * 60 * 1000);
         allow update: if false;
       }
 
       match /members/{uid} {
         allow read: if isSuperAdmin() || (isLoggedIn() &&
-          docGet(/databases/$(database)/documents/chatGroups/$(groupId), 'memberIds', null) is list &&
-          request.auth.uid in docGet(/databases/$(database)/documents/chatGroups/$(groupId), 'memberIds', []));
+          docGet(cgPath(groupId), 'memberIds', null) is list &&
+          authUid() in docGet(cgPath(groupId), 'memberIds', []));
 
         allow create: if isSuperAdmin() || (isLoggedIn() &&
           reqUid() == uid &&
           (uidIs(uid) ||
-            request.auth.uid in docGet(/databases/$(database)/documents/chatGroups/$(groupId), 'adminIds', [])));
+            authUid() in docGet(cgPath(groupId), 'adminIds', [])));
 
         allow update: if isSuperAdmin() || (isLoggedIn() &&
-          request.auth.uid in docGet(/databases/$(database)/documents/chatGroups/$(groupId), 'adminIds', []) &&
+          authUid() in docGet(cgPath(groupId), 'adminIds', []) &&
           tkDiff(['role']));
 
         allow delete: if isSuperAdmin() || (isLoggedIn() &&
           (uidIs(uid) ||
-            request.auth.uid in docGet(/databases/$(database)/documents/chatGroups/$(groupId), 'adminIds', [])));
+            authUid() in docGet(cgPath(groupId), 'adminIds', [])));
       }
     }
 
@@ -4027,7 +4210,7 @@ service cloud.firestore {
     }
 
     function familyLinkMapOnlySelfChanged(beforeMap, afterMap) {
-      return diffKeysOnly(afterMap, beforeMap, [request.auth.uid]);
+      return diffKeysOnly(afterMap, beforeMap, [authUid()]);
     }
 
     function familyLinkInviteContentOk(invite) {
@@ -4039,7 +4222,7 @@ service cloud.firestore {
     }
 
     function familyLinkCrossUpdateOk() {
-      let me = request.auth.uid;
+      let me = authUid();
       let before = resource.data;
       let after = reqData();
       let topChanged = after.diff(before).affectedKeys();
@@ -4071,20 +4254,20 @@ service cloud.firestore {
     }
     match /familyLinks/{docUid} {
       allow read: if isLoggedIn()
-        && (request.auth.uid == docUid
-          || (resource != null && request.auth.uid in tkOldGet('linkedUids', [])));
+        && (authUid() == docUid
+          || (resource != null && authUid() in tkOldGet('linkedUids', [])));
       allow create, update: if isSelf(docUid)
         && reqKeys().hasOnly(
           ['linkedUids', 'consents', 'incomingInvites', 'outgoingInvites']);
       allow delete: if isSelf(docUid);
 
-      allow create: if isLoggedIn() && request.auth.uid != docUid
+      allow create: if isLoggedIn() && authUid() != docUid
         && reqKeys().hasOnly(['incomingInvites'])
-        && tkNewGet('incomingInvites', {}).keys().hasOnly([request.auth.uid])
+        && tkNewGet('incomingInvites', {}).keys().hasOnly([authUid()])
         && familyLinkInviteContentOk(
-          tkNewGet('incomingInvites', {}).get(request.auth.uid, null));
+          tkNewGet('incomingInvites', {}).get(authUid(), null));
 
-      allow update: if isLoggedIn() && request.auth.uid != docUid
+      allow update: if isLoggedIn() && authUid() != docUid
         && familyLinkCrossUpdateOk();
     }
 
@@ -4141,9 +4324,9 @@ service cloud.firestore {
         uidIs(tkOldGet('invitedUid', '')) ||
         (request.auth.token.email != null
           && tkOldGet('invitedEmail', '') == request.auth.token.email) ||
-        (exists(/databases/$(database)/documents/users/$(request.auth.uid))
-          && docGet(/databases/$(database)/documents/users/$(request.auth.uid), 'phone', '') != ''
-          && docGet(/databases/$(database)/documents/users/$(request.auth.uid), 'phone', '')
+        (exists(usrPath(authUid()))
+          && docGet(usrPath(authUid()), 'phone', '') != ''
+          && docGet(usrPath(authUid()), 'phone', '')
             == tkOldGet('invitedPhone', ''))
       );
     }
@@ -4154,13 +4337,13 @@ service cloud.firestore {
       allow create: if isLoggedIn()
         && reqOrgId() != ''
         && reqStatus() == 'PENDING'
-        && tkNewGet('expiresAt', 0) > request.time.toMillis()
+        && tkNewGet('expiresAt', 0) > nowMs()
         && reqRole() != ''
         && grantableRole(reqOrgId(), reqRole());
       allow update: if isSuperAdmin()
         || (isLoggedIn() && inviteMatchesMe()
           && resStatus() == 'PENDING'
-          && tkOldGet('expiresAt', 0) > request.time.toMillis()
+          && tkOldGet('expiresAt', 0) > nowMs()
           && tkDiff(['status', 'decidedAt'])
           && reqStatus() in DECISION_STATES());
       allow delete: if false;
@@ -4170,7 +4353,7 @@ service cloud.firestore {
       let ipath = /databases/$(database)/documents/orgInvites/$(inviteId);
       return inviteId != '' && exists(ipath)
         && docGet(ipath, 'status', '') == 'ACCEPTED'
-        && docGet(ipath, 'expiresAt', 0) > request.time.toMillis()
+        && docGet(ipath, 'expiresAt', 0) > nowMs()
         && docGet(ipath, 'orgId', '') == workspaceId
         && docGet(ipath, 'role', '') == role
         && (uidIs(docGet(ipath, 'invitedUid', ''))
@@ -4180,7 +4363,7 @@ service cloud.firestore {
     match /workspaceMembers/{memberId} {
       allow read: if isSuperAdmin()
         || (loggedUidIs(resUid()))
-        || (isLoggedIn() && isOrgTrustee(tkOldGet('workspaceId', '')));
+        || (isLoggedIn() && isOrgTrustee(tkWsOld()));
       allow create: if isLoggedIn()
         && reqWorkspaceId() != ''
         && reqUid() != ''
@@ -4202,11 +4385,11 @@ service cloud.firestore {
             && uidIs(docData(/databases/$(database)/documents/workspaces/$(request.resource.data.workspaceId)).createdBy))
         );
       allow update: if isSuperAdmin()
-        || (isLoggedIn() && isOrgTrustee(tkOldGet('workspaceId', ''))
-          && grantableRole(tkOldGet('workspaceId', ''),
+        || (isLoggedIn() && isOrgTrustee(tkWsOld())
+          && grantableRole(tkWsOld(),
             reqRole()));
       allow delete: if isSuperAdmin()
-        || (isLoggedIn() && isOrgTrustee(tkOldGet('workspaceId', '')));
+        || (isLoggedIn() && isOrgTrustee(tkWsOld()));
     }
 
     match /notifications/{uid} {

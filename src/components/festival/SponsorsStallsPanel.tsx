@@ -41,6 +41,7 @@ import {
   budgetHeadTotals, buildSponsorReceipt, outstandingOf, publicAckNames, sponsorTotals, stallTotals,
   type SponsorReceipt,
 } from '../../lib/festivalSponsors';
+import { createStallLot } from '../../lib/auctionStallBridge';
 import type {
   Festival, FestivalSponsor, FestivalStall, SponsorKind, StallKind,
 } from '../../utsav/types';
@@ -70,7 +71,7 @@ const blankStall: StallForm = { holder: '', kind: 'prasad', fee: '', received: '
 export const SponsorsStallsPanel: React.FC<Props> = ({ wf, plan, event }) => {
   const { t } = useLanguage();
   const inr = useInr();
-  const { activeWorkspace, currentUser } = useAuthWorkspace();
+  const { activeWorkspace, currentUser, firebaseUser } = useAuthWorkspace();
   const { addTreasuryTransaction, treasury } = useData();
   const { state, update } = useUtsav();
   /* REAL-WORLD PACK — the sponsor receipt being printed, if any. */
@@ -181,6 +182,32 @@ export const SponsorsStallsPanel: React.FC<Props> = ({ wf, plan, event }) => {
       } else {
         flash(t('surfaces.events.sponsorPostFailed'));
       }
+    } finally {
+      setBusyId('');
+    }
+  };
+
+  /* AUCTION A3 — the stall bridge: "Allot by auction" creates a
+   * Nilam lot linked to this stall (reserve = the stall's fee).
+   * The lot then lives the ordinary desk life — notice,
+   * registration with EMD, maker–checker outcome, treasury
+   * settlement — and when it settles, the desk stamps this
+   * register with the winner (allottedVia). No money moves here:
+   * the fee is real only through the lot's own settlement. */
+  const allotByAuction = async (s: FestivalStall) => {
+    setBusyId(`auction-${s.id}`);
+    try {
+      await createStallLot({
+        workspaceId: activeWorkspace.id,
+        festivalId: linked.id,
+        festivalName: linked.name,
+        stall: s,
+        actor: { uid: firebaseUser?.uid || '', name: currentUser?.name || '' },
+        now: Date.now(),
+      });
+      flash(t('surfaces.nilam.stallLotCreated'));
+    } catch {
+      flash(t('surfaces.events.sponsorPostFailed'));
     } finally {
       setBusyId('');
     }
@@ -527,6 +554,13 @@ export const SponsorsStallsPanel: React.FC<Props> = ({ wf, plan, event }) => {
                       {due > 0 ? ` · ${inr(due)} ${t('surfaces.events.sponsorPending')}` : ''}
                       {s.linkedTxId ? ` · ${t('surfaces.events.sponsorInTreasury')}` : ''}
                     </div>
+                    {s.allottedVia && (
+                      <div className="text-[11px] font-bold text-emerald-700">
+                        {t('surfaces.nilam.stallAllottedVia')
+                          .replace('{amount}', inr(s.allottedVia.amount))
+                          .replace('{lotId}', s.allottedVia.lotId)}
+                      </div>
+                    )}
                   </div>
                   <div className="flex shrink-0 gap-1.5">
                     <Btn variant="ghost" className="!px-2.5" onClick={() => openStall(s)}>{t('surfaces.events.sponsorEdit')}</Btn>
@@ -539,6 +573,13 @@ export const SponsorsStallsPanel: React.FC<Props> = ({ wf, plan, event }) => {
                   <div className="mt-2">
                     <Btn className="!px-3" disabled={busyId === s.id} onClick={() => markStallReceived(s)}>
                       {t('surfaces.events.stallMarkReceived')} · {inr(due)}
+                    </Btn>
+                  </div>
+                )}
+                {!s.allottedVia && !s.linkedTxId && (
+                  <div className="mt-2">
+                    <Btn variant="ghost" className="!px-3" disabled={busyId === `auction-${s.id}`} onClick={() => void allotByAuction(s)}>
+                      🔨 {t('surfaces.nilam.stallAllotAction')}
                     </Btn>
                   </div>
                 )}

@@ -220,8 +220,11 @@ export interface LotSettlement {
  *               this desk remembers it. No electronic bids exist.
  *  - 'sealed' — A2: registered bidders submit one sealed bid
  *               each in the app (lib/auctionBids); the committee
- *               opens them together after the close clock. */
-export type LotMode = 'hall' | 'sealed';
+ *               opens them together after the close clock.
+ *  - 'live'   — A3: open ascending bidding in the app
+ *               (lib/auctionLive); every bid is public the moment
+ *               it lands, in an append-only log. */
+export type LotMode = 'hall' | 'sealed' | 'live';
 
 export interface AuctionLot {
   id: string;
@@ -243,6 +246,42 @@ export interface AuctionLot {
   bidsOpenedAt?: number;
   bidsOpenedBy?: string;
   bidsOpenedByName?: string;
+  /** A3 (live lots): the minimum rise between bids — a positive
+   *  integer in the workspace's currency units, chosen at
+   *  creation and frozen after (the rules pin it like lotMode);
+   *  printed on the notice and shown in the arena. */
+  bidIncrement?: number;
+  /** A3 (live lots): the live close clock, epoch ms. Born 0;
+   *  stamped to the notice's auction moment when the notice is
+   *  published (the rules allow exactly that one birth move);
+   *  after that it moves ONLY by the anti-sniping extension —
+   *  a bid inside the last 5 minutes sets it to bid time + 5
+   *  minutes, inside the same verified stamp move. */
+  closeAt?: number;
+  /** A3 (live lots): the arena stamps — the highest bid standing
+   *  on the lot. They move only together with a real new bid in
+   *  the liveBids log, verified by the rules against that bid
+   *  (lib/auctionLive is the one writer). */
+  highestBid?: number;
+  highestBidderUid?: string;
+  highestBidderName?: string;
+  /** The liveBids doc id of the standing highest bid. */
+  highestBidId?: string;
+  bidCount?: number;
+  /** How many times the anti-sniping extension has fired. */
+  extensions?: number;
+  /** A3 (live lots): the EMD gate register — uids whose
+   *  registration on this lot carries EMD recorded at or above
+   *  the notice's EMD and not refunded. Derived from the
+   *  registrations by the desk (emdUidsFromRegistrations in
+   *  lib/auctionLive) and stamped in the same writes that stamp
+   *  bidderUids, so the bid rules can gate on it exactly. */
+  liveEmdUids?: string[];
+  /** A3: the festival-stall link, when this lot allots an E6
+   *  festival stall (lib/auctionStallBridge). Born at creation,
+   *  frozen after (the rules pin it); settlement stamps the
+   *  stall record with the winner through the bridge. */
+  stallRef?: { festivalId: string; stallId: string };
   title: string;
   description: string;
   /** Photo/document references (existing upload posture — refs only). */
@@ -429,6 +468,19 @@ export function isSealedLot(lot: Pick<AuctionLot, 'lotMode'>): boolean {
   return lot.lotMode === 'sealed';
 }
 
+export function isLiveLot(lot: Pick<AuctionLot, 'lotMode'>): boolean {
+  return lot.lotMode === 'live';
+}
+
+/** The close clock of a live lot: the lot's own closeAt stamp
+ *  (born as the notice's auction moment, moved only by the
+ *  anti-sniping extension). The notice fallback covers a live
+ *  lot whose stamp has not landed yet — the notice is the
+ *  published deadline either way. 0 when neither exists. */
+export function liveCloseMs(lot: Pick<AuctionLot, 'closeAt' | 'notice'>): number {
+  return lot.closeAt ?? lot.notice?.auctionAt ?? 0;
+}
+
 /** The close clock of a sealed lot: the notice's auction moment.
  *  It is frozen with the notice (the rules freeze the notice at
  *  publication), so the deadline cannot be quietly moved. 0 when
@@ -562,6 +614,33 @@ export async function createLot(
     // register unless the desk chose the sealed mode.
     lotMode: input.lotMode ?? 'hall',
     bidderUids: input.bidderUids ?? [],
+    // A3: a live lot is born with its full arena shape (the
+    // rules pin the live birth: a positive increment, zeroed
+    // stamps, an empty EMD register). Other modes never carry
+    // the live fields.
+    ...(input.lotMode === 'live'
+      ? {
+          bidIncrement: Math.max(0, Math.round(input.bidIncrement ?? 0)),
+          closeAt: 0,
+          highestBid: 0,
+          highestBidderUid: '',
+          highestBidderName: '',
+          highestBidId: '',
+          bidCount: 0,
+          extensions: 0,
+          liveEmdUids: [],
+        }
+      : {
+          bidIncrement: undefined,
+          closeAt: undefined,
+          highestBid: undefined,
+          highestBidderUid: undefined,
+          highestBidderName: undefined,
+          highestBidId: undefined,
+          bidCount: undefined,
+          extensions: undefined,
+          liveEmdUids: undefined,
+        }),
     // Settlement is a full (empty) map from birth, never null, so the
     // rules can read its tx ids with .get() defaults safely.
     settlement: input.settlement ?? { depositAmount: 0, depositTxId: '', balanceTxId: '' },
