@@ -1666,47 +1666,14 @@ const pinDeniedToast = (
       }}
     >
       {isLoading ? (
-        <div className="min-h-screen flex flex-col items-center justify-center bg-white px-6">
-          <img
-            src="/icon-192x192.png"
-            alt="Sanatani Bandhan"
-            className="w-24 h-24 rounded-3xl shadow-lg mb-6"
-            style={{ animation: 'sb-pulse 2.4s ease-in-out infinite' }}
-          />
-          <h1
-            className="text-2xl font-extrabold tracking-wide uppercase text-orange-600 mb-1"
-            style={{ animation: 'sb-fade-up 0.7s ease-out both' }}
-          >
-            Sanatani Bandhan
-          </h1>
-          <p
-            className="text-sm font-semibold text-stone-500 mb-1"
-            style={{ animation: 'sb-fade-up 0.7s ease-out 0.1s both' }}
-          >
-            Dharmic Institution Management Platform
-          </p>
-          <p
-            className="text-sm italic text-stone-400 mb-5"
-            style={{ animation: 'sb-fade-up 0.7s ease-out 0.2s both' }}
-          >
-            Preserving Heritage. Empowering Devotion.
-          </p>
-          <div
-            className="flex items-center gap-2 text-sm text-stone-400 font-medium"
-            style={{ animation: 'sb-fade-up 0.7s ease-out 0.3s both' }}
-          >
-            <span className="w-3.5 h-3.5 border-2 border-orange-200 border-t-orange-600 rounded-full animate-spin" />
-            <span>Initializing Secure Environment...</span>
-          </div>
-          <div className="w-72 h-1 bg-stone-100 rounded-full mt-5 overflow-hidden">
-            <div className="h-full bg-orange-600 rounded-full animate-[sb-progress-fill_4s_ease-out_forwards]" />
-          </div>
-          <style>{`
-            @keyframes sb-pulse { 0%,100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.9; transform: scale(0.97); } }
-            @keyframes sb-fade-up { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
-            @keyframes sb-progress-fill { from { width: 0%; } to { width: 100%; } }
-          `}</style>
-        </div>
+        // SPLASH & GODMODE BATCH (A): no second branded splash. The
+        // static index.html splash covers the first moments and is
+        // dismissed by main.tsx on its own ceiling; if this gate is
+        // still closed after that, this quiet placeholder holds the
+        // screen until the BootGate rescue (10s, bootRescue.ts) opens
+        // the gate on local state — no path waits forever, and there
+        // is exactly ONE splash in the boot story.
+        <div className="min-h-screen bg-[#fafaf9]" aria-hidden="true" />
       ) : (
         <MaintenanceGate>{children}</MaintenanceGate>
       )}

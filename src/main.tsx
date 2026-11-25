@@ -65,6 +65,9 @@ createRoot(document.getElementById('root')!).render(
 // it never fires reliably on mobile (slow/hung subresources), which left
 // the splash stuck forever on small viewports. Max 2s visible.
 function dismissSplash() {
+  // Boot signal for the index.html stale-copy escape watchdog: reaching
+  // dismissal means the bundle loaded and React mounted — a healthy boot.
+  (window as any).__SB_BOOTED__ = true;
   const splashScreen = document.getElementById('sb-splash-screen');
   if (!splashScreen || splashScreen.classList.contains('fade-out')) return;
   splashScreen.classList.add('fade-out');

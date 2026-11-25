@@ -1337,11 +1337,10 @@ const OrgRegisterRoute: React.FC = () => {
   // Grace for slow Firebase session resolution — redirect only once the
   // auth state is known, so a signed-in user never flashes through /login.
   if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-[#0b0620] text-white/70 text-sm font-bold">
-        Loading…
-      </div>
-    );
+    // SPLASH & GODMODE BATCH (A): quiet placeholder, not a second
+    // loading screen — the one static splash in index.html is the
+    // only branded boot surface; the BootGate rescue bounds this wait.
+    return <div className="min-h-screen bg-[#fafaf9]" aria-hidden="true" />;
   }
   if (!isAuthenticated) {
     window.location.href = '/login';

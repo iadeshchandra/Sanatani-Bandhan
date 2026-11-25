@@ -24,6 +24,7 @@ import {
   peekTermsDraft,
 } from '../../../ai/godmode/termsDraftHandoff';
 import { optimizeQrImage, type QrOptimizeResult } from '../../../lib/qrOptimizer';
+import { AccountPasswordCard } from './AccountPasswordCard';
 import { CCard as Card, CEmpty as Empty, CLoading as Loading, CSubTabs as SubTabs, cInputCls as inputCls } from './AdminTabsD';
 
 /** QR upload with client-side auto-optimization (crop → 512×512 PNG). */
@@ -735,6 +736,9 @@ export const SettingsTab: React.FC = () => {
   }, []);
   return (
     <div className="space-y-4">
+      {/* SPLASH & GODMODE BATCH (D): the signed-in owner's own account
+          password lives here — set/change without leaving the console. */}
+      <AccountPasswordCard />
       <SubTabs tabs={['Feature Flags', 'Plans & Terms', 'Payment Methods', 'Maintenance']} active={sub} onChange={setSub} />
       {sub === 'Feature Flags' && <FlagsView />}
       {sub === 'Plans & Terms' && <PlansView />}

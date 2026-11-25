@@ -61,7 +61,8 @@ import { NeedsAttention } from './godmode/NeedsAttention';
 import { useConsoleStatus } from './godmode/useConsoleStatus';
 import { buildHandItems, identityFor } from './godmode/consoleChrome';
 import { resolveRoleForUserDetailed } from '../../lib/platformAdmins';
-import { canAccessTab, type PlatformRole, type RoleResolutionReason } from '../../lib/platformAdminRoles';
+import { canAccessTab, type PlatformRole, type RoleResolution, type RoleResolutionReason } from '../../lib/platformAdminRoles';
+import { withTimeout, isTimeoutError } from '../../lib/withTimeout';
 
 interface GodModeConsole2Props {
   isOpen: boolean;
@@ -167,6 +168,42 @@ function sessionNote(priorUid: string | null, priorEmail: string | null, nowUid:
   }
   if (priorUid) return ' Your main app session has NOT been signed out.';
   return '';
+}
+
+/* ---------------- Bounded role check (SPLASH & GODMODE BATCH, C) ----------- */
+
+/**
+ * The role lookup's bound. The registry read inside
+ * resolveRoleForUserDetailed can hang forever on a black-holed network
+ * (the promise neither resolves nor rejects) — the 2026-11-22 finding
+ * was a sign-in that spun forever on exactly this await. 8s is far
+ * beyond a healthy Firestore read yet short enough that the honest
+ * error state arrives while the owner is still looking at the gate.
+ */
+const ROLE_CHECK_TIMEOUT_MS = 8_000;
+
+/**
+ * resolveRoleForUserDetailed raced against ROLE_CHECK_TIMEOUT_MS.
+ * A timeout is reported as its own outcome (`timedOut: true`, role
+ * null) so the gate can show the "couldn't confirm your access" state
+ * with a Retry — WHO is allowed in is unchanged: a timeout, like any
+ * failure, unlocks nothing.
+ */
+async function resolveRoleBounded(
+  uid: string | null | undefined,
+  email: string | null | undefined,
+): Promise<{ res: RoleResolution; timedOut: boolean }> {
+  try {
+    const res = await withTimeout(resolveRoleForUserDetailed(uid, email), ROLE_CHECK_TIMEOUT_MS);
+    return { res, timedOut: false };
+  } catch (err) {
+    if (isTimeoutError(err)) {
+      return { res: { role: null, reason: 'lookup-failed' }, timedOut: true };
+    }
+    // resolveRoleForUserDetailed never throws by contract; anything
+    // else surfacing here is a defect — let it propagate honestly.
+    throw err;
+  }
 }
 
 /** Shared: honest backend-down banner shown inside any tab. */
@@ -435,6 +472,13 @@ export const GodModeConsole2: React.FC<GodModeConsole2Props> = ({ isOpen, onClos
   // failure explains itself HERE, in the gate card — never only via a
   // transient toast the user may never see.
   const [gateNotice, setGateNotice] = useState<{ kind: 'error' | 'info'; text: string } | null>(null);
+  // Bounded role check (BATCH C): true when the role lookup timed out
+  // or the registry read failed — the gate then shows the honest
+  // "couldn't confirm your access" block with a working Retry instead
+  // of waiting forever. roleRetryNonce re-runs the resolution effect.
+  const [roleCheckFailed, setRoleCheckFailed] = useState(false);
+  const [roleRetryNonce, setRoleRetryNonce] = useState(0);
+  const [unlockBusy, setUnlockBusy] = useState(false);
   const [resetSent, setResetSent] = useState(false);
   const [resetCooldown, setResetCooldown] = useState(0);
 
@@ -453,18 +497,26 @@ export const GodModeConsole2: React.FC<GodModeConsole2Props> = ({ isOpen, onClos
   useEffect(() => {
     if (!firebaseUser) return;
     let cancelled = false;
-    void resolveRoleForUserDetailed(firebaseUser.uid, firebaseUser.email).then((res) => {
+    void resolveRoleBounded(firebaseUser.uid, firebaseUser.email).then(({ res, timedOut }) => {
       if (cancelled) return;
-      if (res.role) {
+      if (!timedOut && res.role) {
+        setRoleCheckFailed(false);
         setAdminRole(res.role);
         setIsUnlocked(true);
         setGateNotice(null);
+      } else if (timedOut || res.reason === 'lookup-failed') {
+        // The bounded check could not get an answer (hang or read
+        // failure): the honest error block with Retry takes the gate —
+        // a definite refusal reason would be a lie here, and a silent
+        // endless wait was the bug. Nothing unlocks.
+        setRoleCheckFailed(true);
       } else {
+        setRoleCheckFailed(false);
         setGateNotice({ kind: 'error', text: gateReasonText(res.reason, firebaseUser.email) });
       }
     });
     return () => { cancelled = true; };
-  }, [firebaseUser?.uid, firebaseUser?.email]);
+  }, [firebaseUser?.uid, firebaseUser?.email, roleRetryNonce]);
 
   // Tabs this role may see; if the open tab falls outside the role (e.g.
   // role resolved after mount), fall back to the first visible tab.
@@ -527,9 +579,18 @@ export const GodModeConsole2: React.FC<GodModeConsole2Props> = ({ isOpen, onClos
     // auth.signOut() — the console gates itself, not the app.
     const priorUid = auth.currentUser?.uid ?? null;
     const priorEmail = auth.currentUser?.email ?? null;
+    setUnlockBusy(true);
     try {
       await signInWithEmailAndPassword(auth, email, godAccessKey);
-      const res = await resolveRoleForUserDetailed(auth.currentUser?.uid, auth.currentUser?.email);
+      const { res, timedOut } = await resolveRoleBounded(auth.currentUser?.uid, auth.currentUser?.email);
+      if (timedOut || (!res.role && res.reason === 'lookup-failed')) {
+        // Bounded check got no answer — the error block + Retry own
+        // the gate now; any session-replacement fact still surfaces.
+        setRoleCheckFailed(true);
+        const note = sessionNote(priorUid, priorEmail, auth.currentUser?.uid ?? null);
+        setGateNotice(note ? { kind: 'info', text: note.trim() } : null);
+        return;
+      }
       if (!res.role) {
         setGateNotice({
           kind: 'error',
@@ -538,6 +599,7 @@ export const GodModeConsole2: React.FC<GodModeConsole2Props> = ({ isOpen, onClos
         });
         return;
       }
+      setRoleCheckFailed(false);
       setGateNotice(null);
       setAdminRole(res.role);
       setIsUnlocked(true);
@@ -545,6 +607,8 @@ export const GodModeConsole2: React.FC<GodModeConsole2Props> = ({ isOpen, onClos
       showToast('Authenticated successfully.', 'success');
     } catch (err: any) {
       setGateNotice({ kind: 'error', text: authErrorText(err) });
+    } finally {
+      setUnlockBusy(false);
     }
   };
 
@@ -553,9 +617,16 @@ export const GodModeConsole2: React.FC<GodModeConsole2Props> = ({ isOpen, onClos
     // refusal; the reason is stated on the gate.
     const priorUid = auth.currentUser?.uid ?? null;
     const priorEmail = auth.currentUser?.email ?? null;
+    setUnlockBusy(true);
     try {
       const result = await signInWithPopup(auth, googleProvider);
-      const res = await resolveRoleForUserDetailed(result.user?.uid, result.user?.email);
+      const { res, timedOut } = await resolveRoleBounded(result.user?.uid, result.user?.email);
+      if (timedOut || (!res.role && res.reason === 'lookup-failed')) {
+        setRoleCheckFailed(true);
+        const note = sessionNote(priorUid, priorEmail, result.user?.uid ?? null);
+        setGateNotice(note ? { kind: 'info', text: note.trim() } : null);
+        return;
+      }
       if (!res.role) {
         setGateNotice({
           kind: 'error',
@@ -564,6 +635,7 @@ export const GodModeConsole2: React.FC<GodModeConsole2Props> = ({ isOpen, onClos
         });
         return;
       }
+      setRoleCheckFailed(false);
       setGateNotice(null);
       setAdminRole(res.role);
       setIsUnlocked(true);
@@ -571,6 +643,8 @@ export const GodModeConsole2: React.FC<GodModeConsole2Props> = ({ isOpen, onClos
       showToast('Authenticated successfully via Google.', 'success');
     } catch (err: any) {
       setGateNotice({ kind: 'error', text: authErrorText(err) });
+    } finally {
+      setUnlockBusy(false);
     }
   };
 
@@ -656,6 +730,22 @@ export const GodModeConsole2: React.FC<GodModeConsole2Props> = ({ isOpen, onClos
                 {gateNotice.text}
               </div>
             )}
+            {roleCheckFailed && (
+              <div
+                role="alert"
+                className="w-full rounded-xl border border-red-500/40 bg-red-500/10 px-4 py-3 mb-5 text-left text-xs leading-relaxed text-red-200"
+              >
+                <p className="font-bold">We couldn't confirm your access.</p>
+                <p className="mt-0.5">Check your connection and try again. Nothing was changed and you have NOT been signed out of the app.</p>
+                <button
+                  type="button"
+                  onClick={() => setRoleRetryNonce((n) => n + 1)}
+                  className="mt-3 px-4 py-2 min-h-[44px] rounded-xl bg-red-500/20 text-red-100 font-bold hover:bg-red-500/30 inline-flex items-center gap-2"
+                >
+                  <RefreshCw className="w-3.5 h-3.5" /> Retry
+                </button>
+              </div>
+            )}
             <form onSubmit={handleUnlockGodMode} className="w-full space-y-4">
               <input
                 type="email"
@@ -676,9 +766,10 @@ export const GodModeConsole2: React.FC<GodModeConsole2Props> = ({ isOpen, onClos
               </div>
               <button
                 type="submit"
-                className="w-full py-3 min-h-[44px] rounded-xl bg-gradient-to-r from-saffron-500 to-saffron-600 text-slate-950 font-black text-xs uppercase tracking-wider hover:brightness-110"
+                disabled={unlockBusy}
+                className="w-full py-3 min-h-[44px] rounded-xl bg-gradient-to-r from-saffron-500 to-saffron-600 text-slate-950 font-black text-xs uppercase tracking-wider hover:brightness-110 disabled:opacity-50"
               >
-                Authenticate
+                {unlockBusy ? 'Checking…' : 'Authenticate'}
               </button>
               <button
                 type="button"
@@ -697,7 +788,8 @@ export const GodModeConsole2: React.FC<GodModeConsole2Props> = ({ isOpen, onClos
             <button
               type="button"
               onClick={handleGoogleGodMode}
-              className="w-full py-3 min-h-[44px] rounded-xl bg-white text-slate-900 font-bold text-sm hover:bg-slate-100 flex items-center justify-center gap-2"
+              disabled={unlockBusy}
+              className="w-full py-3 min-h-[44px] rounded-xl bg-white text-slate-900 font-bold text-sm hover:bg-slate-100 flex items-center justify-center gap-2 disabled:opacity-50"
             >
               <svg className="w-4 h-4" viewBox="0 0 24 24">
                 <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
