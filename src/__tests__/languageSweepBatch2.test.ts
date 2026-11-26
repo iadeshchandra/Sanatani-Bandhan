@@ -623,7 +623,13 @@ const WIRED = [
   ["components/domain5/DevoteeAccountPortal.tsx", "surfaces.devoteePortal.totalLifetimeSeva"],
   ["components/domain5/DevoteeAccountPortal.tsx", "surfaces.devoteePortal.updatePersonalDevoteeDetails"],
   ["components/domain5/DevoteeAccountPortal.tsx", "surfaces.devoteePortal.vaultTokenCopiedToClipboard"],
-  ["components/domain5/DevoteeAccountPortal.tsx", "surfaces.devoteePortal.verified"],
+  // PILGRIMAGE BATCH (2026-11-26): the pair
+  // ["components/domain5/DevoteeAccountPortal.tsx", "surfaces.devoteePortal.verified"]
+  // is RETIRED. The call it pinned stamped the word "Verified" on
+  // every pilgrimage-footprint row; the rows are the devotee's own
+  // records and are now labelled by their true source (GPS check-in
+  // / Tirtha Diary) via the batch's new devoteePortal keys. The
+  // dictionary key itself is untouched and still resolves.
   ["components/domain5/DevoteeAccountPortal.tsx", "surfaces.devoteePortal.volunteerSevaHours"],
   ["components/domain5/DevoteeAccountPortal.tsx", "surfaces.devoteePortal.vratChecklistUpdated"],
   ["components/domain5/DevoteeAccountPortal.tsx", "surfaces.devoteePortal.yatranetMeshNode"],

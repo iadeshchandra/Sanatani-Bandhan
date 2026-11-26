@@ -261,18 +261,28 @@ export const generateDynamicQRDataURL = async (
  * SECURITY: never put credentials (PIN/password) in a QR payload. Anyone who
  * photographs a printed card would otherwise be able to impersonate the member.
  */
-export const generateSecureQRToken = (member: DevoteeMember): string => {
+/**
+ * The identity-pass QR value for one member id — the exact payload
+ * `generateSecureQRToken` produces, built from the bare id so surfaces
+ * that hold only the member's Sanatani ID (e.g. the Personal "My
+ * passes" shelf) mint the identical, verifiable pass.
+ */
+export const generateIdentityPassValue = (memberId: string): string => {
   const sig = generateDynamicToken(
-    { id: member.id, purpose: QR_TYPE_VERIFY },
+    { id: memberId, purpose: QR_TYPE_VERIFY },
     IDENTITY_SIG_VALIDITY_SECONDS
   );
   const payload: IdentityQRPayload = {
     v: QR_PAYLOAD_VERSION,
     type: QR_TYPE_VERIFY,
-    id: member.id,
+    id: memberId,
     sig,
   };
   return JSON.stringify(payload);
+};
+
+export const generateSecureQRToken = (member: DevoteeMember): string => {
+  return generateIdentityPassValue(member.id);
 };
 
 /**

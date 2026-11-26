@@ -288,6 +288,9 @@ export interface TranslationSchema {
     twoMode?: { [key: string]: string };
     // AUCTION A1 — Nilam (2026-11-23): the auction & allotment desk.
     nilam?: { [key: string]: string };
+    // PILGRIMAGE + MY PASSES (2026-11-26) — the Personal home's
+    // "My passes" shelf + Smart Pass sheet. Authored in all 10.
+    passes?: { [key: string]: string };
     // FOUR PILLARS (2026-11-24) — the section headers inside Personal.
     pillars?: { [key: string]: string };
     // NOTIFICATION WAVE 3 (2026-11-24) — the Suchana centre's copy,

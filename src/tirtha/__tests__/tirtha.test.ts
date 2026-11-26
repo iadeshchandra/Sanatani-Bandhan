@@ -236,3 +236,34 @@ describe('ai tirtha_summary task', () => {
     expect(out.params.latestTemple).toBe('B');
   });
 });
+
+describe('GPS check-in coordinates (pilgrimage batch)', () => {
+  test('sanitizeVisit keeps a valid GPS pair', () => {
+    const v = sanitizeVisit({ templeName: 'Kashi', lat: 25.3176, lng: 82.9739 }, UID);
+    expect(v.lat).toBe(25.3176);
+    expect(v.lng).toBe(82.9739);
+  });
+  test('sanitizeVisit drops a half pair whole', () => {
+    const v = sanitizeVisit({ templeName: 'Kashi', lat: 25.3176 }, UID);
+    expect('lat' in v).toBe(false);
+    expect('lng' in v).toBe(false);
+  });
+  test('sanitizeVisit drops out-of-range and non-finite fixes', () => {
+    expect('lat' in sanitizeVisit({ templeName: 'T', lat: 91, lng: 0 }, UID)).toBe(false);
+    expect('lat' in sanitizeVisit({ templeName: 'T', lat: 0, lng: -181 }, UID)).toBe(false);
+    expect('lat' in sanitizeVisit({ templeName: 'T', lat: NaN, lng: 0 }, UID)).toBe(false);
+    expect('lat' in sanitizeVisit({ templeName: 'T', lat: Infinity, lng: 0 }, UID)).toBe(false);
+  });
+  test('a GPS check-in recorded through the store keeps its pair in the local record', async () => {
+    const v = await recordVisit(UID, { templeName: 'GPS Temple', lat: 25.3176, lng: 82.9739 });
+    expect(v.lat).toBe(25.3176);
+    const local = getLocalVisits(UID).find((x) => x.id === v.id);
+    expect(local?.lat).toBe(25.3176);
+    expect(local?.lng).toBe(82.9739);
+  });
+  test('a manual diary visit carries no coordinates', async () => {
+    const v = await recordVisit(UID, { templeName: 'Diary Temple' });
+    expect('lat' in v).toBe(false);
+    expect('lng' in v).toBe(false);
+  });
+});

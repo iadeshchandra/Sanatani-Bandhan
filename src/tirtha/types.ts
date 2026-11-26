@@ -44,6 +44,14 @@ export interface VisitEntry {
   photoVaultUrl?: string;
   /** Optional yatra this visit belongs to (yatra id). */
   yatraId?: string;
+  /**
+   * Optional GPS coordinates — set ONLY by an explicit GPS check-in
+   * (the devotee stood there and tapped "Log GPS Check-In"). Manual
+   * diary entries never carry them: no background location, ever.
+   * The pair is stored together or not at all.
+   */
+  lat?: number;
+  lng?: number;
   /** ISO-8601 creation time. */
   createdAt: string;
 }
@@ -79,6 +87,9 @@ export interface NewVisitInput {
   darshanKind?: DarshanKind;
   photoVaultUrl?: string;
   yatraId?: string;
+  /** GPS pair from an explicit check-in — both or neither. */
+  lat?: number;
+  lng?: number;
 }
 
 export interface NewYatraInput {
@@ -116,9 +127,25 @@ export function isOwnedBy(entry: { uid: string }, uid: string): boolean {
   return !!uid && entry.uid === uid;
 }
 
+/**
+ * A GPS pair is kept only when BOTH halves are finite numbers inside
+ * their true ranges — a half-pair or an out-of-range fix is dropped
+ * whole, never stored as a place the devotee was not.
+ */
+export function validCoordPair(
+  lat: unknown,
+  lng: unknown,
+): { lat: number; lng: number } | null {
+  if (typeof lat !== 'number' || typeof lng !== 'number') return null;
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+  if (lat < -90 || lat > 90 || lng < -180 || lng > 180) return null;
+  return { lat, lng };
+}
+
 /** Strip a visit down to the fields the rules allow. */
 export function sanitizeVisit(input: NewVisitInput, uid: string): VisitEntry {
   const now = new Date().toISOString();
+  const coords = validCoordPair(input.lat, input.lng);
   return {
     id: newVisitId(),
     uid,
@@ -129,6 +156,7 @@ export function sanitizeVisit(input: NewVisitInput, uid: string): VisitEntry {
     darshanKind: input.darshanKind,
     photoVaultUrl: input.photoVaultUrl?.slice(0, 300) || undefined,
     yatraId: input.yatraId?.slice(0, 64) || undefined,
+    ...(coords ? { lat: coords.lat, lng: coords.lng } : {}),
     createdAt: now,
   };
 }

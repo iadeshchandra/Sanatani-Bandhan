@@ -203,7 +203,14 @@ describe('surfaces + vibe dict completeness (en/hi/bn authored)', () => {
     // bidder's own live card) in all 10 languages, taking the
     // pin to 1511. en/hi/bn authored; ta/te/mr/gu/kn/ml/sa are
     // careful drafts (proofread follow-up).
-    expect(keysOf(en).length).toBe(1511);
+    // PILGRIMAGE + MY PASSES (2026-11-26) adds 13 surfaces.passes
+    // keys (title…festivalFallback — the Personal home's "My
+    // passes" shelf and its Smart Pass sheet) in all 10 languages,
+    // taking the pin to 1524. (The batch's 14 surfaces.devoteePortal
+    // footprint keys ride the devotee fragment, not this pin.)
+    // en/hi/bn authored; ta/te/mr/gu/kn/ml/sa are careful drafts
+    // (proofread follow-up).
+    expect(keysOf(en).length).toBe(1524);
     for (const bucket of Object.keys(en)) {
       for (const leaf of Object.keys(en[bucket])) {
         for (const dict of [en, hi, bn]) {

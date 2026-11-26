@@ -859,7 +859,7 @@ service cloud.firestore {
       return ['ratingAggregate', 'ratingCount', 'lastReviewId', 'updatedAt'];
     }
     function TIRTHA_VISIT_KEYS() {
-      return ['id', 'uid', 'templeName', 'orgId', 'visitedAt', 'note', 'darshanKind', 'photoVaultUrl', 'yatraId', 'createdAt'];
+      return ['id', 'uid', 'templeName', 'orgId', 'visitedAt', 'note', 'darshanKind', 'photoVaultUrl', 'yatraId', 'createdAt', 'lat', 'lng'];
     }
     function TIRTHA_YATRA_KEYS() {
       return ['id', 'uid', 'name', 'reflection', 'coverVaultUrl', 'createdAt'];

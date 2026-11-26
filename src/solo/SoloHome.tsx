@@ -23,6 +23,7 @@ import { useLanguage } from '../context/LanguageContext';
 import { PanchangHeader } from '../components/common/PanchangHeader';
 import { PillarHeader } from '../components/common/PillarHeader';
 import { OrgEventsShelf } from './OrgEventsShelf';
+import { MyPassesShelf } from './MyPassesShelf';
 import { FollowedTemplesStrip } from './FollowedTemplesStrip';
 import { OfflineSevakStatus } from '../components/common/OfflineSevakStatus';
 import { SoloUsualRow } from './SoloUsualRow';
@@ -489,6 +490,10 @@ export const SoloHome: React.FC<{ goTab: (t: 'sadhana' | 'panchang' | 'panjika' 
           →
         </div>
       </button>
+
+      {/* PILGRIMAGE + MY PASSES — the member's Smart Pass and every
+          live seva pass they hold, inside the Personal pillar. */}
+      <MyPassesShelf />
 
       <div className="grid sm:grid-cols-2 gap-4">
         {/* Upcoming reminders */}

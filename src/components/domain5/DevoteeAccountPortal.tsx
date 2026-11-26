@@ -26,6 +26,8 @@ import { useData } from '../../context/DataContext';
 import { useNotifications } from '../../context/NotificationContext';
 import { generateSecureQRToken } from '../../utils/qrUtils';
 import { OfflineSyncManager } from '../../services/OfflineSyncManager';
+import { recordVisit, syncTirtha, getLocalVisits, pendingSyncCount } from '../../tirtha/tirthaStore';
+import { shapeFootprint, mappableRows, type FootprintRow } from '../../lib/yatraFootprint';
 import { friendlyError } from '../../lib/friendlyError';
 import { useOrgConsoleAccess } from '../../lib/orgConsoleAccess';
 import { displaySanataniId } from '../../lib/passId';
@@ -75,6 +77,7 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
     currentRole,
     activeWorkspace,
     currentDevotee,
+    firebaseUser,
     viewMode,
     setViewMode,
     switchRole,
@@ -449,28 +452,42 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
   // ==========================================
   // TAB 5: PILGRIMAGE FOOTPRINT (YATRANET)
   // ==========================================
-  // WORLD-READY (G-M2 extended): the yatra log holds REAL check-ins
-  // only. The old constant invented four "verified" pilgrimages —
-  // Kashi, Ayodhya, Tirumala, Kedarnath, with dates and badges — for
-  // every devotee. GPS check-ins will append here as they are recorded;
-  // until then the log is honestly empty.
-  type PilgrimageFootprintEntry = {
-    id: string;
-    shrineName: string;
-    location: string;
-    coords: [number, number];
-    darshanType: string;
-    visitedDate: string;
-    verifiedBy: string;
-    badge: string;
-  };
-  const pilgrimageFootprint: PilgrimageFootprintEntry[] = [];
+  // PILGRIMAGE BATCH (2026-11-26): the yatra log is REAL now. The
+  // record lives in the Tirtha Diary's own home —
+  // tirthaVisits/{uid}/visits, owner-only by rules — written through
+  // tirthaStore (device cache first, queued sync when offline). The
+  // GPS button records a visit WITH its coordinate pair; visits the
+  // devotee records in the Tirtha Diary rest in the same log. The
+  // map draws only rows carrying a true GPS pair; nothing invented.
+  const pilgrimUid = firebaseUser?.uid || '';
+  const [footprintRows, setFootprintRows] = useState<FootprintRow[]>(() =>
+    pilgrimUid ? shapeFootprint(getLocalVisits(pilgrimUid)) : []
+  );
+  const [selectedVisitId, setSelectedVisitId] = useState<string>('');
 
-  const [activeShrineIndex, setActiveShrineIndex] = useState(0);
+  useEffect(() => {
+    if (!pilgrimUid) { setFootprintRows([]); return; }
+    setFootprintRows(shapeFootprint(getLocalVisits(pilgrimUid)));
+    let live = true;
+    syncTirtha(pilgrimUid)
+      .then((cache) => { if (live) setFootprintRows(shapeFootprint(cache.visits)); })
+      .catch(() => { /* the device cache already served */ });
+    return () => { live = false; };
+  }, [pilgrimUid]);
+
+  const footprintPins = useMemo(() => mappableRows(footprintRows), [footprintRows]);
+  const activePinIndex = useMemo(() => {
+    const i = footprintPins.findIndex((r) => r.id === selectedVisitId);
+    return i >= 0 ? i : 0;
+  }, [footprintPins, selectedVisitId]);
 
   // Quick GPS Check-In state
   const [isLocating, setIsLocating] = useState(false);
   const handleGeoCheckInNow = () => {
+    if (!pilgrimUid) {
+      showToast(t('surfaces.devoteePortal.checkInNeedsSignIn'), 'info');
+      return;
+    }
     setIsLocating(true);
     if (!navigator.geolocation) {
       showToast(t('surfaces.devoteePortal.geolocationIsNotSupportedByYour'), 'error');
@@ -478,14 +495,32 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
       return;
     }
     navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        setIsLocating(false);
+      async (pos) => {
         const { latitude, longitude } = pos.coords;
-        showToast(
-          `Checked in here — [${latitude.toFixed(4)}, ${longitude.toFixed(4)}] 🚩`,
-          'success',
-          'GPS Check-In'
-        );
+        try {
+          const entry = await recordVisit(pilgrimUid, {
+            templeName: (activeWorkspace?.name || '').trim() || 'Temple Campus',
+            orgId: activeWorkspace?.id,
+            lat: latitude,
+            lng: longitude,
+          });
+          setFootprintRows(shapeFootprint(getLocalVisits(pilgrimUid)));
+          setSelectedVisitId(entry.id);
+          showToast(
+            pendingSyncCount(pilgrimUid) > 0
+              ? t('surfaces.devoteePortal.checkInQueued')
+              : t('surfaces.devoteePortal.checkInSaved'),
+            'success',
+            t('surfaces.devoteePortal.sourceGps')
+          );
+          syncTirtha(pilgrimUid)
+            .then((cache) => setFootprintRows(shapeFootprint(cache.visits)))
+            .catch(() => { /* the device cache already served */ });
+        } catch {
+          showToast(t('surfaces.devoteePortal.toastGpsFailed').replace('{error}', 'record'), 'error');
+        } finally {
+          setIsLocating(false);
+        }
       },
       (err) => {
         setIsLocating(false);
@@ -1696,42 +1731,49 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
             <div className="bg-white p-5 rounded-3xl border border-temple-200 shadow-xl flex flex-wrap items-center justify-between gap-4">
               <div>
                 <span className="px-2 py-0.5 rounded text-[10px] font-black uppercase bg-amber-100 text-amber-800 border border-brass-200">
-                  Pilgrimage Footprint
+                  {t('surfaces.devoteePortal.footprintBadge')}
                 </span>
                 <h2 className="text-xl font-black text-temple-950 mt-1">
-                  Sacred Pilgrimage Footprint & Geo Check-Ins
+                  {t('surfaces.devoteePortal.footprintTitle')}
                 </h2>
                 <p className="text-xs text-temple-600 mt-0.5">
-                  Your own GPS check-ins at sacred places, kept as your pilgrimage footprint.
+                  {t('surfaces.devoteePortal.footprintIntro')}
                 </p>
+                {!pilgrimUid && (
+                  <p className="text-xs text-amber-700 font-bold mt-1.5">
+                    {t('surfaces.devoteePortal.checkInNeedsSignIn')}
+                  </p>
+                )}
               </div>
 
               <button
                 type="button"
                 onClick={handleGeoCheckInNow}
                 disabled={isLocating}
-                className="px-4 py-2 rounded-xl bg-cta hover:bg-cta-hover text-white text-xs font-black shadow-md flex items-center gap-2 cursor-pointer transition-all disabled:opacity-50"
+                className="px-4 py-2 min-h-[44px] rounded-xl bg-cta hover:bg-cta-hover text-white text-xs font-black shadow-md flex items-center gap-2 cursor-pointer transition-all disabled:opacity-50"
               >
                 <MapPin className="w-4 h-4 text-white" />
-                <span>{isLocating ? 'Locating...' : 'Log GPS Check-In Here'}</span>
+                <span>{isLocating ? t('surfaces.devoteePortal.locating') : t('surfaces.devoteePortal.logGpsCheckIn')}</span>
               </button>
             </div>
 
             {/* Interactive Shrine Map & Footprint History — real check-ins
                 only; an honest empty state until the first one (G-M2). */}
-            {pilgrimageFootprint.length === 0 ? (
+            {footprintRows.length === 0 ? (
               <div className="bg-white rounded-3xl border border-temple-200 p-8 shadow-xl text-center space-y-2">
                 <p className="text-2xl" aria-hidden>🚩</p>
                 <p className="text-sm font-bold text-temple-800">{t('surfaces.devoteePortal.noYatraRecordedYet')}</p>
                 <p className="text-xs text-temple-600 max-w-md mx-auto">
-                  Check in with the GPS button above when you reach a shrine — this page
-                  honours only true pilgrimage footprints, nothing invented.
+                  {t('surfaces.devoteePortal.footprintEmptyNote')}
                 </p>
               </div>
             ) : (
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-              
-              {/* Left 7 Cols: Leaflet Interactive Mini-Map */}
+            <div className={`grid grid-cols-1 ${footprintPins.length > 0 ? 'lg:grid-cols-12' : ''} gap-6 items-start`}>
+
+              {/* Left 7 Cols: Leaflet Interactive Mini-Map — GPS
+                  check-ins only; a diary visit carries no pair and is
+                  never placed on a map it was not recorded on. */}
+              {footprintPins.length > 0 && (
               <div className="lg:col-span-7 bg-white rounded-3xl border border-temple-200 p-4 shadow-xl space-y-3">
                 <div className="flex items-center justify-between">
                   <h3 className="text-xs font-black text-temple-700 uppercase tracking-wider flex items-center gap-1.5">
@@ -1739,34 +1781,37 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
                     <span>{t('surfaces.devoteePortal.interactiveYatraMap')}</span>
                   </h3>
                   <span className="text-[11px] text-amber-700 font-bold">
-                    {pilgrimageFootprint.length} Shrines Visited
+                    {t('surfaces.devoteePortal.shrinesVisitedCount').replace('{count}', String(footprintRows.length))}
                   </span>
                 </div>
+                <p className="text-[11px] text-temple-500">{t('surfaces.devoteePortal.mapGpsOnlyNote')}</p>
 
                 <div className="w-full h-80 sm:h-96 rounded-2xl overflow-hidden border border-temple-200 z-0">
                   <MapContainer
-                    center={pilgrimageFootprint[activeShrineIndex].coords}
+                    center={footprintPins[activePinIndex].coords}
                     zoom={6}
                     scrollWheelZoom={false}
                     className="w-full h-full"
                   >
                     <ResilientTileLayer />
-                    <MapViewRecenter center={pilgrimageFootprint[activeShrineIndex].coords} />
-                    {pilgrimageFootprint.map((shrine, idx) => (
+                    <MapViewRecenter center={footprintPins[activePinIndex].coords} />
+                    {footprintPins.map((pin, idx) => (
                       <Marker
-                        key={shrine.id}
-                        position={shrine.coords}
-                        icon={createShrineMarkerIcon(idx === activeShrineIndex ? '#ea580c' : '#d97706')}
+                        key={pin.id}
+                        position={pin.coords}
+                        icon={createShrineMarkerIcon(idx === activePinIndex ? '#ea580c' : '#d97706')}
                         eventHandlers={{
-                          click: () => setActiveShrineIndex(idx),
+                          click: () => setSelectedVisitId(pin.id),
                         }}
                       >
                         <Popup className="custom-leaflet-popup">
                           <div className="p-1 text-temple-900 text-xs">
-                            <strong className="block text-amber-800 font-bold">{shrine.shrineName}</strong>
-                            <p className="text-[10px] text-temple-600">{shrine.location}</p>
+                            <strong className="block text-amber-800 font-bold">{pin.shrineName}</strong>
+                            <p className="text-[10px] text-temple-600">
+                              {pin.visitedAtMs > 0 ? new Date(pin.visitedAtMs).toLocaleDateString() : ''}
+                            </p>
                             <span className="text-[9px] font-bold text-emerald-700 block mt-1">
-                              Ritual: {shrine.darshanType}
+                              {t('surfaces.devoteePortal.sourceGps')}
                             </span>
                           </div>
                         </Popup>
@@ -1775,19 +1820,24 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
                   </MapContainer>
                 </div>
               </div>
+              )}
 
-              {/* Right 5 Cols: Visited Shrines List */}
-              <div className="lg:col-span-5 space-y-3">
+              {/* The Yatra Log — every recorded visit, newest first,
+                  each labelled by how it was recorded. */}
+              <div className={`${footprintPins.length > 0 ? 'lg:col-span-5' : ''} space-y-3`}>
                 <h3 className="text-xs font-black text-temple-700 uppercase tracking-wider">
-                  Verified Yatra Log
+                  {t('surfaces.devoteePortal.yatraLogTitle')}
                 </h3>
 
-                {pilgrimageFootprint.map((shrine, idx) => {
-                  const isSelected = idx === activeShrineIndex;
+                {footprintRows.map((row) => {
+                  const isSelected = row.id === selectedVisitId;
+                  const source = row.gps
+                    ? t('surfaces.devoteePortal.sourceGps')
+                    : t('surfaces.devoteePortal.sourceDiary');
                   return (
                     <div
-                      key={shrine.id}
-                      onClick={() => setActiveShrineIndex(idx)}
+                      key={row.id}
+                      onClick={() => setSelectedVisitId(row.id)}
                       className={`p-4 rounded-2xl border transition-all cursor-pointer ${
                         isSelected
                           ? 'bg-amber-50 border-brass-300 shadow-md'
@@ -1797,21 +1847,27 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
                       <div className="flex items-start justify-between gap-2">
                         <div>
                           <h4 className="text-xs sm:text-sm font-black text-temple-950">
-                            {shrine.shrineName}
+                            {row.shrineName}
                           </h4>
                           <p className="text-[11px] text-temple-600 flex items-center gap-1 mt-0.5">
                             <MapPin className="w-3 h-3 text-amber-700" />
-                            <span>{shrine.location}</span>
+                            <span>
+                              {row.coords
+                                ? `${row.coords[0].toFixed(4)}, ${row.coords[1].toFixed(4)}`
+                                : row.note || source}
+                            </span>
                           </p>
                         </div>
                         <span className="px-2 py-0.5 rounded text-[10px] font-black uppercase bg-amber-100 text-amber-800 border border-brass-200">
-                          {shrine.badge}
+                          {source}
                         </span>
                       </div>
 
                       <div className="mt-2.5 pt-2 border-t border-temple-200 flex items-center justify-between text-[11px] text-temple-600">
-                        <span>{shrine.visitedDate}</span>
-                        <span className="text-emerald-700 font-bold">{t('surfaces.devoteePortal.verified')}</span>
+                        <span>{row.visitedAtMs > 0 ? new Date(row.visitedAtMs).toLocaleDateString() : ''}</span>
+                        {row.darshanKind && (
+                          <span className="text-emerald-700 font-bold">{row.darshanKind}</span>
+                        )}
                       </div>
                     </div>
                   );
