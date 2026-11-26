@@ -63,6 +63,24 @@ export interface ReleaseEntry {
 
 export const RELEASES: readonly ReleaseEntry[] = [
   {
+    version: 'v2026.11.26-16e307a',
+    date: '2026-11-26',
+    sections: {
+      new: [
+        { text: {
+          en: 'My passes: your Smart Pass and every seva pass you hold now rest together on your Personal home — upcoming first, one tap from the gate.',
+          hi: 'मेरे पास: आपका स्मार्ट पास और आपके सभी सेवा पास अब आपके व्यक्तिगत मुखपृष्ठ पर एक साथ रहते हैं — आगामी पहले, द्वार से एक टैप दूर।',
+          bn: 'আমার পাস: আপনার স্মার্ট পাস এবং আপনার সব সেবা পাস এখন আপনার ব্যক্তিগত হোমে একসঙ্গে থাকে — আসন্ন আগে, ফাটক থেকে এক ট্যাপ দূরে।',
+        } },
+        { text: {
+          en: 'Your pilgrimage footprint is now a true record: GPS check-ins at a shrine are kept in your yatra log and your Tirtha Diary — even offline — and only you can ever see them.',
+          hi: 'आपका तीर्थयात्रा पदचिह्न अब सच्चा अभिलेख है: किसी धाम पर जीपीएस चेक-इन आपकी यात्रा सूची और तीर्थ डायरी में रहता है — ऑफ़लाइन भी — और उसे केवल आप ही देख सकते हैं।',
+          bn: 'আপনার তীর্থযাত্রার পদচিহ্ন এখন সত্যিকারের রেকর্ড: কোনো ধামে GPS চেক-ইন আপনার যাত্রা খাতা ও তীর্থ ডায়েরিতে থাকে — অফলাইনেও — এবং তা শুধু আপনিই দেখতে পাবেন।',
+        } },
+      ],
+    },
+  },
+  {
     version: 'v2026.11.26-fc81a68',
     date: '2026-11-26',
     sections: {
