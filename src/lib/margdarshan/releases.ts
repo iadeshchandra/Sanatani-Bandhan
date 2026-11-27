@@ -63,6 +63,24 @@ export interface ReleaseEntry {
 
 export const RELEASES: readonly ReleaseEntry[] = [
   {
+    version: 'v2026.11.27-fc5e43f',
+    date: '2026-11-27',
+    sections: {
+      fixed: [
+        { text: {
+          en: 'Fixed the phone layout: popups and sheets now always open above the floating SOS and Ask buttons, so no button is ever covered again — and pages keep a clear space at the bottom so the last controls stay reachable.',
+          hi: 'फ़ोन लेआउट ठीक किया गया: पॉपअप और शीट अब हमेशा तैरते SOS और Ask बटनों के ऊपर खुलते हैं, इसलिए कोई बटन फिर कभी ढकेगा नहीं — और पेजों के नीचे स्पष्ट जगह रहती है ताकि आख़िरी नियंत्रण भी हमेशा पहुँच में रहें।',
+          bn: 'ফোনের লেআউট ঠিক করা হয়েছে: পপআপ ও শিট এখন সবসময় ভাসমান SOS ও Ask বোতামের উপরে খোলে, তাই কোনো বোতাম আর কখনো ঢাকা পড়বে না — আর পেজের নিচে পরিষ্কার জায়গা থাকে যাতে শেষ নিয়ন্ত্রণগুলোও সবসময় হাতের নাগালে থাকে।',
+        } },
+        { text: {
+          en: 'The organisation console no longer scrolls sideways on phones: wide tables scroll inside their own cards, the header never covers the Exit button, and the Pass screen shows a single bottom bar.',
+          hi: 'संगठन कंसोल अब फ़ोन पर बग़ल में नहीं सरकता: चौड़ी तालिकाएँ अपने कार्ड के अंदर ही स्क्रॉल होती हैं, हेडर Exit बटन को कभी नहीं ढकता, और पास स्क्रीन पर एक ही निचली पट्टी दिखती है।',
+          bn: 'প্রতিষ্ঠানের কনসোল এখন ফোনে পাশে সরে না: চওড়া টেবিল নিজের কার্ডের ভিতরেই স্ক্রল হয়, হেডার কখনো Exit বোতাম ঢাকে না, আর পাস স্ক্রিনে একটিই নিচের বার দেখায়।',
+        } },
+      ],
+    },
+  },
+  {
     version: 'v2026.11.27-5fdd219',
     date: '2026-11-27',
     sections: {
