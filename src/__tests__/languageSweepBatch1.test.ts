@@ -210,7 +210,13 @@ describe('surfaces + vibe dict completeness (en/hi/bn authored)', () => {
     // footprint keys ride the devotee fragment, not this pin.)
     // en/hi/bn authored; ta/te/mr/gu/kn/ml/sa are careful drafts
     // (proofread follow-up).
-    expect(keysOf(en).length).toBe(1524);
+    // WAVE 2 DATA-GAPS (2026-11-27) adds 4 surfaces.notify keys
+    // (walletPayoutReleasedBody/Title +
+    // walletPayoutSettlementFailedBody/Title — the G-W2-1 payout
+    // settlement alerts) in all 10 languages, taking the pin to
+    // 1528. en/hi/bn authored; ta/te/mr/gu/kn/ml/sa are careful
+    // drafts (proofread follow-up).
+    expect(keysOf(en).length).toBe(1528);
     for (const bucket of Object.keys(en)) {
       for (const leaf of Object.keys(en[bucket])) {
         for (const dict of [en, hi, bn]) {
