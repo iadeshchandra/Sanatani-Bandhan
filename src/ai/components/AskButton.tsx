@@ -35,6 +35,13 @@ const FORM_ROUTES = ['/register-org', '/login', '/signup'];
  * - desktop: `md:left-[260px] md:bottom-5` — bottom-left of the content column,
  *   just right of the verified 240px sidebar.
  * - `z-[9980]` sits below SOS (9990) so the panic button always wins.
+ *   LAYER LAW (F1, canonical table in index.css): both FABs live in
+ *   the FAB layer — above all chrome (≤90), below every dialog /
+ *   sheet / menu (OVERLAY band ≥10010, e.g. AssistantSheet 10040),
+ *   so an open overlay's controls are never underneath a FAB. The
+ *   matching clearance law (body.sb-has-sos / .sb-sos-clear bottom
+ *   pads in index.css) reserves the FABs' footprint on scroll
+ *   surfaces so page content never rests under them either.
  * - QUEUED #52 (audit D12): auto-hides while the page scrolls and returns
  *   ~700ms after it settles — a primary action passing through its corner
  *   mid-scroll (the audit's Seva Wallet "Top up") is never covered while

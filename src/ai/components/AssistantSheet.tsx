@@ -1148,7 +1148,7 @@ export const AssistantSheet: React.FC<{ open: boolean; onClose: () => void }> = 
   ];
 
   return (
-    <div className="fixed inset-0 z-[9000]" role="dialog" aria-modal="true" aria-label="Ask the assistant">
+    <div className="fixed inset-0 z-[10040]" role="dialog" aria-modal="true" aria-label="Ask the assistant">
       <div className="absolute inset-0 bg-black/50 backdrop-blur-[2px]" onClick={onClose} />
       <div className="absolute inset-x-0 bottom-0 sm:mx-auto sm:max-w-lg h-[86dvh] max-h-[86dvh] flex flex-col bg-white rounded-t-3xl shadow-2xl animate-[askSheetIn_0.28s_ease-out]">
         {/* Header */}

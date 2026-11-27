@@ -198,7 +198,7 @@ export const CoachMark: React.FC<CoachMarkProps> = ({ guide, onFinish }) => {
 
   return (
     <div
-      className="fixed inset-0 z-[210] pointer-events-none"
+      className="fixed inset-0 z-[10030] pointer-events-none"
       aria-hidden={false}
     >
       {/* Dim + spotlight cutout. pointer-events-none: taps pass through. */}

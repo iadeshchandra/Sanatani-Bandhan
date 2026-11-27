@@ -427,7 +427,7 @@ export const NotificationCenterUI: React.FC<NotificationCenterProps> = ({
 
   return (
     <div
-      className="fixed inset-0 z-[110] bg-stone-950/50 backdrop-blur-sm flex items-end sm:items-center justify-center"
+      className="fixed inset-0 z-[10020] bg-stone-950/50 backdrop-blur-sm flex items-end sm:items-center justify-center"
       role="dialog"
       aria-label={pick({ en: 'Notification centre', bn: 'বিজ্ঞপ্তি কেন্দ্র', hi: 'सूचना केंद्र' }, lang)}
       style={{ colorScheme: 'light' }}
@@ -465,7 +465,7 @@ export const NotificationCenterUI: React.FC<NotificationCenterProps> = ({
           </div>
 
           {/* Filter chips */}
-          <div className="flex gap-2 mt-3 overflow-x-auto no-scrollbar -mx-4 px-4" role="tablist" aria-label={pick({ en: 'Filter', bn: 'ফিল্টার', hi: 'फ़िल्टर' }, lang)}>
+          <div className="flex gap-2 mt-3 overflow-x-auto no-scrollbar sb-strip -mx-4 px-4" role="tablist" aria-label={pick({ en: 'Filter', bn: 'ফিল্টার', hi: 'फ़िल्टर' }, lang)}>
             {FILTERS.map((f) => {
               const active = filter === f;
               return (

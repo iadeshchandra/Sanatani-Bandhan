@@ -147,17 +147,17 @@ export default function MemberAppShell() {
           </div>
         );
       case 'PUROHIT': 
-        return <div className="h-full overflow-y-auto custom-scrollbar"><PurohitPortalUnified /></div>;
+        return <div className="h-full overflow-y-auto custom-scrollbar sb-sos-clear"><PurohitPortalUnified hidePortalBottomNav /></div>;
       case 'SADHANA': 
         return <div className="h-full overflow-hidden"><PersonalSadhanaDesk /></div>;
       case 'PORTAL': 
-        return <div className="h-full overflow-y-auto custom-scrollbar"><DevoteeAccountPortal initialTab="PASS" onNavigateDesk={handleNavigateFromAccount} /></div>;
+        return <div className="h-full overflow-y-auto custom-scrollbar sb-sos-clear"><DevoteeAccountPortal initialTab="PASS" onNavigateDesk={handleNavigateFromAccount} hideBottomNav /></div>;
       case 'YATRA_NET': 
-        return <div className="h-full overflow-y-auto p-2 sm:p-4 custom-scrollbar"><YatraNetDesk /></div>;
+        return <div className="h-full overflow-y-auto p-2 sm:p-4 custom-scrollbar sb-sos-clear"><YatraNetDesk /></div>;
       case 'VIVAH': 
         return <div className="h-full overflow-hidden"><SanataniVivahDesk /></div>;
       case 'PROFILE': 
-        return <div className="h-full overflow-y-auto custom-scrollbar"><DevoteeAccountPortal initialTab="PASS" onNavigateDesk={handleNavigateFromAccount} /></div>;
+        return <div className="h-full overflow-y-auto custom-scrollbar sb-sos-clear"><DevoteeAccountPortal initialTab="PASS" onNavigateDesk={handleNavigateFromAccount} hideBottomNav /></div>;
       default: 
         return <SanataniSocialFeed />;
     }

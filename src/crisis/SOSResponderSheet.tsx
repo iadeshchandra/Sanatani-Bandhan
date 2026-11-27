@@ -23,7 +23,7 @@ export const SOSResponderSheet: React.FC<Props> = ({ event, onClose, onAcknowled
   const t = useCrisisT();
   return (
     <div
-      className="fixed inset-0 z-[10000] flex items-end sm:items-center justify-center bg-stone-950/60 backdrop-blur-sm p-0 sm:p-6"
+      className="fixed inset-0 z-[10090] flex items-end sm:items-center justify-center bg-stone-950/60 backdrop-blur-sm p-0 sm:p-6"
       role="dialog"
       aria-modal="true"
       aria-label={t(crisisCopy.mapViewTitle)}

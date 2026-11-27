@@ -163,7 +163,11 @@ export const PanicButton: React.FC<{ onActivate: () => void }> = ({ onActivate }
   /* Mobile: floats ABOVE the fixed bottom tab bar (~64px) + safe-area;
      desktop keeps the original corner. On focused form routes the
      anchor moves to the top-centre header strip (QUEUED #41) so the
-     button can never cover form fields or the primary CTA. */
+     button can never cover form fields or the primary CTA.
+     LAYER LAW (F1, canonical table in index.css): this FAB is the
+     top of the FAB layer (z-9990) — above all chrome (≤90), below
+     every dialog/sheet/menu (OVERLAY band ≥10010), so an open
+     overlay's controls are never underneath it. */
   const anchorCls = FORM_ROUTES.includes(pathname)
     ? 'fixed left-1/2 -translate-x-1/2 top-[calc(10px+env(safe-area-inset-top))] z-[9990] select-none'
     : 'fixed right-5 z-[9990] select-none bottom-[calc(92px+env(safe-area-inset-bottom))] md:bottom-5';

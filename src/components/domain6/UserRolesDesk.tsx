@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import {
   Shield,
   Key,
@@ -217,9 +218,15 @@ export const UserRolesDesk: React.FC = () => {
         member's granted role, the workspace's desk guards, and the platform security rules.
       </p>
 
-      {/* 3. Edit Access Matrix Modal */}
-      {isEditModalOpen && selectedStaff && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 bg-slate-900/50 backdrop-blur-xs">
+      {/* 3. Edit Access Matrix Modal — F1 (Test #3 finding #1):
+          body-portalled per the standing portal law (it used to render
+          inside the desk scroller, where the scroll container's own
+          stacking context left it UNDER the SOS/Ask FABs — its
+          "Apply to Preview" button was physically covered at phone
+          widths) and raised to the OVERLAY band (z ≥ 10010, see the
+          layer law in index.css). */}
+      {isEditModalOpen && selectedStaff && createPortal(
+        <div className="fixed inset-0 z-[10010] flex items-end sm:items-center justify-center p-0 sm:p-4 bg-slate-900/50 backdrop-blur-xs">
           <div className="bg-white rounded-t-3xl sm:rounded-2xl max-w-md w-full flex flex-col overflow-hidden shadow-xl border border-slate-200 animate-in fade-in zoom-in-95 duration-150 max-h-[calc(100dvh-1rem)] sm:max-h-[90vh]">
             <div className="flex items-center justify-between border-b border-slate-100 pb-3 px-6 pt-5 shrink-0">
               <div className="flex items-center gap-2">
@@ -298,7 +305,8 @@ export const UserRolesDesk: React.FC = () => {
               </button>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

@@ -251,7 +251,7 @@ export const CrisisDetailDrawer: React.FC<Props> = ({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end sm:items-center sm:justify-end"
+      className="fixed inset-0 z-[10010] flex items-end sm:items-center sm:justify-end"
       role="dialog"
       aria-modal="true"
       aria-label={t('dash.title')}

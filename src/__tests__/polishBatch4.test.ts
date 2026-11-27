@@ -60,10 +60,17 @@ describe('D-13 — the name-budget rule', () => {
     expect(header).toContain('title={activeWorkspace.name}');
   });
 
-  it('the DemoBanner title has a floor and the created-count yields below 480px', () => {
+  it('the DemoBanner title truncates and the created-count yields below 480px', () => {
     const banner = read('src/components/public/DemoBanner.tsx');
-    expect(banner).toContain('min-w-[6.5rem]');
+    // F1 SUPERSESSION (Full-App Test #3, finding #3): the D-13 floor
+    // (min-w-[6.5rem]) plus the shrink-0 nowrap stat spans made the
+    // bar's min-content wider than a phone viewport — the stat text
+    // painted over the title and the Exit button. The floor is
+    // retired: the title truncates (min-w-0, no floor), both stat
+    // spans truncate, and the action group keeps its 44px targets.
+    expect(banner).not.toContain('min-w-[6.5rem]');
     expect(banner).toContain('hidden min-[480px]:inline sm:hidden');
+    expect(banner).toContain('truncate min-w-0');
   });
 
   it('sidebar desk rows expose the full desk name via title', () => {

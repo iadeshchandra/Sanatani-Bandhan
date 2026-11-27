@@ -300,7 +300,13 @@ export const OrgSpaceShell: React.FC<{ children: React.ReactNode }> = ({ childre
             className="shrink-0 min-w-[44px] min-h-[44px] px-2 rounded-xl bg-white/10 hover:bg-white/20 text-amber-200 flex items-center justify-center gap-1 text-sm font-bold border border-white/10 transition-colors"
           >
             <span aria-hidden className="text-lg leading-none">←</span>
-            <T en="Home" bn="হোম" hi="होम" />
+            {/* F1: label yields below 480px (icon-only, 44px target
+                kept) — with the logo, breadcrumb, Ask, bell, mode
+                switch and role chip all in one row, the text labels
+                are what pushed the row past 360px. */}
+            <span className="hidden min-[480px]:inline">
+              <T en="Home" bn="হোম" hi="होम" />
+            </span>
           </button>
           <div className="min-w-0 flex-1 flex items-center gap-2">
             {/* Pillar 1 — the org's own mark (logo or monogram), never a generic icon. */}
@@ -352,7 +358,10 @@ export const OrgSpaceShell: React.FC<{ children: React.ReactNode }> = ({ childre
             className="shrink-0 min-w-[44px] min-h-[44px] px-2.5 rounded-xl bg-amber-500/90 hover:bg-amber-400 text-amber-950 flex items-center justify-center gap-1 text-sm font-black border border-amber-300/40 transition-colors"
           >
             <span aria-hidden className="text-base leading-none">🙏</span>
-            <T en="Ask" bn="জিজ্ঞাসা" hi="पूछें" />
+            {/* F1: label yields below 480px, same row-budget law as Home. */}
+            <span className="hidden min-[480px]:inline">
+              <T en="Ask" bn="জিজ্ঞাসা" hi="पूछें" />
+            </span>
           </button>
           {/* QUEUED #50 (D8): org Suchana bell — every width, this org only. */}
           <div className="relative shrink-0">

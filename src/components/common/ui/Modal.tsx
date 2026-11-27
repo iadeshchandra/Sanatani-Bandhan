@@ -105,7 +105,7 @@ export const Modal: React.FC<ModalProps> = ({
 
   return (
     <div
-      className="fixed inset-0 z-[100] flex items-end sm:items-center justify-center p-0 sm:p-4"
+      className="fixed inset-0 z-[10010] flex items-end sm:items-center justify-center p-0 sm:p-4"
       role="presentation"
     >
       <div

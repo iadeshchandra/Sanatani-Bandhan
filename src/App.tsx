@@ -1036,7 +1036,7 @@ const AppContent: React.FC = () => {
         onOpenQuickPay={() => setIsQuickChandaOpen(true)}
       />
 
-      <div className="flex grow overflow-hidden">
+      <div className="flex grow overflow-hidden min-w-0">
         {/* Universal 46-Module Sidebar (Hidden for Devotee / devotee preview — F-RBAC-1) */}
         {effectiveRole !== 'Devotee' && !isDevoteePreview && (
           <Sidebar
@@ -1051,11 +1051,14 @@ const AppContent: React.FC = () => {
 
         {/* Main Content Area — full-bleed in the devotee preview (F-RBAC-1:
             no desktop gutter waste around the phone-width pane). */}
-        <main className={`grow flex flex-col gap-6 overflow-hidden ${hideErpChrome ? 'p-0 bg-stone-950' : 'p-6'}`}>
+        <main className={`grow flex flex-col gap-6 overflow-hidden min-w-0 ${hideErpChrome ? 'p-0 bg-stone-950' : 'p-6'}`}>
           {/* sb-sos-clear: systemic SOS FAB clearance (see index.css) — the
               desk scroller is an inner scroller, so the body rule can't
-              reach it; this keeps the last row above the FAB hit area. */}
-          <div className="flex flex-col grow overflow-y-auto custom-scrollbar sb-sos-clear">
+              reach it; this keeps the last row above the FAB hit area.
+              sb-desk-scroll: the F1 desk-scroll law (see index.css) — no
+              horizontal scroll at phone widths; tables scroll in their
+              own box, grid children may shrink. */}
+          <div className="flex flex-col grow overflow-y-auto custom-scrollbar sb-sos-clear sb-desk-scroll">
             {/* D-02: the load-timeout guard wraps the whole desk
                 region — if the Suspense fallback (marked
                 data-desk-loading) is still mounted after the timeout,

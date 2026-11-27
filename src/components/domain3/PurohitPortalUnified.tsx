@@ -321,7 +321,15 @@ const SEED_ESCROW_TXS: EscrowTransaction[] = [
   },
 ];
 
-export const PurohitPortalUnified: React.FC = () => {
+export const PurohitPortalUnified: React.FC<{
+  /**
+   * F1 (Test #3 finding #5): when this portal is embedded in a host
+   * shell that already owns a bottom nav (MemberAppShell), forward
+   * the suppression to the embedded DevoteeAccountPortal so exactly
+   * one bottom nav renders. Standalone desk mounts omit it.
+   */
+  hidePortalBottomNav?: boolean;
+}> = ({ hidePortalBottomNav = false }) => {
   const wsCurrency = useWorkspaceCurrency();
   const inr = useInr();
   const { currentUser, currentRole, activeWorkspace } = useAuthWorkspace();
@@ -878,7 +886,7 @@ export const PurohitPortalUnified: React.FC = () => {
         {portalMode === 'DEVOTEE_SPACE' && (
           <div className="animate-fadeIn">
             {/* Embedded Devotee Account Portal */}
-            <DevoteeAccountPortal initialTab="PASS" />
+            <DevoteeAccountPortal initialTab="PASS" hideBottomNav={hidePortalBottomNav} />
           </div>
         )}
 

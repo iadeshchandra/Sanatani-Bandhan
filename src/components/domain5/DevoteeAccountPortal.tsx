@@ -47,6 +47,16 @@ export type DevoteePortalTab = 'PASS' | 'SADHANA' | 'SEVA_RECEIPTS' | 'FAMILY_PI
 interface DevoteeAccountPortalProps {
   initialTab?: DevoteePortalTab;
   onNavigateDesk?: (deskId: string) => void;
+  /**
+   * F1 (Test #3 finding #5): exactly ONE bottom nav may render in a
+   * context. When the portal is embedded in MemberAppShell — which
+   * owns the shell bottom nav — the portal's own fixed nav is
+   * suppressed (the shell nav stays the single nav; the portal's
+   * sections remain reachable through its header Tab ribbon, which
+   * is always rendered). Standalone mounts (org desk, PreviewFrame,
+   * the Purohit portal's devotee view) keep the portal nav.
+   */
+  hideBottomNav?: boolean;
 }
 
 // Leaflet Shrine Map Marker
@@ -70,6 +80,7 @@ function MapViewRecenter({ center }: { center: [number, number] }) {
 export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
   initialTab = 'PASS',
   onNavigateDesk,
+  hideBottomNav = false,
 }) => {
   const inr = useInr();
   const {
@@ -692,7 +703,7 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
   };
 
   return (
-    <div className="min-h-screen bg-sanctum-ivory text-temple-950 e5-portal flex flex-col font-sans pb-24 selection:bg-amber-500 selection:text-temple-950">
+    <div className={`min-h-screen bg-sanctum-ivory text-temple-950 e5-portal flex flex-col font-sans ${hideBottomNav ? 'pb-6' : 'pb-24'} selection:bg-amber-500 selection:text-temple-950`}>
       
       {/* ========================================================
           1. DUAL-SPACE & RBAC SWITCHER HEADER
@@ -2250,8 +2261,12 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
       )}
 
       {/* ========================================================
-          MOBILE-FIRST BOTTOM NAVIGATION BAR
+          MOBILE-FIRST BOTTOM NAVIGATION BAR — suppressed when a
+          host shell already owns the bottom nav (hideBottomNav,
+          F1): two stacked navs ate ~110px of viewport in the
+          MemberAppShell PASS view (Test #3 finding #5).
       ======================================================== */}
+      {!hideBottomNav && (
       <nav className="fixed bottom-0 left-0 right-0 z-40 bg-sanctum-ivory/95 backdrop-blur-md border-t border-brass-200 px-2 py-1.5 shadow-2xl flex items-center justify-around">
         {[
           { id: 'PASS', label: 'PASS', icon: QrCode },
@@ -2291,6 +2306,7 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
           <span className="text-[10px] mt-0.5 font-black text-red-600">SOS</span>
         </button>
       </nav>
+      )}
 
     </div>
   );

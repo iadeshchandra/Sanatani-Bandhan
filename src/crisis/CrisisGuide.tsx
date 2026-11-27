@@ -158,7 +158,7 @@ export const CrisisGuide: React.FC<{
 
   return (
     <div
-      className="fixed inset-0 z-[95] flex items-end sm:items-center justify-center bg-stone-950/55 backdrop-blur-sm p-0 sm:p-4"
+      className="fixed inset-0 z-[10010] flex items-end sm:items-center justify-center bg-stone-950/55 backdrop-blur-sm p-0 sm:p-4"
       role="dialog"
       aria-modal="true"
       aria-label="Safety guide"

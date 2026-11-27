@@ -137,13 +137,13 @@ export const HomeSubTabBar: React.FC<{ current: SoloTabId; onSelect: (t: SoloTab
   }, [current]);
   return (
     <nav className="max-w-5xl mx-auto px-4 pb-3 space-y-1.5" aria-label="My Space sections">
-      <div ref={dailyRowRef} className="flex gap-2 overflow-x-auto items-center">
+      <div ref={dailyRowRef} className="flex gap-2 overflow-x-auto items-center sb-strip px-1">
         <span className="text-[10px] font-bold uppercase tracking-widest text-amber-200/50 shrink-0 w-14">
           <T en="Daily" bn="দৈনিক" hi="दैनिक" />
         </span>
         {PRIMARY_TABS.filter(visible).map(pill)}
       </div>
-      <div ref={moreRowRef} className="flex gap-2 overflow-x-auto items-center">
+      <div ref={moreRowRef} className="flex gap-2 overflow-x-auto items-center sb-strip px-1">
         <span className="text-[10px] font-bold uppercase tracking-widest text-amber-200/50 shrink-0 w-14">
           <T en="More" bn="আরও" hi="और" />
         </span>

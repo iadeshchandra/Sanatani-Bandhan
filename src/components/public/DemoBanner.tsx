@@ -92,17 +92,25 @@ export const DemoBanner: React.FC<DemoBannerProps> = ({ onRegister }) => {
     >
       <div className="flex items-center gap-2 min-w-0 flex-1">
         <span className="text-base leading-none shrink-0" aria-hidden="true">🎪</span>
-        {/* UIUX Batch 4 (D-13) name budget: the title keeps a 6.5rem floor —
-            the created-count stat yields below 480px instead of the title
-            collapsing to "De…" (naming the demo is the strip's whole job). */}
-        <span className="text-xs sm:text-sm font-extrabold text-stone-800 tracking-wide truncate min-w-[6.5rem]">
+        {/* F1 (Test #3 finding #3): the old 6.5rem min-width floor on
+            the title plus two shrink-0 nowrap stat spans could not
+            fit beside the Reset/Exit/CTA group at phone widths —
+            the row's min-content exceeded the viewport and the
+            stat text ("0 created") painted over the title and the
+            Exit button. The title now truncates (min-w-0, no floor)
+            and BOTH stat spans truncate instead of holding the row
+            open; the action group stays shrink-0 with its 44px
+            targets, so Exit is always fully visible and tappable,
+            and at 360px the group wraps to its own line (flex-wrap
+            on the bar) rather than overlapping anything. */}
+        <span className="text-xs sm:text-sm font-extrabold text-stone-800 tracking-wide truncate min-w-0">
           Demo Sandbox
         </span>
-        <span className="hidden sm:inline text-xs text-stone-500 font-medium truncate shrink-0">
+        <span className="hidden sm:inline text-xs text-stone-500 font-medium truncate min-w-0">
           {totalCreates} record{totalCreates === 1 ? '' : 's'} created
           <span className="text-stone-400">{' '}{t('surfaces.demo.autoDeletesIn24h')}</span>
         </span>
-        <span className="hidden min-[480px]:inline sm:hidden text-[11px] text-stone-500 font-medium whitespace-nowrap shrink-0">
+        <span className="hidden min-[480px]:inline sm:hidden text-[11px] text-stone-500 font-medium truncate min-w-0">
           {totalCreates} created
         </span>
       </div>

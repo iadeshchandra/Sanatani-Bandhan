@@ -437,6 +437,101 @@ body.sb-form-sos {
 }
 
 /* ============================================================
+   FIX BATCH F1 (Full-App Test #3) — the mobile layout law.
+   Test #3's dominant defect class was not any single screen: it
+   was the ABSENCE of three shared laws, so every screen invented
+   its own answer and the floating buttons won. The laws:
+
+   LAYER LAW (z-index) — one table for the whole app:
+     chrome   (headers, tab bars, drawers, sticky bars)   ≤ 90
+     toast    (pointer-events-none, never interactive)      50–90
+     FAB      Ask 9980 · SOS 9990  — above chrome, below overlays
+     OVERLAY  dialogs / sheets / menus / centers        ≥ 10010
+     SOS FLOW the crisis sheets themselves               9995–10090
+              (the incoming-alert responder sheet takes the top
+              value, 10090: an SOS alert is never buried under
+              another overlay)
+   A dialog rendered UNDER the FAB layer has its controls
+   physically covered by the SOS/Ask buttons (the SOS tour's
+   Close was unclickable — Test #3 finding #2). Every shared
+   overlay primitive therefore lives in the OVERLAY band
+   (ui/Modal 10010, NotificationCenterUI 10020, CoachMark
+   10030, AssistantSheet 10040); the crisis flow keeps its own
+   band just above the FAB it serves. New overlays MUST take a
+   value ≥ 10010 — never a chrome value, never a FAB value.
+
+   DESK-SCROLL LAW (Organisation mode, .sb-desk-scroll on the
+   App desk scroller): no horizontal scroll at 360px, ever.
+   · grid children may shrink (min-width: 0) so KPI cards wrap
+     and truncate INSIDE their card instead of forcing tracks
+     wider than the phone;
+   · every table scrolls inside its own box (display:block +
+     overflow-x:auto) — a wide matrix is reachable by scrolling
+     the table, never by scrolling the desk, and its first
+     columns can never be pushed off-screen;
+   · the scroller itself clips x-overflow: a desk element wider
+     than its card is a desk bug to fix with .sb-x-scroll on
+     that element, never a licence to widen the page.
+   .sb-x-scroll is the sanctioned escape hatch for one wide
+   element (a chart, a matrix) inside a desk.
+
+   STRIP LAW (.sb-strip) — horizontal pill/chip strips (Solo
+   sub-tab rows, the Suchana filter row, their kin): the
+   scrollbar is never the affordance, the first item never
+   rests flush against the clip edge, and the last item always
+   carries end air that scrolls fully into view (a trailing
+   padding on the scroller itself is dropped by some engines;
+   a margin on the last child is not).
+
+   These classes are LAYOUT-ONLY (no colour, no surface), so
+   Sandhya Mode has nothing to register for them: dusk remaps
+   colours, never geometry — the E4 registration law is met by
+   there being no surface to rest.
+   ============================================================ */
+:root {
+  --z-chrome-max: 90;
+  --z-fab-ask: 9980;
+  --z-fab-sos: 9990;
+  --z-overlay: 10010;
+  --z-overlay-top: 10090;
+}
+
+.sb-desk-scroll {
+  overflow-x: clip;
+}
+.sb-desk-scroll .grid > * {
+  min-width: 0;
+}
+.sb-desk-scroll table {
+  display: block;
+  overflow-x: auto;
+  max-width: 100%;
+}
+/* Fixed-layout tables size by percentage and cannot overflow —
+   they keep true table display. */
+.sb-desk-scroll table.table-fixed {
+  display: table;
+  overflow-x: visible;
+}
+.sb-x-scroll {
+  overflow-x: auto;
+  max-width: 100%;
+}
+
+.sb-strip {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  overscroll-behavior-x: contain;
+  scroll-padding-inline: 1rem;
+}
+.sb-strip::-webkit-scrollbar {
+  display: none;
+}
+.sb-strip > :last-child {
+  margin-inline-end: 0.5rem;
+}
+
+/* ============================================================
    VIBE B3 — Mala thread (trust made visible) + receipt paper.
    ============================================================ */
 
