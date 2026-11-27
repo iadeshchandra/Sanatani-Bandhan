@@ -70,10 +70,21 @@ jobs:
 
       - name: 🔥 Deploy Firestore Security Rules
         run: |
+          # Skip when firestore.rules is unchanged in this push: re-creating an
+          # identical rules release trips Google's 409 "Release already exists".
+          if [ -z "${{ github.event.before }}" ] || [ "${{ github.event.before }}" = "0000000000000000000000000000000000000000" ]; then
+            echo "No previous commit to compare — deploying rules."
+          elif ! git diff --name-only ${{ github.event.before }} ${{ github.sha }} -- firestore.rules | grep -q .; then
+            echo "firestore.rules unchanged in this push — skipping rules deploy (live rules already match)."
+            exit 0
+          fi
           echo '${{ secrets.FIREBASE_SERVICE_ACCOUNT }}' > "$RUNNER_TEMP/sa.json"
           ok=0
           for i in 1 2 3; do
-            if GOOGLE_APPLICATION_CREDENTIALS="$RUNNER_TEMP/sa.json" npx -y firebase-tools@latest deploy --only firestore:rules --project shda-6245c --non-interactive; then
+            out=$(GOOGLE_APPLICATION_CREDENTIALS="$RUNNER_TEMP/sa.json" npx -y firebase-tools@latest deploy --only firestore:rules --project shda-6245c --non-interactive 2>&1) && { ok=1; break; }
+            echo "$out"
+            if echo "$out" | grep -q "already exists"; then
+              echo "Rules release already exists — live rules already match. Treating as success."
               ok=1
               break
             fi
