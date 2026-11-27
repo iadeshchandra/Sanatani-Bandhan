@@ -480,6 +480,12 @@ export const MarketplacePayouts: React.FC = () => {
   const [payouts, setPayouts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [confirm, setConfirm] = useState<any>(null);
+  // G-W2-1 settlement panel: mark-paid captures the transfer
+  // reference; payment-failed requires the bank's reason.
+  const [paidFor, setPaidFor] = useState<string | null>(null);
+  const [reference, setReference] = useState('');
+  const [failFor, setFailFor] = useState<string | null>(null);
+  const [failReason, setFailReason] = useState('');
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -499,12 +505,26 @@ export const MarketplacePayouts: React.FC = () => {
       if (r.ok) { showToast(approve ? 'Payout approved.' : 'Payout rejected.', 'success'); load(); } else showToast(r.error || 'Failed.', 'error');
     },
   });
-  const markPaid = (id: string) => setConfirm({
-    title: 'Mark as paid?', message: 'Confirm you have actually sent the money.', confirmText: 'Mark paid', isDanger: false,
+  const doMarkPaid = async () => {
+    if (!paidFor) return;
+    const r = await firestoreAdmin.payoutMarkPaid(paidFor, reference.trim() || undefined);
+    setPaidFor(null); setReference('');
+    if (r.ok) { showToast('Marked paid.', 'success'); load(); } else showToast(r.error || 'Failed.', 'error');
+  };
+  const doMarkFailed = async () => {
+    if (!failFor || !failReason.trim()) return;
+    const r = await firestoreAdmin.payoutMarkFailed(failFor, failReason.trim());
+    setFailFor(null); setFailReason('');
+    if (r.ok) { showToast('Failure recorded — the provider has been told, with the reason.', 'success'); load(); } else showToast(r.error || 'Failed.', 'error');
+  };
+  const release = (id: string) => setConfirm({
+    title: 'Release back to balance?',
+    message: 'The amount returns to the provider’s available balance so they can request it again. Use only when this payout will not be retried.',
+    confirmText: 'Release', isDanger: false,
     onConfirm: async () => {
-      const r = await firestoreAdmin.payoutMarkPaid(id);
+      const r = await firestoreAdmin.payoutRelease(id, '');
       setConfirm(null);
-      if (r.ok) { showToast('Marked paid.', 'success'); load(); } else showToast(r.error || 'Failed.', 'error');
+      if (r.ok) { showToast('Released to the provider’s balance.', 'success'); load(); } else showToast(r.error || 'Failed.', 'error');
     },
   });
 
@@ -519,8 +539,18 @@ export const MarketplacePayouts: React.FC = () => {
               <p className="text-sm font-black text-temple-100">{fmt(p.amount || 0)}</p>
               <p className="text-[10px] text-temple-300 font-mono">{p.providerUid?.slice(0, 14)}… · {p.method || 'manual'} · {p.status}</p>
             </div>
-            <span className={`text-[10px] font-black px-2 py-1 rounded-lg ${p.status === 'requested' ? 'bg-yellow-500/15 text-yellow-300' : p.status === 'approved' ? 'bg-sky-500/15 text-sky-300' : p.status === 'paid' ? 'bg-emerald-500/15 text-emerald-300' : 'bg-temple-600/20 text-temple-300'}`}>{p.status}</span>
+            <span className={`text-[10px] font-black px-2 py-1 rounded-lg ${p.status === 'requested' ? 'bg-yellow-500/15 text-yellow-300' : p.status === 'approved' ? 'bg-sky-500/15 text-sky-300' : p.status === 'paid' ? 'bg-emerald-500/15 text-emerald-300' : p.status === 'settlement_failed' ? 'bg-rose-500/15 text-rose-300' : 'bg-temple-600/20 text-temple-300'}`}>{p.status === 'settlement_failed' ? 'settlement failed' : p.status}</span>
           </div>
+          {p.homeWorkspaceName && <p className="text-[10px] text-temple-300 mt-1">🏠 Home named by provider: {p.homeWorkspaceName} — routing hint only; the money is the provider’s.</p>}
+          {Array.isArray(p.settlementAttempts) && p.settlementAttempts.length > 0 && (
+            <div className="mt-1 space-y-0.5">
+              {p.settlementAttempts.map((a: any, i: number) => (
+                <p key={i} className="text-[10px] text-temple-300">
+                  {a.outcome === 'paid' ? '✅ Sent' : '⚠️ Sending failed'}{a.outcome === 'failed' && a.reason ? ` — ${a.reason}` : ''}{a.outcome === 'paid' && a.reference ? ` · ref ${a.reference}` : ''}
+                </p>
+              ))}
+            </div>
+          )}
           {p.status === 'requested' && (
             <div className="flex gap-2 mt-2">
               <button type="button" onClick={() => decide(p.id, true)} className={`${btnPrimary} flex-1`}>Approve</button>
@@ -528,7 +558,39 @@ export const MarketplacePayouts: React.FC = () => {
             </div>
           )}
           {p.status === 'approved' && (
-            <button type="button" onClick={() => markPaid(p.id)} className={`${btnPrimary} w-full mt-2`}>Mark paid</button>
+            <div className="flex gap-2 mt-2">
+              <button type="button" onClick={() => { setPaidFor(p.id); setFailFor(null); }} className={`${btnPrimary} flex-1`}>Mark paid</button>
+              <button type="button" onClick={() => { setFailFor(p.id); setPaidFor(null); }} className="flex-1 py-2.5 min-h-[44px] rounded-xl bg-rose-700 text-white text-xs font-black">Payment failed</button>
+            </div>
+          )}
+          {p.status === 'settlement_failed' && (
+            <div className="flex gap-2 mt-2">
+              <button type="button" onClick={() => { setPaidFor(p.id); setFailFor(null); }} className={`${btnPrimary} flex-1`}>Retry — mark paid</button>
+              <button type="button" onClick={() => { setFailFor(p.id); setPaidFor(null); }} className="flex-1 py-2.5 min-h-[44px] rounded-xl bg-rose-700 text-white text-xs font-black">Failed again</button>
+              <button type="button" onClick={() => release(p.id)} className={`${btnGhost} flex-1`}>Release to balance</button>
+            </div>
+          )}
+          {paidFor === p.id && (
+            <div className="mt-2 bg-temple-900 border border-temple-700 rounded-xl p-3">
+              <p className="text-[11px] text-temple-300 mb-2">Only after the transfer has actually left your bank/UPI app. Paste the transaction reference so this record can be matched to the real payment.</p>
+              <input value={reference} onChange={(e) => setReference(e.target.value)} placeholder="Bank / bKash / Wise reference (recommended)"
+                className="w-full bg-temple-950 border border-temple-700 rounded-xl px-3 py-2.5 min-h-[44px] text-sm text-white outline-none mb-2" />
+              <div className="flex gap-2">
+                <button type="button" onClick={() => setPaidFor(null)} className={`${btnGhost} flex-1`}>Cancel</button>
+                <button type="button" onClick={doMarkPaid} className={`${btnPrimary} flex-1`}>Mark paid</button>
+              </div>
+            </div>
+          )}
+          {failFor === p.id && (
+            <div className="mt-2 bg-temple-900 border border-temple-700 rounded-xl p-3">
+              <p className="text-[11px] text-temple-300 mb-2">Record what the bank or wallet actually said — this record is what you report the bank said, and the provider sees this reason word for word. Keep it factual (e.g. “bKash number not registered”) — never a guess about the provider. The amount stays reserved; you can retry or release it.</p>
+              <input value={failReason} onChange={(e) => setFailReason(e.target.value)} placeholder="Reason from the bank / wallet (required)"
+                className="w-full bg-temple-950 border border-temple-700 rounded-xl px-3 py-2.5 min-h-[44px] text-sm text-white outline-none mb-2" />
+              <div className="flex gap-2">
+                <button type="button" onClick={() => setFailFor(null)} className={`${btnGhost} flex-1`}>Cancel</button>
+                <button type="button" onClick={doMarkFailed} disabled={!failReason.trim()} className="flex-1 py-2.5 min-h-[44px] rounded-xl bg-rose-600 text-white text-xs font-black disabled:opacity-50">Record failure</button>
+              </div>
+            </div>
           )}
         </Card>
       ))}

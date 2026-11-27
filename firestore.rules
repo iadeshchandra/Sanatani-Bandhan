@@ -91,6 +91,16 @@ service cloud.firestore {
       );
     }
 
+    function isOrgBoard(orgId) {
+      return isLoggedIn() && orgId != null && orgId != '' && (
+        isSuperAdmin() ||
+        (isTenantMember(orgId) && (
+          roleIn(R_BOARD()) ||
+          wsMemberRoleIn(orgId, R_BOARD())
+        ))
+      );
+    }
+
     function chatOrgId(chatData) {
       return chatData.get('orgId', '') != '' ? chatData.get('orgId', '') :
         (chatData.get('participants', null) is list &&
@@ -765,6 +775,10 @@ service cloud.firestore {
     }
     function reqStatus() {
       return tkStatusNew();
+    }
+    function payoutHomeOk() {
+      return tkNewGet('homeWorkspaceId', '') == ''
+        || exists(/databases/$(database)/documents/workspaceMembers/$(tkNewGet('homeWorkspaceId', '') + '_' + authUid()));
     }
     function reqOrderId() {
       return tkNewGet('orderId', '');
@@ -1809,8 +1823,10 @@ service cloud.firestore {
         || (loggedUidIs(resProviderUid()));
       allow create: if isOwner()
         || (loggedUidIs(reqProviderUid())
-          && reqStatus() == 'requested');
-      allow update: if isOwner()
+          && reqStatus() == 'requested'
+          && payoutHomeOk());
+      allow update: if (isOwner()
+          && reqStatus() in ['requested', 'approved', 'rejected', 'paid', 'settlement_failed', 'released'])
         || (loggedUidIs(resProviderUid())
           && reqStatus() == 'requested');
       allow delete: if false;
@@ -4363,7 +4379,7 @@ service cloud.firestore {
     match /workspaceMembers/{memberId} {
       allow read: if isSuperAdmin()
         || (loggedUidIs(resUid()))
-        || (isLoggedIn() && isOrgTrustee(tkWsOld()));
+        || (isLoggedIn() && isOrgBoard(tkWsOld()));
       allow create: if isLoggedIn()
         && reqWorkspaceId() != ''
         && reqUid() != ''

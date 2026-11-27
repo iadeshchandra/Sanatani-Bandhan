@@ -298,6 +298,15 @@ const PayoutsView: React.FC = () => {
   const [confirm, setConfirm] = useState<{ id: string; approve: boolean } | null>(null);
   const [note, setNote] = useState('');
   const [working, setWorking] = useState(false);
+  // G-W2-1 settlement dialogs: mark-paid captures the transfer
+  // reference; payment-failed requires the bank's reason; release
+  // returns the amount to the provider's available balance.
+  const [paidFor, setPaidFor] = useState<{ id: string } | null>(null);
+  const [reference, setReference] = useState('');
+  const [failFor, setFailFor] = useState<{ id: string } | null>(null);
+  const [failReason, setFailReason] = useState('');
+  const [releaseFor, setReleaseFor] = useState<{ id: string } | null>(null);
+  const [releaseNote, setReleaseNote] = useState('');
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -318,21 +327,49 @@ const PayoutsView: React.FC = () => {
     else showToast(r.error || 'Failed.', 'error');
   };
 
-  const markPaid = async (id: string) => {
-    const r = await firestoreAdmin.payoutMarkPaid(id);
+  const markPaid = async () => {
+    if (!paidFor) return;
+    setWorking(true);
+    const r = await firestoreAdmin.payoutMarkPaid(paidFor.id, reference.trim() || undefined);
+    setWorking(false);
+    setPaidFor(null); setReference('');
     if (r.ok) { showToast('Marked as paid.', 'success'); load(); }
+    else showToast(r.error || 'Failed.', 'error');
+  };
+
+  const markFailed = async () => {
+    if (!failFor || !failReason.trim()) return;
+    setWorking(true);
+    const r = await firestoreAdmin.payoutMarkFailed(failFor.id, failReason.trim());
+    setWorking(false);
+    setFailFor(null); setFailReason('');
+    if (r.ok) { showToast('Failure recorded. The provider has been told, with the reason.', 'success'); load(); }
+    else showToast(r.error || 'Failed.', 'error');
+  };
+
+  const release = async () => {
+    if (!releaseFor) return;
+    setWorking(true);
+    const r = await firestoreAdmin.payoutRelease(releaseFor.id, releaseNote.trim());
+    setWorking(false);
+    setReleaseFor(null); setReleaseNote('');
+    if (r.ok) { showToast('Released — the amount is back in the provider’s available balance.', 'success'); load(); }
     else showToast(r.error || 'Failed.', 'error');
   };
 
   const statusCls = (s: string) =>
     s === 'paid' ? 'bg-emerald-500/20 text-emerald-300' : s === 'approved' ? 'bg-sky-500/20 text-sky-300'
-    : s === 'rejected' ? 'bg-red-500/20 text-red-300' : 'bg-amber-500/20 text-amber-300';
+    : s === 'rejected' ? 'bg-red-500/20 text-red-300' : s === 'settlement_failed' ? 'bg-rose-500/20 text-rose-300'
+    : s === 'released' ? 'bg-zinc-500/20 text-zinc-300' : 'bg-amber-500/20 text-amber-300';
+
+  const statusLabel = (s: string) =>
+    s === 'settlement_failed' ? 'Settlement failed' : s === 'released' ? 'Released' : s;
 
   if (loading) return <Loading />;
   return (
     <div className="space-y-3">
       <div className="flex gap-1.5 overflow-x-auto">
-        {['requested', 'approved', 'paid', 'rejected', 'all'].map((s) => (
+        {['requested', 'approved', 'settlement_failed', 'paid', 'rejected', 'released', 'all'].map((s) => (
           <button key={s} type="button" onClick={() => setFilter(s)}
             className={`px-3.5 py-2.5 min-h-[44px] rounded-xl text-xs font-bold capitalize shrink-0 ${
               filter === s ? 'bg-saffron-500/20 text-saffron-300 border border-saffron-500/40' : 'bg-temple-900 text-temple-300 border border-temple-800'
@@ -348,9 +385,21 @@ const PayoutsView: React.FC = () => {
               <p className="text-[11px] text-temple-300 font-mono truncate">provider {p.providerUid || p.providerId || '—'} · {p.method || '—'}</p>
               {p.accountDetails && <p className="text-[11px] text-temple-300 font-mono truncate">{p.accountDetails}</p>}
             </div>
-            <span className={`text-[10px] font-black uppercase px-2 py-1 rounded-full shrink-0 ${statusCls(p.status)}`}>{p.status}</span>
+            <span className={`text-[10px] font-black uppercase px-2 py-1 rounded-full shrink-0 ${statusCls(p.status)}`}>{statusLabel(p.status)}</span>
           </div>
           {p.requestedAt && <p className="text-[11px] text-temple-300 mb-3">Requested {new Date(p.requestedAt).toLocaleString(appLocale())}</p>}
+          {p.homeWorkspaceName && <p className="text-[11px] text-temple-300 mb-3">🏠 Home named by provider: <b className="text-temple-100">{p.homeWorkspaceName}</b> — routing hint only; the money is the provider’s.</p>}
+          {Array.isArray(p.settlementAttempts) && p.settlementAttempts.length > 0 && (
+            <div className="mb-3 space-y-1">
+              {p.settlementAttempts.map((a: any, i: number) => (
+                <p key={i} className="text-[11px] text-temple-300">
+                  {a.outcome === 'paid' ? '✅ Sent' : '⚠️ Sending failed'} · {a.at ? new Date(a.at).toLocaleString(appLocale()) : ''}
+                  {a.outcome === 'failed' && a.reason ? ` — ${a.reason}` : ''}
+                  {a.outcome === 'paid' && a.reference ? ` · ref ${a.reference}` : ''}
+                </p>
+              ))}
+            </div>
+          )}
           {p.status === 'requested' && (
             <div className="flex gap-2">
               <button type="button" onClick={() => setConfirm({ id: p.id, approve: true })}
@@ -360,10 +409,32 @@ const PayoutsView: React.FC = () => {
             </div>
           )}
           {p.status === 'approved' && (
-            <button type="button" onClick={() => markPaid(p.id)}
-              className="w-full py-2.5 min-h-[44px] rounded-xl bg-sky-600 text-white text-xs font-black">
-              Mark as paid (after bank/UPI transfer)
-            </button>
+            <div className="flex gap-2">
+              <button type="button" onClick={() => setPaidFor({ id: p.id })}
+                className="flex-1 py-2.5 min-h-[44px] rounded-xl bg-sky-600 text-white text-xs font-black">
+                Mark as paid (after bank/UPI transfer)
+              </button>
+              <button type="button" onClick={() => setFailFor({ id: p.id })}
+                className="flex-1 py-2.5 min-h-[44px] rounded-xl bg-rose-700 text-white text-xs font-black">
+                Payment failed
+              </button>
+            </div>
+          )}
+          {p.status === 'settlement_failed' && (
+            <div className="flex gap-2">
+              <button type="button" onClick={() => setPaidFor({ id: p.id })}
+                className="flex-1 py-2.5 min-h-[44px] rounded-xl bg-sky-600 text-white text-xs font-black">
+                Retry — mark as paid
+              </button>
+              <button type="button" onClick={() => setFailFor({ id: p.id })}
+                className="flex-1 py-2.5 min-h-[44px] rounded-xl bg-rose-700 text-white text-xs font-black">
+                Failed again
+              </button>
+              <button type="button" onClick={() => setReleaseFor({ id: p.id })}
+                className="flex-1 py-2.5 min-h-[44px] rounded-xl bg-temple-800 text-xs font-bold text-temple-200">
+                Release to balance
+              </button>
+            </div>
           )}
         </Card>
       ))}
@@ -381,6 +452,70 @@ const PayoutsView: React.FC = () => {
               <button type="button" onClick={decide} disabled={working}
                 className={`flex-1 py-3 min-h-[44px] rounded-xl text-sm font-black disabled:opacity-50 ${confirm.approve ? 'bg-emerald-600 text-white' : 'bg-red-600 text-white'}`}>
                 {working ? 'Working…' : confirm.approve ? 'Approve' : 'Reject'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {paidFor && (
+        <div className="fixed inset-0 z-[60] bg-black/70 flex items-center justify-center p-4" onClick={() => setPaidFor(null)}>
+          <div className="bg-temple-900 border border-temple-700 rounded-2xl p-6 w-full max-w-sm" onClick={(e) => e.stopPropagation()}>
+            <h3 className="font-bold text-white mb-2">Mark as paid</h3>
+            <p className="text-xs text-temple-300 mb-3">
+              Only after the transfer has actually left your bank/UPI app. Paste the transaction
+              reference so the provider — and any future audit — can match this record to the real payment.
+            </p>
+            <input value={reference} onChange={(e) => setReference(e.target.value)} placeholder="Bank / bKash / Wise reference (recommended)"
+              className={inputCls + ' mb-3'} />
+            <div className="flex gap-2">
+              <button type="button" onClick={() => setPaidFor(null)} className="flex-1 py-3 min-h-[44px] rounded-xl bg-temple-800 text-sm font-bold text-temple-200">Cancel</button>
+              <button type="button" onClick={markPaid} disabled={working}
+                className="flex-1 py-3 min-h-[44px] rounded-xl text-sm font-black disabled:opacity-50 bg-sky-600 text-white">
+                {working ? 'Working…' : 'Mark paid'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {failFor && (
+        <div className="fixed inset-0 z-[60] bg-black/70 flex items-center justify-center p-4" onClick={() => setFailFor(null)}>
+          <div className="bg-temple-900 border border-temple-700 rounded-2xl p-6 w-full max-w-sm" onClick={(e) => e.stopPropagation()}>
+            <h3 className="font-bold text-white mb-2">Payment failed</h3>
+            <p className="text-xs text-temple-300 mb-3">
+              Record what the bank or wallet actually said — this record is what you report the
+              bank said, and the provider will see this reason word for word. Keep it factual
+              (for example “bKash number not registered” or “Name mismatch at bank”) — never a
+              guess about the provider. The amount stays reserved; you can retry, or release it
+              back to the provider’s balance.
+            </p>
+            <input value={failReason} onChange={(e) => setFailReason(e.target.value)} placeholder="Reason from the bank / wallet (required)"
+              className={inputCls + ' mb-3'} />
+            <div className="flex gap-2">
+              <button type="button" onClick={() => setFailFor(null)} className="flex-1 py-3 min-h-[44px] rounded-xl bg-temple-800 text-sm font-bold text-temple-200">Cancel</button>
+              <button type="button" onClick={markFailed} disabled={working || !failReason.trim()}
+                className="flex-1 py-3 min-h-[44px] rounded-xl text-sm font-black disabled:opacity-50 bg-rose-600 text-white">
+                {working ? 'Working…' : 'Record failure'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {releaseFor && (
+        <div className="fixed inset-0 z-[60] bg-black/70 flex items-center justify-center p-4" onClick={() => setReleaseFor(null)}>
+          <div className="bg-temple-900 border border-temple-700 rounded-2xl p-6 w-full max-w-sm" onClick={(e) => e.stopPropagation()}>
+            <h3 className="font-bold text-white mb-2">Release back to balance?</h3>
+            <p className="text-xs text-temple-300 mb-3">
+              The amount returns to the provider’s available balance so they can request it
+              again — use this only when this payout will not be retried (for example, the
+              provider has given you new account details to start fresh).
+            </p>
+            <input value={releaseNote} onChange={(e) => setReleaseNote(e.target.value)} placeholder="Note (optional)"
+              className={inputCls + ' mb-3'} />
+            <div className="flex gap-2">
+              <button type="button" onClick={() => setReleaseFor(null)} className="flex-1 py-3 min-h-[44px] rounded-xl bg-temple-800 text-sm font-bold text-temple-200">Cancel</button>
+              <button type="button" onClick={release} disabled={working}
+                className="flex-1 py-3 min-h-[44px] rounded-xl text-sm font-black disabled:opacity-50 bg-amber-600 text-white">
+                {working ? 'Working…' : 'Release'}
               </button>
             </div>
           </div>

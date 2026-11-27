@@ -14,11 +14,11 @@
  *  - `auction_lots` of workspaces where I am Trustee / Accountant /
  *    SuperAdmin: a lot settling or failing is staff news.
  *  - `workspaceMembers`: my OWN edges (my role changes — action) and,
- *    where I am Trustee / SuperAdmin, the whole roster (joins —
- *    digest; other members' role changes — info). The roster read is
- *    trustee-only in the rules, so a Manager/CSO device never sees
- *    another member's edge here; that audience stays unreachable
- *    until the read rules change (NOTES.md, gap G-W2-2).
+ *    where I hold a BOARD role (Trustee / Manager / SuperAdmin), the
+ *    whole roster (joins — digest; other members' role changes —
+ *    info). The rules' read clause extends to isOrgBoard (G-W2-2),
+ *    so a Manager's device reads the roster itself; write access
+ *    stays Trustee-only.
  */
 import { collection, getDocs, limit, query, where } from 'firebase/firestore';
 import { db } from '../firebase';
@@ -51,7 +51,8 @@ const POLL_MS = 60_000;
 
 const BOARD_ROLES = ['Trustee', 'Manager', 'SuperAdmin'];
 const LOT_ROLES = ['Trustee', 'Accountant', 'SuperAdmin'];
-const TRUSTEE_ROLES = ['Trustee', 'SuperAdmin'];
+// (The roster pass was Trustee-gated until G-W2-2 widened the
+// rules' read to the board; BOARD_ROLES above is its gate now.)
 
 interface MyEdge {
   workspaceId: string;
@@ -269,7 +270,12 @@ async function runCheck(uid: string): Promise<void> {
     }
 
     /* ---- Roster: joins + other members' role changes ----------- */
-    if (TRUSTEE_ROLES.includes(e.role)) {
+    // G-W2-2: the roster pass is BOARD-gated (Trustee / Manager /
+    // SuperAdmin) — the rules' workspaceMembers read now extends to
+    // isOrgBoard, so a Manager's device can read the roster itself.
+    // (The own-role pass above is untouched; write access and the
+    // desk's approval powers stay Trustee-only.)
+    if (BOARD_ROLES.includes(e.role)) {
       const scope = `roster:${e.workspaceId}`;
       const firstRun = !baselined[scope];
       const rosterEdges = await fetchRoster(e.workspaceId);

@@ -132,6 +132,19 @@ const COPY: Record<string, { en: string; bn: string; hi: string }> = {
   bkPtypePurohit: { en: 'Purohit', bn: 'পুরোহিত', hi: 'पुरोहित' },
   bkPtypeJyotishi: { en: 'Jyotishi', bn: 'জ্যোতিষী', hi: 'ज्योतिषी' },
   bkFeatured: { en: 'FEATURED', bn: 'বিশেষ', hi: 'विशेष' },
+  // Payout settlement story (WAVE 2 DATA-GAPS G-W2-1/G-W2-3, 2026-11-27) —
+  // the provider's own history + the optional home-organisation field.
+  // NOTE: this screen's copy system is en/bn/hi (marketplaceCopy);
+  // the matching Suchana alerts ride the full 10-language dictionary
+  // (surfaces.notify walletPayoutSettlementFailed / …Released).
+  payoutStatusSettlementFailed: { en: 'Payment could not be sent', bn: 'পেমেন্ট পাঠানো যায়নি', hi: 'भुगतान भेजा नहीं जा सका' },
+  payoutStatusReleased: { en: 'Returned to your balance', bn: 'আপনার ব্যালেন্সে ফিরে এসেছে', hi: 'आपकी शेष राशि में वापस' },
+  payoutAttemptFailed: { en: 'Sending failed', bn: 'পাঠানো ব্যর্থ হয়েছে', hi: 'भेजना विफल रहा' },
+  payoutAttemptPaid: { en: 'Sent', bn: 'পাঠানো হয়েছে', hi: 'भेजा गया' },
+  payoutAttemptsTitle: { en: 'Payment attempts', bn: 'পেমেন্টের প্রচেষ্টা', hi: 'भुगतान प्रयास' },
+  payoutHomeLabel: { en: 'Your home organisation (optional)', bn: 'আপনার নিজের প্রতিষ্ঠান (ঐচ্ছিক)', hi: 'आपकी अपनी संस्था (वैकल्पिक)' },
+  payoutHomePersonal: { en: 'Personal — no organisation', bn: 'ব্যক্তিগত — কোনো প্রতিষ্ঠান নয়', hi: 'व्यक्तिगत — कोई संस्था नहीं' },
+  payoutHomeHint: { en: 'Only helps the platform team route your payout. The money is always yours — naming a home never makes it the organisation’s money.', bn: 'শুধু প্ল্যাটফর্ম টিমকে আপনার পে-আউট পৌঁছে দিতে সাহায্য করে। টাকা সবসময় আপনারই — প্রতিষ্ঠানের নাম দিলে তা কখনো প্রতিষ্ঠানের টাকা হয়ে যায় না।', hi: 'केवल प्लेटफ़ॉर्म टीम को आपका भुगतान पहुँचाने में मदद करता है। पैसा हमेशा आपका ही है — संस्था का नाम देने से वह कभी संस्था का पैसा नहीं बनता।' },
 };
 
 export function mkt(lang: MktLang, key: keyof typeof COPY): string {

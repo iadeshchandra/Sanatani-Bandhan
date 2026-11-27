@@ -13,8 +13,8 @@ import { mkt, contributionNote, type MktLang } from '../lib/marketplaceCopy';
 import {
   listGigs, myGigs, saveGig, setGigActive,
   myOrdersAsProvider, orderTransition, confirmRail1Receipt,
-  providerEarningsSummary, requestPayout, listMyPayouts,
-  type Gig, type MarketplaceOrder, type EarningsByCurrency,
+  providerEarningsSummary, requestPayout, listMyPayouts, myProviderHomeEdges,
+  type Gig, type MarketplaceOrder, type EarningsByCurrency, type MarketplacePayout,
 } from '../lib/marketplace';
 import { formatMoney, currencySymbol } from '../lib/money';
 import { confirmRail2Receipt, disputeRail2Amount, autoConfirmStaleProofs } from '../lib/rail2';
@@ -319,15 +319,19 @@ const ProviderOrders: React.FC = () => {
 
 const ProviderEarnings: React.FC = () => {
   const { currentLang } = useLanguage();
+  const L = (currentLang === 'bn' || currentLang === 'hi' ? currentLang : 'en') as MktLang;
   const { showToast } = useToast();
   const [sums, setSums] = useState<EarningsByCurrency[]>([]);
-  const [payouts, setPayouts] = useState<any[]>([]);
+  const [payouts, setPayouts] = useState<MarketplacePayout[]>([]);
   const [loading, setLoading] = useState(true);
   const [reqOpen, setReqOpen] = useState(false);
   const [amount, setAmount] = useState('');
   const [method, setMethod] = useState<'bkash' | 'nagad' | 'bank' | 'wise'>('bkash');
   const [acct, setAcct] = useState('');
   const [payCurrency, setPayCurrency] = useState('INR');
+  // G-W2-3: the provider's own provider-role edges (home chooser).
+  const [homeEdges, setHomeEdges] = useState<{ workspaceId: string; workspaceName: string }[]>([]);
+  const [homeChoice, setHomeChoice] = useState(''); // '' = personal
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -339,15 +343,40 @@ const ProviderEarnings: React.FC = () => {
     setLoading(false);
   }, [showToast]);
   useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    let live = true;
+    myProviderHomeEdges().then((edges) => { if (live) setHomeEdges(edges); }).catch(() => undefined);
+    return () => { live = false; };
+  }, []);
 
   const activeSum = sums.find((s) => s.currency === payCurrency) || sums[0];
 
+  /** Open the request form with the home pre-filled: the provider's
+   *  last choice when still theirs, else their only home, else
+   *  personal. Never required, always changeable. */
+  const openRequest = () => {
+    const last = payouts.find((p) => p.homeWorkspaceId)?.homeWorkspaceId || '';
+    if (last && homeEdges.some((e) => e.workspaceId === last)) setHomeChoice(last);
+    else if (homeEdges.length === 1) setHomeChoice(homeEdges[0].workspaceId);
+    else setHomeChoice('');
+    setReqOpen(true);
+  };
+
   const submit = async () => {
     try {
-      await requestPayout({ amount: Number(amount), method, accountDetails: acct, currency: payCurrency });
+      const home = homeEdges.find((e) => e.workspaceId === homeChoice);
+      await requestPayout({
+        amount: Number(amount), method, accountDetails: acct, currency: payCurrency,
+        ...(home ? { homeWorkspaceId: home.workspaceId, homeWorkspaceName: home.workspaceName } : {}),
+      });
       showToast('Payout requested.', 'success'); setReqOpen(false); setAmount(''); setAcct(''); load();
     } catch (e: any) { console.error(e); showToast(friendlyErrorText(e, currentLang, 'save'), 'error'); }
   };
+
+  const statusLabel = (p: MarketplacePayout): string =>
+    p.status === 'settlement_failed' ? mkt(L, 'payoutStatusSettlementFailed')
+      : p.status === 'released' ? mkt(L, 'payoutStatusReleased')
+        : p.status;
 
   if (loading || sums.length === 0) return <p className="text-sm text-stone-500 py-10 text-center"><RefreshCw className="w-4 h-4 animate-spin inline" /> Loading…</p>;
   return (
@@ -372,16 +401,38 @@ const ProviderEarnings: React.FC = () => {
           )}
         </div>
       ))}
-      <button type="button" disabled={!activeSum || activeSum.available <= 0} onClick={() => setReqOpen(true)} className={`${btnP} w-full disabled:opacity-40`}>
+      <button type="button" disabled={!activeSum || activeSum.available <= 0} onClick={openRequest} className={`${btnP} w-full disabled:opacity-40`}>
         <Wallet className="w-4 h-4 inline mr-1" /> Request payout
       </button>
       {payouts.length > 0 && (
         <div className="space-y-2">
           <p className="text-[11px] font-black text-stone-500 uppercase">Payout history</p>
-          {payouts.map((p: any) => (
-            <div key={p.id} className="bg-white rounded-xl border border-stone-200 px-3 py-2.5 flex justify-between items-center">
-              <div><p className="text-xs font-black">{formatMoney(p.amount, p.currency)}</p><p className="text-[10px] text-stone-500">{p.method} · {p.requestedAt?.slice?.(0, 10) || ''}</p></div>
-              <span className="text-[10px] font-black px-2 py-1 rounded-lg bg-stone-100 text-stone-600">{p.status}</span>
+          {payouts.map((p) => (
+            <div key={p.id} className="bg-white rounded-xl border border-stone-200 px-3 py-2.5">
+              <div className="flex justify-between items-center">
+                <div><p className="text-xs font-black">{formatMoney(p.amount, p.currency)}</p><p className="text-[10px] text-stone-500">{p.method} · {p.requestedAt?.slice?.(0, 10) || ''}</p></div>
+                <span className={`text-[10px] font-black px-2 py-1 rounded-lg ${p.status === 'settlement_failed' ? 'bg-rose-100 text-rose-700' : 'bg-stone-100 text-stone-600'}`}>{statusLabel(p)}</span>
+              </div>
+              {p.homeWorkspaceName && (
+                <p className="text-[10px] text-stone-500 mt-1">🏠 {p.homeWorkspaceName}</p>
+              )}
+              {/* G-W2-1: the settlement story — every attempt the
+                  platform recorded, with the bank's reason in the
+                  open. Nothing about a failed payment stays hidden
+                  from the person whose money it is. */}
+              {Array.isArray(p.settlementAttempts) && p.settlementAttempts.length > 0 && (
+                <div className="mt-2 pt-2 border-t border-stone-100">
+                  <p className="text-[10px] font-black text-stone-500 uppercase">{mkt(L, 'payoutAttemptsTitle')}</p>
+                  {p.settlementAttempts.map((a, i) => (
+                    <p key={i} className="text-[10px] text-stone-600 mt-1">
+                      {a.outcome === 'paid' ? '✅' : '⚠️'} {a.outcome === 'paid' ? mkt(L, 'payoutAttemptPaid') : mkt(L, 'payoutAttemptFailed')}
+                      {' · '}{new Date(a.at).toISOString().slice(0, 10)}
+                      {a.outcome === 'failed' && a.reason ? ` — ${a.reason}` : ''}
+                      {a.outcome === 'paid' && a.reference ? ` · ${a.reference}` : ''}
+                    </p>
+                  ))}
+                </div>
+              )}
             </div>
           ))}
         </div>
@@ -403,6 +454,15 @@ const ProviderEarnings: React.FC = () => {
                   <option value="bkash">bKash</option><option value="nagad">Nagad</option><option value="bank">Bank transfer</option><option value="wise">Wise</option>
                 </select></label>
               <label className="text-[11px] font-bold text-stone-500">Account details<input value={acct} onChange={(e) => setAcct(e.target.value)} className={inputCls} placeholder="bKash number / account no" /></label>
+              {homeEdges.length > 0 && (
+                <label className="text-[11px] font-bold text-stone-500">{mkt(L, 'payoutHomeLabel')}
+                  <select value={homeChoice} onChange={(e) => setHomeChoice(e.target.value)} className={inputCls}>
+                    <option value="">{mkt(L, 'payoutHomePersonal')}</option>
+                    {homeEdges.map((e) => <option key={e.workspaceId} value={e.workspaceId}>{e.workspaceName}</option>)}
+                  </select>
+                  <span className="block text-[10px] font-normal text-stone-400 mt-1">{mkt(L, 'payoutHomeHint')}</span>
+                </label>
+              )}
               <div className="flex gap-2">
                 <button type="button" onClick={submit} className={`${btnP} flex-1`}><Send className="w-3.5 h-3.5 inline mr-1" />Submit request</button>
                 <button type="button" onClick={() => setReqOpen(false)} className={`${btnG} flex-1`}>Cancel</button>

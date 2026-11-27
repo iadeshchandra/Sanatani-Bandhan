@@ -10,6 +10,8 @@ import {
   donationDedupeKey,
   isLargeDonation,
   payoutDedupeKey,
+  payoutReleasedDedupeKey,
+  payoutSettlementDedupeKey,
   pickClaimRejections,
   pickLargeDonations,
   pickPayoutFailures,
@@ -70,6 +72,82 @@ describe('pickPayoutFailures', () => {
     );
     expect(notices).toHaveLength(0);
     expect(settled).toEqual({});
+  });
+
+  /* G-W2-1: settlement failures + releases (2026-11-27). */
+
+  it('a settlement failure rings with the bank reason, keyed by attempt count', () => {
+    const failed = payout({
+      status: 'settlement_failed',
+      settlementAttempts: [
+        { outcome: 'failed', at: NOW, by: 'owner', reason: 'bKash number not registered' },
+      ],
+    });
+    const { notices, settled } = pickPayoutFailures([failed], { 'po-1': 'approved' });
+    expect(notices).toHaveLength(1);
+    expect(notices[0].kind).toBe('settlement_failed');
+    expect(notices[0].reason).toBe('bKash number not registered');
+    expect(notices[0].dedupeKey).toBe(payoutSettlementDedupeKey('po-1', 1));
+    expect(notices[0].dedupeKey).toBe('payout:po-1:settlement:1');
+    expect(settled).toEqual({ 'po-1': 'settlement_failed:1' });
+  });
+
+  it('a SECOND failed attempt rings again under a new key; the same one stays silent', () => {
+    const attempts = [
+      { outcome: 'failed', at: NOW, by: 'owner', reason: 'first failure' },
+      { outcome: 'failed', at: NOW + DAY, by: 'owner', reason: 'bank rejected the name' },
+    ];
+    const ledger = { 'po-1': 'settlement_failed:1' };
+    const { notices, settled } = pickPayoutFailures(
+      [payout({ status: 'settlement_failed', settlementAttempts: attempts })],
+      ledger,
+    );
+    expect(notices).toHaveLength(1);
+    expect(notices[0].reason).toBe('bank rejected the name');
+    expect(notices[0].dedupeKey).toBe('payout:po-1:settlement:2');
+    expect(settled).toEqual({ 'po-1': 'settlement_failed:2' });
+    const again = pickPayoutFailures(
+      [payout({ status: 'settlement_failed', settlementAttempts: attempts })],
+      settled,
+    );
+    expect(again.notices).toHaveLength(0);
+  });
+
+  it('a settlement_failed payout with an empty ledger is news, once-keyed (mirrors the rejected contract)', () => {
+    const { notices } = pickPayoutFailures(
+      [payout({ status: 'settlement_failed', settlementAttempts: [{ outcome: 'failed', at: NOW, by: 'o', reason: 'x' }] })],
+      {},
+    );
+    expect(notices).toHaveLength(1);
+    expect(notices[0].kind).toBe('settlement_failed');
+  });
+
+  it('a release rings once on its own key — never colliding with the failure keys', () => {
+    const released = payout({
+      status: 'released',
+      settlementAttempts: [{ outcome: 'failed', at: NOW, by: 'o', reason: 'x' }],
+    });
+    const { notices, settled } = pickPayoutFailures([released], { 'po-1': 'settlement_failed:1' });
+    expect(notices).toHaveLength(1);
+    expect(notices[0].kind).toBe('released');
+    expect(notices[0].dedupeKey).toBe(payoutReleasedDedupeKey('po-1'));
+    expect(notices[0].dedupeKey).toBe('payout:po-1:released');
+    expect(settled).toEqual({ 'po-1': 'released' });
+    const again = pickPayoutFailures([released], settled);
+    expect(again.notices).toHaveLength(0);
+  });
+
+  it('a failed-then-paid payout settles silently as paid (no stale failure rings later)', () => {
+    const paid = payout({
+      status: 'paid',
+      settlementAttempts: [
+        { outcome: 'failed', at: NOW, by: 'o', reason: 'x' },
+        { outcome: 'paid', at: NOW + DAY, by: 'o', reference: 'TXN-1' },
+      ],
+    });
+    const { notices, settled } = pickPayoutFailures([paid], { 'po-1': 'settlement_failed:1' });
+    expect(notices).toHaveLength(0);
+    expect(settled).toEqual({ 'po-1': 'paid' });
   });
 });
 

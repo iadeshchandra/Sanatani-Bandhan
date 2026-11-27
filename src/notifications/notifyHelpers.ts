@@ -696,6 +696,43 @@ export function notifyPayoutFailed(recipientUid: string, a: PayoutFailedNotifyIn
   );
 }
 
+export interface PayoutSettlementNotifyInput {
+  amount: string;
+  payoutId: string;
+  dedupeKey: string;
+  /** The bank's reported reason, as the owner recorded it. */
+  reason?: string;
+}
+
+/**
+ * My approved payout failed at the bank (G-W2-1) → IMPORTANT, same
+ * digest floor. The body carries the recorded reason — the fact the
+ * provider needs to fix their payment details.
+ */
+export function notifyPayoutSettlementFailed(recipientUid: string, a: PayoutSettlementNotifyInput): Promise<EmitResult> {
+  return send(
+    recipientUid,
+    base('wallet', 'important', 'payoutSettlementFailed', { amount: a.amount, reason: a.reason || '' }, a.dedupeKey, {
+      deepLink: '/app/home/wallet',
+      payload: { payoutId: a.payoutId, floor: 'digest' },
+    }),
+  );
+}
+
+/**
+ * My failed payout was released (G-W2-1) → IMPORTANT, same floor:
+ * the amount is back in the available balance, requestable again.
+ */
+export function notifyPayoutReleased(recipientUid: string, a: PayoutSettlementNotifyInput): Promise<EmitResult> {
+  return send(
+    recipientUid,
+    base('wallet', 'important', 'payoutReleased', { amount: a.amount }, a.dedupeKey, {
+      deepLink: '/app/home/wallet',
+      payload: { payoutId: a.payoutId, floor: 'digest' },
+    }),
+  );
+}
+
 export interface PlanClaimRejectedNotifyInput {
   orgId: string;
   orgName: string;

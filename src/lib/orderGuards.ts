@@ -71,3 +71,22 @@ export function isPlatformHeld(o: {
 export function shouldCreateDuesOnComplete(o: { rail?: string; payAfterTask?: boolean }, to: string): boolean {
   return to === 'completed' && o.rail === 'rail2';
 }
+
+/**
+ * Pure: does a payout in this status RESERVE the provider's earnings?
+ * --------------------------------------------------------------------------
+ * WAVE 2 DATA-GAPS (G-W2-1): the double-pay guard behind both
+ * availability computations in marketplace.ts (requestPayout +
+ * providerEarningsSummary). 'settlement_failed' KEEPS the
+ * reservation — the owner may still retry that payment, so the same
+ * money must never be requestable twice. 'released' is deliberately
+ * absent: a released payout's amount is free again. 'rejected' never
+ * reserved anything beyond the decision moment.
+ */
+export const PAYOUT_RESERVED_STATUSES: readonly string[] = [
+  'requested', 'approved', 'settlement_failed', 'paid',
+];
+
+export function payoutReservesEarnings(status: string | undefined | null): boolean {
+  return typeof status === 'string' && PAYOUT_RESERVED_STATUSES.includes(status);
+}

@@ -48,6 +48,7 @@ import {
   addDoc,
   setDoc,
   updateDoc,
+  runTransaction,
   serverTimestamp,
 } from 'firebase/firestore';
 import { db, auth } from '../firebase';
@@ -1058,7 +1059,11 @@ async function payoutQueue(status = 'requested'): Promise<NativeResult> {
   const snap = await getDocs(query(collection(db, 'payouts'), limit(200)));
   let payouts = snap.docs.map((d) => {
     const v: any = d.data();
-    return { id: d.id, ...v, requestedAt: tsToIso(v.requestedAt), processedAt: tsToIso(v.processedAt) };
+    return {
+      id: d.id, ...v,
+      requestedAt: tsToIso(v.requestedAt), processedAt: tsToIso(v.processedAt),
+      lastSettlementAt: tsToIso(v.lastSettlementAt), releasedAt: tsToIso(v.releasedAt),
+    };
   });
   if (status !== 'all') payouts = payouts.filter((p: any) => p.status === status);
   payouts.sort((a: any, b: any) => (b.requestedAt || '').localeCompare(a.requestedAt || ''));
@@ -1135,16 +1140,111 @@ async function payoutDecide(id: string, approve: boolean, note?: string): Promis
   return { ok: true, data: { ok: true, duesDeducted, netAmount: netPayout } };
 }
 
-async function payoutMarkPaid(id: string): Promise<NativeResult> {
+/**
+ * WAVE 2 DATA-GAPS (G-W2-1) — the settlement record. A payout's story
+ * used to end at the owner's assertion ("paid"); the actual bank /
+ * bKash / Wise transfer happens off-app, and its outcome was recorded
+ * nowhere. The doc now carries a bounded `settlementAttempts` array —
+ * one entry per real attempt ({outcome, at, by, reason?/reference?},
+ * last 5 kept; `at` is epoch ms because serverTimestamp() cannot live
+ * inside an array) — plus lastSettlementAt/By stamps. The record is
+ * what the owner reports the bank said; it moves no money.
+ */
+const SETTLEMENT_ATTEMPT_CAP = 5;
+
+function nextSettlementAttempts(prev: unknown, entry: Record<string, any>): Record<string, any>[] {
+  const list: Record<string, any>[] = Array.isArray(prev)
+    ? (prev as any[]).filter((e) => e && typeof e === 'object')
+    : [];
+  return [...list.slice(-(SETTLEMENT_ATTEMPT_CAP - 1)), entry];
+}
+
+async function payoutMarkPaid(id: string, reference?: string): Promise<NativeResult> {
   const uid = requireOwner();
   const ref = doc(db, 'payouts', id);
   const snap = await getDoc(ref);
   if (!snap.exists()) return { ok: false, error: 'Payout not found.', code: 'NOT_FOUND' };
-  if ((snap.data() as any).status !== 'approved') {
+  const p: any = snap.data();
+  // 'settlement_failed' may also land here — a retry that succeeded.
+  if (p.status !== 'approved' && p.status !== 'settlement_failed') {
     return { ok: false, error: 'Only approved payouts can be marked paid.', code: 'STALE' };
   }
-  await updateDoc(ref, { status: 'paid', processedBy: uid, processedAt: serverTimestamp() });
-  await writeAudit('commission.payout.paid', { payoutId: id }, 'warn');
+  const cleanRef = (reference || '').trim().slice(0, 120);
+  const entry: Record<string, any> = { outcome: 'paid', at: Date.now(), by: uid };
+  if (cleanRef) entry.reference = cleanRef;
+  await updateDoc(ref, {
+    status: 'paid',
+    processedBy: uid,
+    processedAt: serverTimestamp(),
+    settlementAttempts: nextSettlementAttempts(p.settlementAttempts, entry),
+    lastSettlementAt: serverTimestamp(),
+    lastSettlementBy: uid,
+  });
+  await writeAudit('commission.payout.paid', {
+    payoutId: id,
+    ...(cleanRef ? { reference: cleanRef } : {}),
+  }, 'warn');
+  return { ok: true, data: { ok: true } };
+}
+
+async function payoutMarkFailed(id: string, reason?: string): Promise<NativeResult> {
+  const uid = requireOwner();
+  const ref = doc(db, 'payouts', id);
+  const cleanReason = (reason || '').trim().slice(0, 300);
+  // Transaction (the design's build-time upgrade): the guard and the
+  // append are one atomic step, so two owner devices cannot record
+  // two failures for a single attempt.
+  const outcome = await runTransaction(db, async (tx) => {
+    const snap = await tx.get(ref);
+    if (!snap.exists()) return { ok: false, error: 'Payout not found.', code: 'NOT_FOUND' } as NativeResult;
+    const p: any = snap.data();
+    if (p.status !== 'approved' && p.status !== 'settlement_failed') {
+      return { ok: false, error: 'Only an approved payout can be marked as failed.', code: 'STALE' } as NativeResult;
+    }
+    const entry: Record<string, any> = { outcome: 'failed', at: Date.now(), by: uid };
+    if (cleanReason) entry.reason = cleanReason;
+    tx.update(ref, {
+      status: 'settlement_failed',
+      settlementAttempts: nextSettlementAttempts(p.settlementAttempts, entry),
+      lastSettlementAt: serverTimestamp(),
+      lastSettlementBy: uid,
+    });
+    return { ok: true, data: { ok: true } } as NativeResult;
+  });
+  if (!outcome.ok) return outcome;
+  await writeAudit('commission.payout.failed', {
+    payoutId: id,
+    ...(cleanReason ? { reason: cleanReason } : {}),
+  }, 'warn');
+  return { ok: true, data: { ok: true } };
+}
+
+async function payoutRelease(id: string, note?: string): Promise<NativeResult> {
+  const uid = requireOwner();
+  const ref = doc(db, 'payouts', id);
+  const cleanNote = (note || '').trim().slice(0, 300);
+  const outcome = await runTransaction(db, async (tx) => {
+    const snap = await tx.get(ref);
+    if (!snap.exists()) return { ok: false, error: 'Payout not found.', code: 'NOT_FOUND' } as NativeResult;
+    const p: any = snap.data();
+    if (p.status !== 'settlement_failed') {
+      return { ok: false, error: 'Only a failed payout can be released.', code: 'STALE' } as NativeResult;
+    }
+    tx.update(ref, {
+      status: 'released',
+      releasedAt: serverTimestamp(),
+      releasedBy: uid,
+      ...(cleanNote ? { releaseNote: cleanNote } : {}),
+      lastSettlementAt: serverTimestamp(),
+      lastSettlementBy: uid,
+    });
+    return { ok: true, data: { ok: true } } as NativeResult;
+  });
+  if (!outcome.ok) return outcome;
+  await writeAudit('commission.payout.released', {
+    payoutId: id,
+    ...(cleanNote ? { note: cleanNote } : {}),
+  }, 'warn');
   return { ok: true, data: { ok: true } };
 }
 
@@ -3099,6 +3199,8 @@ export const firestoreAdmin = {
   payoutQueue,
   payoutDecide,
   payoutMarkPaid,
+  payoutMarkFailed,
+  payoutRelease,
   providerEarnings,
   announcements,
   announcementSave,

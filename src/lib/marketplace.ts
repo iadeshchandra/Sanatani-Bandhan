@@ -25,9 +25,14 @@ import {
 export { validateRating, nextAvg, canRateStatus };
 export { ratingTargetForOrder, buildRatingDoc, summarizeBlessings };
 export type { BlessingsSummary };
-import { canConfirmRail1Receipt, isPlatformHeld, shouldCreateDuesOnComplete } from './orderGuards';
+import {
+  canConfirmRail1Receipt, isPlatformHeld, shouldCreateDuesOnComplete,
+  payoutReservesEarnings,
+} from './orderGuards';
+import { resolveEdgeRole } from './landingSurface';
 import { formatMoney } from './money';
 export { canConfirmRail1Receipt, isPlatformHeld, shouldCreateDuesOnComplete };
+export { PAYOUT_RESERVED_STATUSES, payoutReservesEarnings } from './orderGuards';
 
 export interface Gig {
   id?: string;
@@ -386,8 +391,50 @@ export async function openDispute(orderId: string, reason: string, details: stri
 
 /* ------------------------------ Payouts ------------------------------ */
 
+/** One settlement attempt on a payout — what the bank actually said. */
+export interface SettlementAttempt {
+  outcome: 'failed' | 'paid';
+  /** Epoch ms (serverTimestamp() cannot live inside an array). */
+  at: number;
+  by: string;
+  reason?: string;
+  reference?: string;
+}
+
+export interface MarketplacePayout {
+  id?: string;
+  providerUid: string;
+  amount: number;
+  currency?: string;
+  method: string;
+  accountDetails?: string;
+  status: string;
+  requestedAt?: any;
+  processedBy?: string;
+  processedAt?: any;
+  note?: string;
+  /** WAVE 2 G-W2-1: the settlement story (see firestoreAdmin). */
+  settlementAttempts?: SettlementAttempt[];
+  lastSettlementAt?: any;
+  lastSettlementBy?: string;
+  releasedAt?: any;
+  releasedBy?: string;
+  releaseNote?: string;
+  /**
+   * WAVE 2 G-W2-3: the provider's DECLARED home organisation, chosen
+   * by the provider on the request itself — a routing hint for
+   * humans, never a claim that the funds are the organisation's.
+   * The marketplace work behind a payout is devotee↔provider; the
+   * organisation is not a party to it. Absent = personal / unknown.
+   */
+  homeWorkspaceId?: string;
+  homeWorkspaceName?: string;
+}
+
 export async function requestPayout(input: {
   amount: number; method: 'bkash' | 'nagad' | 'bank' | 'wise'; accountDetails: string; currency?: string;
+  /** Optional provider-confirmed home organisation (G-W2-3). */
+  homeWorkspaceId?: string; homeWorkspaceName?: string;
 }): Promise<string> {
   const uid = requireUser();
   if (!input.amount || input.amount <= 0) throw new Error('Amount must be positive.');
@@ -403,21 +450,75 @@ export async function requestPayout(input: {
     if (o.status === 'completed' && isPlatformHeld(o as any) && String((o as any).currency || 'INR').toUpperCase() === cur)
       earned += Number(o.providerNet || 0);
   let paidOut = 0;
-  for (const p of payouts) if (['requested', 'approved', 'paid'].includes(p.status) && String(p.currency || cur).toUpperCase() === cur) paidOut += Number(p.amount || 0);
+  for (const p of payouts) if (payoutReservesEarnings(p.status) && String(p.currency || cur).toUpperCase() === cur) paidOut += Number(p.amount || 0);
   const available = earned - paidOut;
   if (input.amount > available) throw new Error(`Only ${formatMoney(available, cur)} available for payout.`);
   const ref = await addDoc(collection(db, 'payouts'), {
     providerUid: uid, amount: Math.round(input.amount), currency: cur, method: input.method,
     accountDetails: input.accountDetails.slice(0, 300),
     status: 'requested', requestedAt: serverTimestamp(),
+    // G-W2-3: stamped ONLY when the provider confirmed a home on this
+    // request — a routing hint, never a claim on the money (see the
+    // MarketplacePayout doc comment). Absent choice ⇒ fields absent.
+    ...(input.homeWorkspaceId
+      ? {
+          homeWorkspaceId: input.homeWorkspaceId,
+          homeWorkspaceName: (input.homeWorkspaceName || '').slice(0, 120),
+        }
+      : {}),
   });
   return ref.id;
 }
 
-export async function listMyPayouts(): Promise<any[]> {
+export async function listMyPayouts(): Promise<MarketplacePayout[]> {
   const uid = requireUser();
   const snap = await getDocs(query(collection(db, 'payouts'), where('providerUid', '==', uid), limit(100)));
-  return snap.docs.map((d) => ({ id: d.id, ...(d.data() as any) }));
+  return snap.docs.map((d) => ({ id: d.id, ...(d.data() as any) }) as MarketplacePayout);
+}
+
+export interface ProviderHomeEdge {
+  workspaceId: string;
+  workspaceName: string;
+  /** Canonical resolved role (e.g. 'Priest'). */
+  role: string;
+}
+
+/**
+ * G-W2-3: the workspaces where the signed-in provider holds a
+ * provider role (Purohit → canonical 'Priest'; Jyotishi edges carry
+ * their own spelling) — the candidate homes for the payout form's
+ * home-organisation choice. Reads only the provider's OWN edges
+ * (the self-read clause), fail-soft to an empty list: no edges, no
+ * field, exactly as the design specifies.
+ */
+export async function myProviderHomeEdges(): Promise<ProviderHomeEdge[]> {
+  const uid = requireUser();
+  try {
+    const snap = await getDocs(
+      query(collection(db, 'workspaceMembers'), where('uid', '==', uid), limit(100)),
+    );
+    const out: ProviderHomeEdge[] = [];
+    for (const d of snap.docs) {
+      const m = d.data() as Record<string, unknown>;
+      const rawRole = typeof m.role === 'string' ? m.role : '';
+      const resolved = resolveEdgeRole(rawRole || undefined);
+      const isProvider = resolved === 'Priest' || /purohit|jyotish|astrolog/i.test(rawRole);
+      if (!isProvider) continue;
+      const workspaceId = typeof m.workspaceId === 'string' ? m.workspaceId : '';
+      if (!workspaceId) continue;
+      let name = typeof m.workspaceName === 'string' ? m.workspaceName : '';
+      if (!name) {
+        try {
+          const ws = await getDoc(doc(db, 'workspaces', workspaceId));
+          if (ws.exists()) name = String((ws.data() as any).name || '');
+        } catch { /* fail-soft: the id stands as the label */ }
+      }
+      out.push({ workspaceId, workspaceName: name || workspaceId, role: resolved });
+    }
+    return out;
+  } catch {
+    return [];
+  }
 }
 
 /** Earnings broken down per currency. A provider serving both BD and IN
@@ -456,7 +557,7 @@ export async function providerEarningsSummary(): Promise<EarningsByCurrency[]> {
     else if (['paid', 'accepted', 'in_progress'].includes(o.status)) b.pending += Number(o.providerNet || 0);
   }
   for (const p of payouts) {
-    if (!['requested', 'approved', 'paid'].includes(p.status)) continue;
+    if (!payoutReservesEarnings(p.status)) continue;
     // Legacy payouts carry no currency — attribute to the provider's dominant order currency.
     const cur = p.currency || dominantOrderCurrency(orders);
     bucket(cur).paidOut += Number(p.amount || 0);

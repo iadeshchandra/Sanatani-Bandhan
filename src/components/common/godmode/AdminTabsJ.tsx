@@ -153,6 +153,14 @@ export const FinanceTab: React.FC<{ goToTab: (t: string) => void }> = ({ goToTab
   const pendingIn = useMemo(() =>
     [...topups, ...claims].reduce((s, r: any) => s + (Number(r.amount) || 0), 0), [topups, claims]);
   const requestedPayouts = useMemo(() => payouts.filter((p: any) => p.status === 'requested'), [payouts]);
+  // G-W2-1 nag list: payouts APPROVED days ago with no settlement
+  // entry at all — the silent failure mode (approved, never sent,
+  // nobody told). settlement_failed rows are excluded on purpose:
+  // they carry their own story and their own queue.
+  const stuckPayouts = useMemo(() => payouts.filter((p: any) =>
+    p.status === 'approved'
+    && ageDays(p.processedAt || p.requestedAt) >= 3
+    && !(Array.isArray(p.settlementAttempts) && p.settlementAttempts.length > 0)), [payouts]);
   const pendingOut = useMemo(() =>
     requestedPayouts.reduce((s, p: any) => s + (Number(p.amount) || 0), 0), [requestedPayouts]);
   const GRACE_DAYS = 15;
@@ -233,9 +241,25 @@ export const FinanceTab: React.FC<{ goToTab: (t: string) => void }> = ({ goToTab
             <li key={p.id} className="flex items-center justify-between gap-2 bg-temple-900 rounded-xl px-3 py-2.5 min-h-[44px]">
               <div className="min-w-0">
                 <p className="text-xs font-bold text-temple-200 truncate">{p.providerUid ? String(p.providerUid).slice(0, 12) + '…' : 'Provider'}</p>
-                <p className="text-[10px] text-temple-300">{fmtAge(p.requestedAt)} ago</p>
+                <p className="text-[10px] text-temple-300">{fmtAge(p.requestedAt)} ago{p.homeWorkspaceName ? ` · 🏠 ${p.homeWorkspaceName}` : ''}</p>
               </div>
               <span className="text-sm font-black text-sky-300 shrink-0">{fmtINR(p.amount)}</span>
+            </li>
+          ))}
+        </ul>
+      ),
+    },
+    {
+      id: 'stuck-payouts', title: 'Approved payouts awaiting settlement', count: stuckPayouts.length, tab: 'commission',
+      rows: stuckPayouts.length === 0 ? <Empty text="No approved payout is waiting on a settlement record." /> : (
+        <ul className="space-y-2">
+          {stuckPayouts.slice(0, 8).map((p: any) => (
+            <li key={p.id} className="flex items-center justify-between gap-2 bg-temple-900 rounded-xl px-3 py-2.5 min-h-[44px]">
+              <div className="min-w-0">
+                <p className="text-xs font-bold text-temple-200 truncate">{p.providerUid ? String(p.providerUid).slice(0, 12) + '…' : 'Provider'}</p>
+                <p className="text-[10px] text-amber-300/90">Approved {fmtAge(p.processedAt || p.requestedAt)} ago — no settlement recorded yet{p.homeWorkspaceName ? ` · 🏠 ${p.homeWorkspaceName}` : ''}</p>
+              </div>
+              <span className="text-sm font-black text-amber-300 shrink-0">{fmtINR(p.amount)}</span>
             </li>
           ))}
         </ul>

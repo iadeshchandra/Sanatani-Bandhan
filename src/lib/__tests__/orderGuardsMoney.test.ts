@@ -13,7 +13,10 @@
  *    provider Dues, and auto-suspension all missed Path-B receivables.
  *    `shouldCreateDuesOnComplete` is the decision both branches use.
  */
-import { isPlatformHeld, shouldCreateDuesOnComplete } from '../orderGuards';
+import {
+  isPlatformHeld, shouldCreateDuesOnComplete,
+  payoutReservesEarnings, PAYOUT_RESERVED_STATUSES,
+} from '../orderGuards';
 
 describe('isPlatformHeld (payout custody)', () => {
   describe('platform-held (payout-eligible)', () => {
@@ -86,5 +89,41 @@ describe('shouldCreateDuesOnComplete (commission receivable)', () => {
   });
   it('missing rail fails closed → no dues', () => {
     expect(shouldCreateDuesOnComplete({}, 'completed')).toBe(false);
+  });
+});
+
+describe('payoutReservesEarnings (G-W2-1 double-pay guard)', () => {
+  // The guard's whole point: a payout whose bank transfer FAILED
+  // still reserves the provider's earnings, because the owner may
+  // retry that same payment — the money must never be requestable
+  // twice. Only an explicit RELEASE frees it again.
+  it('requested reserves', () => {
+    expect(payoutReservesEarnings('requested')).toBe(true);
+  });
+  it('approved reserves', () => {
+    expect(payoutReservesEarnings('approved')).toBe(true);
+  });
+  it('paid reserves (the money has left)', () => {
+    expect(payoutReservesEarnings('paid')).toBe(true);
+  });
+  it('settlement_failed STILL reserves — the retry must not double-pay', () => {
+    expect(payoutReservesEarnings('settlement_failed')).toBe(true);
+  });
+  it('released frees the amount — the provider may request it again', () => {
+    expect(payoutReservesEarnings('released')).toBe(false);
+  });
+  it('rejected never reserves', () => {
+    expect(payoutReservesEarnings('rejected')).toBe(false);
+  });
+  it('unknown / missing statuses fail safe (no reservation claimed)', () => {
+    expect(payoutReservesEarnings(undefined)).toBe(false);
+    expect(payoutReservesEarnings(null)).toBe(false);
+    expect(payoutReservesEarnings('')).toBe(false);
+    expect(payoutReservesEarnings('something_else')).toBe(false);
+  });
+  it('the reserved set is exactly the four live states', () => {
+    expect([...PAYOUT_RESERVED_STATUSES].sort()).toEqual(
+      ['approved', 'paid', 'requested', 'settlement_failed'],
+    );
   });
 });

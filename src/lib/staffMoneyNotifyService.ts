@@ -24,6 +24,8 @@ import { db } from '../firebase';
 import {
   notifyLargeDonation,
   notifyPayoutFailed,
+  notifyPayoutReleased,
+  notifyPayoutSettlementFailed,
   notifyPlanClaimRejected,
   notifyPlanStage,
 } from '../notifications/notifyHelpers';
@@ -199,19 +201,35 @@ async function runCheck(uid: string): Promise<void> {
     }
   };
 
-  /* ---- My payouts: a rejection is my money news ----------------- */
+  /* ---- My payouts: rejection + settlement news is my money news - */
   {
     const payouts = await fetchPayouts(uid);
     const { notices, settled } = pickPayoutFailures(payouts, state.payouts);
     const firstRun = !baselined['payouts'];
     for (const n of notices) {
       if (!firstRun) {
+        const amount = formatMoney(Number(n.payout.amount || 0), n.payout.currency);
         try {
-          await notifyPayoutFailed(uid, {
-            amount: formatMoney(Number(n.payout.amount || 0), n.payout.currency),
-            payoutId: n.payout.id,
-            dedupeKey: n.dedupeKey,
-          });
+          if (n.kind === 'settlement_failed') {
+            await notifyPayoutSettlementFailed(uid, {
+              amount,
+              payoutId: n.payout.id,
+              dedupeKey: n.dedupeKey,
+              ...(n.reason ? { reason: n.reason } : {}),
+            });
+          } else if (n.kind === 'released') {
+            await notifyPayoutReleased(uid, {
+              amount,
+              payoutId: n.payout.id,
+              dedupeKey: n.dedupeKey,
+            });
+          } else {
+            await notifyPayoutFailed(uid, {
+              amount,
+              payoutId: n.payout.id,
+              dedupeKey: n.dedupeKey,
+            });
+          }
         } catch {
           /* inbox write failed — state already settled; never crash */
         }

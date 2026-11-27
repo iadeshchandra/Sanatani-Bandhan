@@ -10,7 +10,9 @@
  *
  * What honestly exists in the data layer (verified at build time):
  *  - `payouts` — marketplace provider payouts. A payout the owner
- *    could not settle lands at status 'rejected'. The doc is
+ *    rejects at decision lands at 'rejected'; one that fails at the
+ *    bank after approval lands at 'settlement_failed', and one the
+ *    owner gives up on lands at 'released' (G-W2-1). The doc is
  *    provider-scoped (rules: the provider reads only their own), so
  *    this news can only ever reach the maker themselves.
  *  - `paymentClaims` — plan payment claims, workspace-scoped and
@@ -20,9 +22,11 @@
  *    roles. A large Income row is news the day it is recorded.
  *  - `subscriptions/{workspaceId}` — the org plan's period. Its
  *    derived status (lib/subscriptionExpiry) drives the plan stages.
- * What does NOT exist: a post-approval treasury payout execution
- * record — an approved payout that later fails at the bank is
- * recorded nowhere (see NOTES.md, gap G-W2-1).
+ * WAVE 2 DATA-GAPS (G-W2-1) closed the old hole: the payout doc
+ * itself now carries the settlement record — a bounded
+ * `settlementAttempts` array plus the 'settlement_failed' and
+ * 'released' states — so a bank failure after approval IS recorded,
+ * and pickPayoutFailures below reports it (reason included).
  */
 import { DEFAULT_PAYOUT_APPROVAL_THRESHOLD } from './approvals';
 import {
@@ -42,25 +46,66 @@ export interface PayoutLike {
   amount?: number;
   currency?: string;
   providerUid?: string;
+  /** G-W2-1 settlement record: one entry per real payment attempt. */
+  settlementAttempts?: unknown;
 }
+
+export type PayoutFailureKind = 'rejected' | 'settlement_failed' | 'released';
 
 export interface PayoutFailureNotice {
   payout: PayoutLike;
   dedupeKey: string;
+  kind: PayoutFailureKind;
+  /** The bank's reported reason (settlement_failed only). */
+  reason?: string;
 }
 
 export function payoutDedupeKey(payoutId: string): string {
   return `payout:${payoutId}:failed`;
 }
 
-/** payoutId → last settled status. */
+/** Each settlement attempt is its own dedupe slot: a payout that
+ *  fails, is retried, and fails again is news again — correctly. */
+export function payoutSettlementDedupeKey(payoutId: string, attemptCount: number): string {
+  return `payout:${payoutId}:settlement:${attemptCount}`;
+}
+
+export function payoutReleasedDedupeKey(payoutId: string): string {
+  return `payout:${payoutId}:released`;
+}
+
+/** payoutId → last settled status (settlement_failed is encoded
+ *  with its attempt count, so a NEW failure at the same status is
+ *  still distinguishable from the one already rung). */
 export type PayoutLedger = Record<string, string>;
+
+function settlementAttemptCount(p: PayoutLike): number {
+  return Array.isArray(p.settlementAttempts) ? p.settlementAttempts.length : 0;
+}
+
+function lastFailureReason(p: PayoutLike): string | undefined {
+  if (!Array.isArray(p.settlementAttempts)) return undefined;
+  for (let i = p.settlementAttempts.length - 1; i >= 0; i--) {
+    const a = p.settlementAttempts[i] as { outcome?: unknown; reason?: unknown } | null;
+    if (a && a.outcome === 'failed' && typeof a.reason === 'string' && a.reason.trim()) {
+      return a.reason.trim();
+    }
+  }
+  return undefined;
+}
 
 /**
  * A payout is failure news exactly when it stands 'rejected' and
  * the ledger has not already settled that fact: first seen rejected
  * rings once (the desk may have shown it first — a result is news),
  * a change INTO rejected rings, the same rejected again is silence.
+ *
+ * G-W2-1 adds the settlement states, same discipline:
+ *  - 'settlement_failed' rings once PER ATTEMPT (the ledger encodes
+ *    the attempt count; a retry that fails again is a new attempt
+ *    and rings again), carrying the recorded reason.
+ *  - 'released' rings once on the transition into it — the money is
+ *    back in the provider's available balance.
  */
 export function pickPayoutFailures(
   payouts: readonly PayoutLike[],
@@ -70,10 +115,27 @@ export function pickPayoutFailures(
   const settled: PayoutLedger = {};
   for (const p of payouts) {
     if (!p || !p.id || typeof p.status !== 'string') continue;
+    if (p.status === 'settlement_failed') {
+      const count = Math.max(1, settlementAttemptCount(p));
+      const encoded = `settlement_failed:${count}`;
+      settled[p.id] = encoded;
+      if (ledger[p.id] === encoded) continue;
+      notices.push({
+        payout: p,
+        dedupeKey: payoutSettlementDedupeKey(p.id, count),
+        kind: 'settlement_failed',
+        ...(lastFailureReason(p) ? { reason: lastFailureReason(p) } : {}),
+      });
+      continue;
+    }
     settled[p.id] = p.status;
-    if (p.status !== 'rejected') continue;
-    if (ledger[p.id] === 'rejected') continue;
-    notices.push({ payout: p, dedupeKey: payoutDedupeKey(p.id) });
+    if (p.status === 'rejected') {
+      if (ledger[p.id] === 'rejected') continue;
+      notices.push({ payout: p, dedupeKey: payoutDedupeKey(p.id), kind: 'rejected' });
+    } else if (p.status === 'released') {
+      if (ledger[p.id] === 'released') continue;
+      notices.push({ payout: p, dedupeKey: payoutReleasedDedupeKey(p.id), kind: 'released' });
+    }
   }
   return { notices, settled };
 }

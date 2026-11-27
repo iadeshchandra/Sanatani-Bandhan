@@ -296,4 +296,59 @@ describe('Membership rules — workspaceMembers', () => {
     const trustee = testEnv.authenticatedContext('trustee-1').firestore();
     await assertSucceeds(trustee.collection('workspaceMembers').where('workspaceId', '==', 'ws-1').get());
   });
+
+  /* ---- G-W2-2 (2026-11-27): the roster READ extends to the BOARD
+   * (Trustee + Manager + SuperAdmin) via isOrgBoard, so a Manager's
+   * device can read the roster and fan out roster alerts. Write
+   * access stays Trustee-only (M12–M15 unchanged). ---- */
+  async function seedBoardActors() {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      const db = context.firestore();
+      await db.collection('users').doc('manager-1').set({ workspaceId: 'ws-1', role: 'Sevadar' });
+      await db.collection('workspaceMembers').doc('ws-1_manager-1').set({
+        id: 'ws-1_manager-1', workspaceId: 'ws-1', uid: 'manager-1',
+        role: 'Manager', joinedAt: 1, joinedVia: 'request',
+      });
+      await db.collection('users').doc('accountant-1').set({ workspaceId: 'ws-1', role: 'Sevadar' });
+      await db.collection('workspaceMembers').doc('ws-1_accountant-1').set({
+        id: 'ws-1_accountant-1', workspaceId: 'ws-1', uid: 'accountant-1',
+        role: 'Accountant', joinedAt: 1, joinedVia: 'request',
+      });
+    });
+  }
+
+  it('M18. Manager (board) CAN read another member\'s edge', async () => {
+    await seedBoardActors();
+    const mgr = testEnv.authenticatedContext('manager-1').firestore();
+    await assertSucceeds(mgr.collection('workspaceMembers').doc('ws-1_edge-member-1').get());
+  });
+
+  it('M19. Manager (board) CAN list the roster', async () => {
+    await seedBoardActors();
+    const mgr = testEnv.authenticatedContext('manager-1').firestore();
+    await assertSucceeds(mgr.collection('workspaceMembers').where('workspaceId', '==', 'ws-1').get());
+  });
+
+  it('M20. Accountant (not board) CANNOT read another member\'s edge', async () => {
+    await seedBoardActors();
+    const acct = testEnv.authenticatedContext('accountant-1').firestore();
+    await assertFails(acct.collection('workspaceMembers').doc('ws-1_edge-member-1').get());
+  });
+
+  it('M21. Accountant (not board) CANNOT list the roster', async () => {
+    await seedBoardActors();
+    const acct = testEnv.authenticatedContext('accountant-1').firestore();
+    await assertFails(acct.collection('workspaceMembers').where('workspaceId', '==', 'ws-1').get());
+  });
+
+  it('M22. Manager still CANNOT create another member\'s edge (writes stay Trustee-only)', async () => {
+    await seedBoardActors();
+    const mgr = testEnv.authenticatedContext('manager-1').firestore();
+    await assertFails(
+      mgr.collection('workspaceMembers').doc('ws-1_new-person').set({
+        id: 'ws-1_new-person', workspaceId: 'ws-1', uid: 'new-person',
+        role: 'Devotee', joinedAt: 1, joinedVia: 'request',
+      })
+    );
+  });
 });
