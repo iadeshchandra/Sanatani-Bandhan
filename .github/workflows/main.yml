@@ -74,9 +74,16 @@ jobs:
           # identical rules release trips Google's 409 "Release already exists".
           if [ -z "${{ github.event.before }}" ] || [ "${{ github.event.before }}" = "0000000000000000000000000000000000000000" ]; then
             echo "No previous commit to compare — deploying rules."
-          elif ! git diff --name-only ${{ github.event.before }} ${{ github.sha }} -- firestore.rules | grep -q .; then
-            echo "firestore.rules unchanged in this push — skipping rules deploy (live rules already match)."
-            exit 0
+          else
+            # actions/checkout is shallow (fetch-depth 1): fetch the previous
+            # commit explicitly so the diff below can see it. If anything about
+            # the comparison fails, fall through and DEPLOY the rules — the
+            # safe direction is deploying, never silently skipping.
+            git fetch --no-tags --depth=1 origin ${{ github.event.before }} || true
+            if git diff --name-only ${{ github.event.before }} ${{ github.sha }} -- firestore.rules > /tmp/rulesdiff.txt 2>/dev/null && [ ! -s /tmp/rulesdiff.txt ]; then
+              echo "firestore.rules unchanged in this push — skipping rules deploy (live rules already match)."
+              exit 0
+            fi
           fi
           echo '${{ secrets.FIREBASE_SERVICE_ACCOUNT }}' > "$RUNNER_TEMP/sa.json"
           ok=0
