@@ -63,6 +63,29 @@ export interface ReleaseEntry {
 
 export const RELEASES: readonly ReleaseEntry[] = [
   {
+    version: 'v2026.11.27-5fdd219',
+    date: '2026-11-27',
+    sections: {
+      new: [
+        { text: {
+          en: 'Payouts now keep a full settlement record: if a bank or wallet transfer fails, the provider is told at once — with the exact reason — and the platform can retry or return the amount to their balance.',
+          hi: 'भुगतान अब पूरा निपटान रिकॉर्ड रखते हैं: यदि बैंक या वॉलेट ट्रांसफ़र विफल होता है, तो प्रदाता को तुरंत — सटीक कारण सहित — बताया जाता है, और प्लेटफ़ॉर्म पुनः प्रयास कर सकता है या राशि उनके शेष में लौटा सकता है।',
+          bn: 'পে-আউটে এখন সম্পূর্ণ নিষ্পত্তির রেকর্ড থাকে: ব্যাংক বা ওয়ালেট ট্রান্সফার ব্যর্থ হলে প্রদাতা সঙ্গে সঙ্গে — সঠিক কারণসহ — জানতে পারেন, আর প্ল্যাটফর্ম আবার চেষ্টা করতে পারে বা টাকা তাঁর ব্যালেন্সে ফিরিয়ে দিতে পারে।',
+        } },
+        { text: {
+          en: 'Managers now receive membership news — new members joining and role changes — alongside Trustees, so the whole board stays informed.',
+          hi: 'प्रबंधक अब न्यासियों के साथ सदस्यता समाचार — नए सदस्यों का जुड़ना और भूमिका परिवर्तन — प्राप्त करते हैं, ताकि पूरा बोर्ड सूचित रहे।',
+          bn: 'ম্যানেজাররা এখন ট্রাস্টিদের পাশাপাশি সদস্যতার খবর — নতুন সদস্য যোগদান ও ভূমিকা পরিবর্তন — পান, যাতে পুরো বোর্ড অবগত থাকে।',
+        } },
+        { text: {
+          en: 'Purohits and Jyotishis can name their home organisation when requesting a payout, helping the platform team route it — the money always remains the provider’s own.',
+          hi: 'पुरोहित और ज्योतिषी भुगतान का अनुरोध करते समय अपनी संस्था का नाम दे सकते हैं, जिससे प्लेटफ़ॉर्म टीम को उसे पहुँचाने में मदद मिलती है — पैसा हमेशा प्रदाता का ही रहता है।',
+          bn: 'পুরোহিত ও জ্যোতিষীরা পে-আউট চাওয়ার সময় নিজের প্রতিষ্ঠানের নাম দিতে পারেন, যাতে প্ল্যাটফর্ম টিম তা পৌঁছে দিতে পারে — টাকা সবসময় প্রদাতারই থাকে।',
+        } },
+      ],
+    },
+  },
+  {
     version: 'v2026.11.26-16e307a',
     date: '2026-11-26',
     sections: {
