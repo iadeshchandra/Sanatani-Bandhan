@@ -5,7 +5,7 @@
  * branded header / status strip / "Needs your hand" summary show:
  *
  *   apis              ← platformConfig/apiHealth stored probes (#35)
- *                       + key presence from platformConfig/apiKeys
+ *                       + key presence from platformConfig/apiKeys/entries
  *   pendingClaims     ← adminApi.paymentClaims('pending')  (Billing)
  *   dueSubscriptions  ← subscriptions scan + findDueSubscriptions (#24)
  *   newSupport        ← firestoreAdmin.supportLeads('new') (Support)
@@ -44,7 +44,7 @@ async function loadConfiguredById(): Promise<Record<string, boolean>> {
   const byId: Record<string, boolean> = {};
   let entries: Array<{ name?: unknown; keyValue?: unknown; enabled?: unknown }> = [];
   try {
-    const snap = await getDocs(query(collection(db, 'platformConfig/apiKeys'), orderBy('name')));
+    const snap = await getDocs(query(collection(db, 'platformConfig', 'apiKeys', 'entries'), orderBy('name')));
     entries = snap.docs.map((d) => d.data() as typeof entries[number]);
   } catch {
     entries = []; // owner keys unreadable → owner-keyed APIs stay unknown

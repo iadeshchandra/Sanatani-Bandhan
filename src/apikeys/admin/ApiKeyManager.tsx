@@ -11,9 +11,18 @@
  *     exists. The app cannot read them on Spark; the UI forbids publishing.
  *
  * Data:
- *  platformConfig/apiKeys/{keyId}       owner read/write. Never published.
- *  platformConfig/public                published client-safe subset.
- *  platformConfig/apiKeysAudit/{autoId} append-only, owner-only, create-only.
+ *  platformConfig/apiKeys/entries/{keyId}        owner read/write. Never published.
+ *  platformConfig/public                         published client-safe subset.
+ *  platformConfig/apiKeysAudit/entries/{autoId}  append-only, owner-only, create-only.
+ *
+ * F2 repair: the desk previously built every reference from the string
+ * 'platformConfig/apiKeys' — an EVEN-segment path, so collection() and
+ * doc() THREW on construction and load() always landed in the failure
+ * banner ("not signed in with the owner account") for the genuine owner.
+ * Keys now live in the `entries` subcollection under the apiKeys doc —
+ * a valid reference shape — with the rules matches repointed to match.
+ * No key data predates this fix (the desk never loaded), so nothing
+ * migrates.
  *
  * Honest rules: no delete (disable instead — history matters), test-before-save
  * uses read-only provider calls, key values are never logged or console'd.
@@ -589,7 +598,7 @@ export const ApiKeyManager: React.FC = () => {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const ks = await getDocs(query(collection(db, 'platformConfig/apiKeys'), orderBy('name')));
+      const ks = await getDocs(query(collection(db, 'platformConfig', 'apiKeys', 'entries'), orderBy('name')));
       setKeys(
         ks.docs.map((d) => {
           const data = d.data() as Omit<ApiKeyEntry, 'id'>;
@@ -597,7 +606,7 @@ export const ApiKeyManager: React.FC = () => {
         }),
       );
       const au = await getDocs(
-        query(collection(db, 'platformConfig/apiKeysAudit'), orderBy('at', 'desc'), limit(20)),
+        query(collection(db, 'platformConfig', 'apiKeysAudit', 'entries'), orderBy('at', 'desc'), limit(20)),
       );
       setAudit(au.docs.map((d) => ({ id: d.id, ...(d.data() as Omit<AuditEntry, 'id'>) })));
       setLoadFailed(false);
@@ -676,8 +685,8 @@ export const ApiKeyManager: React.FC = () => {
         updatedBy: 'owner',
       };
       const batch = writeBatch(db);
-      batch.set(doc(db, 'platformConfig/apiKeys', id), entry, { merge: true });
-      batch.set(doc(collection(db, 'platformConfig/apiKeysAudit')), {
+      batch.set(doc(db, 'platformConfig', 'apiKeys', 'entries', id), entry, { merge: true });
+      batch.set(doc(collection(db, 'platformConfig', 'apiKeysAudit', 'entries')), {
         at: serverTimestamp(),
         by: 'owner',
         action: editing ? 'update' : 'create',
@@ -724,9 +733,9 @@ export const ApiKeyManager: React.FC = () => {
     setBusy(true);
     try {
       const batch = writeBatch(db);
-      const ref = doc(db, 'platformConfig/apiKeys', k.id);
+      const ref = doc(db, 'platformConfig', 'apiKeys', 'entries', k.id);
       batch.update(ref, { enabled: !k.enabled, updatedAt: serverTimestamp() });
-      batch.set(doc(collection(db, 'platformConfig/apiKeysAudit')), {
+      batch.set(doc(collection(db, 'platformConfig', 'apiKeysAudit', 'entries')), {
         at: serverTimestamp(),
         by: 'owner',
         action: k.enabled ? 'disable' : 'enable',

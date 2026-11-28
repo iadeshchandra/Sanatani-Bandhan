@@ -52,7 +52,7 @@ import {
   serverTimestamp,
 } from 'firebase/firestore';
 import { db, auth } from '../firebase';
-import { validateSuspendReason, buildSuspendUpdate, buildUnsuspendUpdate } from './softBan';
+import { validateSuspendReason, buildSuspendUpdate, buildUnsuspendUpdate, isSuspended } from './softBan';
 import { subscriptionMonthsForPeriod } from '../billing/planUpgrade';
 import {
   isProPlanId, normalizeProPlanId, buildProSubscriptionDoc, providerTierFromSubscription,
@@ -139,6 +139,19 @@ async function writeAudit(
   }
 }
 
+/**
+ * F2: record a GodMode console sign-in in audit_logs. Until now NO code
+ * path logged console sign-in at all — the audit collection sat at 0
+ * even though every audited owner op was correctly shaped to land.
+ * Rides the same writeAudit path (owner-only by construction: for a
+ * delegated admin, writeAudit's requireOwner makes this a no-op, and
+ * the audit_logs create rule likewise only admits the owner branch —
+ * delegated sign-ins stay unrecorded rather than misattributed).
+ */
+export async function logGodModeSignIn(method: 'session' | 'password' | 'google'): Promise<void> {
+  await writeAudit('godmode.signin', { method }, 'info');
+}
+
 const tsToIso = (v: any): string | undefined => {
   try {
     if (!v) return undefined;
@@ -160,11 +173,21 @@ async function overview(): Promise<NativeResult> {
     getCountFromServer(query(collection(db, 'verificationApplications'), where('status', '==', 'pending'))),
     getCountFromServer(query(collection(db, 'paymentClaims'), where('status', '==', 'pending'))),
   ]);
-  const recentSnap = await getDocs(query(collection(db, 'workspaces'), orderBy('createdAt', 'desc'), limit(5)));
-  const recentWorkspaces = recentSnap.docs.map((d) => {
-    const v: any = d.data();
-    return { id: d.id, name: v.name, type: v.type, planId: v.planId, createdAt: tsToIso(v.createdAt) };
-  });
+  // F2 fix: NO orderBy('createdAt') here. The workspace-creation path
+  // (PortalLogin's WorkspaceConfig) writes no `createdAt` field, and a
+  // Firestore orderBy silently EXCLUDES every doc missing the field — the
+  // ordered query returned 0 of 7 live workspaces while the count desks
+  // (getCountFromServer, no orderBy) showed 7. Fetch unordered and sort
+  // client-side: docs carrying a createdAt sort newest-first, docs
+  // without one (all pre-fix signups) sort last by name.
+  const recentSnap = await getDocs(query(collection(db, 'workspaces'), limit(25)));
+  const recentWorkspaces = recentSnap.docs
+    .map((d) => {
+      const v: any = d.data();
+      return { id: d.id, name: v.name, type: v.type, planId: v.planId, createdAt: tsToIso(v.createdAt) };
+    })
+    .sort((a, b) => (b.createdAt || '').localeCompare(a.createdAt || ''))
+    .slice(0, 5);
   return {
     ok: true,
     data: {
@@ -216,8 +239,11 @@ async function lookupUser(email: string): Promise<NativeResult> {
         uid: d.id,
         email: v.email,
         displayName: v.displayName || v.name,
-        // Client-visible users docs don't carry Auth-level disabled state.
-        disabled: false,
+        // Auth-level disable needs the backend, but the Spark-native
+        // soft-ban state DOES live on this doc — report it honestly
+        // (F2: this was hard-coded false, so a suspended user showed
+        // ACTIVE and the toggle offered "Suspend" again).
+        disabled: isSuspended(v),
         emailVerified: v.emailVerified,
         creationTime: tsToIso(v.createdAt),
         lastSignInTime: tsToIso(v.lastSignInAt),
@@ -270,12 +296,48 @@ async function unsuspendUser(uid: string): Promise<NativeResult> {
 
 async function listWorkspaces(limitN = 100): Promise<NativeResult> {
   requireOwner();
-  const snap = await getDocs(query(collection(db, 'workspaces'), orderBy('createdAt', 'desc'), limit(Math.min(limitN, 200))));
+  // F2 fix: no orderBy('createdAt') — workspace docs written by the signup
+  // path carry no `createdAt`, and orderBy excludes docs missing the field
+  // (the desk showed 0 while the count desks showed 7). Unordered fetch,
+  // client-side sort: createdAt newest-first when present, else by name.
+  const snap = await getDocs(query(collection(db, 'workspaces'), limit(Math.min(limitN, 200))));
   const workspaces = snap.docs.map((d) => {
     const v: any = d.data();
     return { id: d.id, name: v.name, type: v.type, planId: v.planId || 'LITE', city: v.city, createdAt: tsToIso(v.createdAt), limitsBypassed: v.limitsBypassed === true };
   });
+  workspaces.sort((a, b) =>
+    (b.createdAt || '').localeCompare(a.createdAt || '') ||
+    (a.name || a.id).localeCompare(b.name || b.id)
+  );
   return { ok: true, data: { success: true, workspaces } };
+}
+
+/**
+ * F2: browse list for the Users desk (it was search-only — no list op
+ * existed). Unordered fetch for the same reason as listWorkspaces:
+ * signup paths don't uniformly stamp a sortable field. Sorted
+ * client-side by display name, then email. Status carries the
+ * Spark-native soft-ban state from the user doc (see lookupUser).
+ */
+async function listUsers(limitN = 50): Promise<NativeResult> {
+  requireOwner();
+  const snap = await getDocs(query(collection(db, 'users'), limit(Math.min(limitN, 200))));
+  const users = snap.docs.map((d) => {
+    const v: any = d.data();
+    return {
+      uid: d.id,
+      email: v.email,
+      displayName: v.displayName || v.name,
+      disabled: isSuspended(v),
+      emailVerified: v.emailVerified,
+      creationTime: tsToIso(v.createdAt),
+      lastSignInTime: tsToIso(v.lastSignInAt),
+    };
+  });
+  users.sort((a, b) =>
+    (a.displayName || a.email || a.uid).localeCompare(b.displayName || b.email || b.uid)
+  );
+  return { ok: true, data: { success: true, users } };
 }
 
 async function setPlan(workspaceId: string, planId: string): Promise<NativeResult> {
@@ -3155,6 +3217,7 @@ export const firestoreAdmin = {
   overview,
   health,
   lookupUser,
+  listUsers,
   suspendUser,
   unsuspendUser,
   listWorkspaces,

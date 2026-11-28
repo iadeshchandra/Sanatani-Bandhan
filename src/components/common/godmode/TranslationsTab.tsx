@@ -131,6 +131,8 @@ function useRegionalStrings() {
         'gm.tr.draft', 'draft', 'খসড়া', 'मसौदा'),
       verified: safeTranslate(
         'gm.tr.verified', 'verified', 'যাচাইকৃত', 'सत्यापित'),
+      starter: safeTranslate(
+        'gm.tr.starter', 'starter', 'প্রাথমিক', 'प्रारंभिक'),
       regionLabel: safeTranslate(
         'gm.tr.region', 'Region', 'অঞ্চল', 'क्षेत्र'),
       regionalNs: safeTranslate(
@@ -276,7 +278,12 @@ const RegionalCard: React.FC = () => {
           {REGION_IDS.map((id) => {
             const info = REGIONS[id];
             const n = counts[id] || 0;
-            // The 7 draft languages' regions start draft; en/hi/bn are verified.
+            // The 7 draft languages' regions start draft; en/hi/bn regions
+            // run on curated BUNDLED starters. F2 label fix: the badge used
+            // to print "verified" for every non-draft language while the
+            // count below showed "0 / N customized" — the starters are
+            // explicitly NOT verified ("confirm with a native speaker
+            // before treating as final"), so the honest badge is "starter".
             const draft = isDraftLang(info.lang);
             return (
               <div key={id} className="rounded-xl bg-stone-50 border border-stone-100 px-3 py-2.5">
@@ -287,8 +294,8 @@ const RegionalCard: React.FC = () => {
                       {s.draft}
                     </span>
                   ) : (
-                    <span className="text-[11px] font-bold text-green-700 bg-green-100 rounded-full px-2 py-0.5">
-                      {s.verified}
+                    <span className="text-[11px] font-bold text-stone-600 bg-stone-200 rounded-full px-2 py-0.5">
+                      {s.starter}
                     </span>
                   )}
                 </div>

@@ -36,7 +36,8 @@ import { auth, signInWithEmailAndPassword, signInWithPopup, googleProvider, send
 import { isOwnerEmail } from '../../config/ownerAllowlist';
 import { useAuthWorkspace } from '../../context/AuthWorkspaceContext';
 import { useToast } from '../../context/ToastContext';
-import { adminApi, BACKEND_URL, BACKEND_DEPLOYED_HINT, type PlatformOverview, type HealthStatus } from '../../lib/adminApi';
+import { adminApi, BACKEND_URL, BACKEND_URL_CONFIGURED, BACKEND_DEPLOYED_HINT, type PlatformOverview, type HealthStatus } from '../../lib/adminApi';
+import { logGodModeSignIn } from '../../lib/firestoreAdmin';
 import { runDueJobs, getDueJobsRunLog } from '../../lib/dueJobsService';
 import { runTotals, type DueJobsRunReport } from '../../lib/dueJobs';
 import { UsersTab, WorkspacesTab, VerificationTab } from './godmode/AdminTabsA';
@@ -388,7 +389,14 @@ const SystemTab: React.FC = () => {
       <div className="rounded-2xl bg-slate-950/70 border border-slate-800 p-5">
         <h3 className="text-sm font-bold text-slate-200 mb-3">Backend configuration</h3>
         <div className="text-xs space-y-2 font-mono break-all">
-          <p><span className="text-slate-500">VITE_BACKEND_URL = </span><span className="text-saffron-300">{BACKEND_URL}</span></p>
+          {BACKEND_URL_CONFIGURED ? (
+            <p><span className="text-slate-500">VITE_BACKEND_URL = </span><span className="text-saffron-300">{BACKEND_URL}</span></p>
+          ) : (
+            // F2: production builds set no VITE_BACKEND_URL — the old line
+            // printed the localhost fallback as if it were configuration.
+            // The truth: not configured, nothing deployed (Spark plan).
+            <p><span className="text-slate-500">VITE_BACKEND_URL = </span><span className="text-saffron-300">Not configured — no backend deployed (Spark plan). Admin operations run Spark-native on Firestore.</span></p>
+          )}
           {health?.mode === 'spark-native' && (
             <p className="font-sans text-sky-300/90 bg-sky-500/10 border border-sky-500/30 rounded-xl p-3">
               Spark-native mode is active: admin operations run directly on Firestore under owner-validated
@@ -478,6 +486,18 @@ export const GodModeConsole2: React.FC<GodModeConsole2Props> = ({ isOpen, onClos
   // of waiting forever. roleRetryNonce re-runs the resolution effect.
   const [roleCheckFailed, setRoleCheckFailed] = useState(false);
   const [roleRetryNonce, setRoleRetryNonce] = useState(0);
+  // F2: GodMode sign-in audit. No code path logged console sign-in —
+  // audit_logs sat at 0 while every other owner op was correctly shaped
+  // to land. First unlock route to fire wins; the ref keeps it to one
+  // entry per console open. logGodModeSignIn is owner-only by
+  // construction (see firestoreAdmin), so delegated sign-ins stay
+  // unrecorded rather than misattributed.
+  const signInLoggedRef = React.useRef(false);
+  const noteSignIn = useCallback((method: 'session' | 'password' | 'google') => {
+    if (signInLoggedRef.current) return;
+    signInLoggedRef.current = true;
+    void logGodModeSignIn(method);
+  }, []);
   const [unlockBusy, setUnlockBusy] = useState(false);
   const [resetSent, setResetSent] = useState(false);
   const [resetCooldown, setResetCooldown] = useState(0);
@@ -504,6 +524,7 @@ export const GodModeConsole2: React.FC<GodModeConsole2Props> = ({ isOpen, onClos
         setAdminRole(res.role);
         setIsUnlocked(true);
         setGateNotice(null);
+        noteSignIn('session');
       } else if (timedOut || res.reason === 'lookup-failed') {
         // The bounded check could not get an answer (hang or read
         // failure): the honest error block with Retry takes the gate —
@@ -516,7 +537,7 @@ export const GodModeConsole2: React.FC<GodModeConsole2Props> = ({ isOpen, onClos
       }
     });
     return () => { cancelled = true; };
-  }, [firebaseUser?.uid, firebaseUser?.email, roleRetryNonce]);
+  }, [firebaseUser?.uid, firebaseUser?.email, roleRetryNonce, noteSignIn]);
 
   // Tabs this role may see; if the open tab falls outside the role (e.g.
   // role resolved after mount), fall back to the first visible tab.
@@ -603,6 +624,7 @@ export const GodModeConsole2: React.FC<GodModeConsole2Props> = ({ isOpen, onClos
       setGateNotice(null);
       setAdminRole(res.role);
       setIsUnlocked(true);
+      noteSignIn('password');
       switchRole('SuperAdmin');
       showToast('Authenticated successfully.', 'success');
     } catch (err: any) {
@@ -639,6 +661,7 @@ export const GodModeConsole2: React.FC<GodModeConsole2Props> = ({ isOpen, onClos
       setGateNotice(null);
       setAdminRole(res.role);
       setIsUnlocked(true);
+      noteSignIn('google');
       switchRole('SuperAdmin');
       showToast('Authenticated successfully via Google.', 'success');
     } catch (err: any) {
@@ -687,8 +710,14 @@ export const GodModeConsole2: React.FC<GodModeConsole2Props> = ({ isOpen, onClos
   const handItems = buildHandItems(adminRole, status.facts);
   const identity = identityFor(firebaseUser, adminRole);
 
+  // F1 LAYER LAW (applied to the console in F2): the console is an
+  // overlay, so it sits in the OVERLAY band (≥10010) — at z-50 the
+  // global SOS (9990) / Ask (9980) FABs rendered ON TOP of it and
+  // covered console controls at phone width. The root's backdrop-blur
+  // makes it the stacking/containing context for every inner dialog
+  // (z-55/60/70), so this one value lifts the whole console coherently.
   return (
-    <div className="fixed inset-0 bg-slate-950/90 backdrop-blur-md z-50 flex items-center justify-center p-2 sm:p-4">
+    <div className="fixed inset-0 bg-slate-950/90 backdrop-blur-md z-[10010] flex items-center justify-center p-2 sm:p-4">
       <div className="bg-slate-900 text-slate-100 rounded-3xl shadow-2xl border border-saffron-500/40 w-full max-w-6xl max-h-[94vh] flex flex-col overflow-hidden">
         {/* Branded header + status strip (QUEUED #39) */}
         <ConsoleHeader
@@ -820,14 +849,16 @@ export const GodModeConsole2: React.FC<GodModeConsole2Props> = ({ isOpen, onClos
               ))}
             </nav>
 
-            {/* Mobile tab bar */}
-            <div className="md:hidden absolute bottom-0 left-0 right-0 z-10 bg-slate-950/95 border-t border-slate-800 px-1 py-1 flex overflow-x-auto gap-1">
+            {/* Mobile tab bar — F2: F1 strip law (.sb-strip: no visible
+                scrollbar, end air on the last item) + nowrap labels, so
+                long desk names scroll cleanly instead of truncating. */}
+            <div className="md:hidden absolute bottom-0 left-0 right-0 z-10 bg-slate-950/95 border-t border-slate-800 px-1 py-1 flex overflow-x-auto gap-1 sb-strip">
               {visibleTabs.map((t) => (
                 <button
                   key={t.id}
                   type="button"
                   onClick={() => setTab(t.id)}
-                  className={`flex flex-col items-center gap-0.5 px-3 py-2 min-w-[64px] min-h-[52px] rounded-lg text-[10px] font-semibold shrink-0 ${
+                  className={`flex flex-col items-center gap-0.5 px-3 py-2 min-w-[64px] min-h-[52px] rounded-lg text-[10px] font-semibold shrink-0 whitespace-nowrap ${
                     tab === t.id ? 'text-saffron-300 bg-saffron-500/10' : 'text-slate-500'
                   }`}
                 >
@@ -837,8 +868,10 @@ export const GodModeConsole2: React.FC<GodModeConsole2Props> = ({ isOpen, onClos
               ))}
             </div>
 
-            {/* Content */}
-            <main className="flex-1 min-w-0 overflow-y-auto p-4 sm:p-6 pb-24 md:pb-6">
+            {/* Content — sb-sos-clear: the F1 FAB safe-zone class for
+                inner scrollers, so console content keeps the same
+                bottom clearance as every other surface. */}
+            <main className="flex-1 min-w-0 overflow-y-auto p-4 sm:p-6 pb-24 md:pb-6 sb-sos-clear">
               <h2 className="text-lg font-black text-white mb-4 md:hidden">
                 {TABS.find((t) => t.id === tab)?.label}
               </h2>

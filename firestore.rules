@@ -1843,7 +1843,7 @@ service cloud.firestore {
       allow delete: if false;
     }
 
-    match /platformConfig/apiKeys/{keyId} {
+    match /platformConfig/apiKeys/entries/{keyId} {
       allow read, create, update: if isOwner();
       allow delete: if false;
     }
@@ -1866,7 +1866,7 @@ service cloud.firestore {
       allow delete: if false;
     }
 
-    match /platformConfig/apiKeysAudit/{auditId} {
+    match /platformConfig/apiKeysAudit/entries/{auditId} {
       allow read: if isOwner();
       allow create: if isOwner();
       allow update, delete: if false;
@@ -3362,7 +3362,7 @@ service cloud.firestore {
         && tkNewGet('completedGigs', 0) == 0
 
         && request.resource.data.get('endorsementCount', 0) == 0;
-      allow update: if isSuperAdmin()
+      allow update: if saOrOwner()
         || (loggedUidIs(resUid())
           && uidIs(reqUid())
           && tkNewGet('id', '') == tkOldGet('id', '')
@@ -3451,7 +3451,7 @@ service cloud.firestore {
 
     match /prathamSevaConfig/{configId} {
       allow read: if isLoggedIn();
-      allow create, update: if isSuperAdmin()
+      allow create, update: if saOrOwner()
         && tkNewGet('defaultFreeSevas', -1) >= 0
         && tkNewGet('defaultFreeSevas', 51) <= 50;
       allow delete: if false;
@@ -3468,10 +3468,10 @@ service cloud.firestore {
         && tkNewGet('reviewNote', '') == '';
     }
     match /purohitApplications/{appId} {
-      allow read: if isSuperAdmin()
+      allow read: if saOrOwner()
         || (loggedUidIs(resUid()));
       allow create: if applicationCreateOk('purohitId');
-      allow update: if isSuperAdmin();
+      allow update: if saOrOwner();
       allow delete: if false;
     }
 
@@ -3579,7 +3579,7 @@ service cloud.firestore {
 
         && request.resource.data.get('endorsementCount', 0) == 0
         && !reqKeys().hasAny(['phone', 'email']);
-      allow update: if isSuperAdmin()
+      allow update: if saOrOwner()
         || (loggedUidIs(resUid())
 
           && !diffKeys()
@@ -3623,11 +3623,11 @@ service cloud.firestore {
     }
 
     match /jyotishApplications/{appId} {
-      allow read: if isSuperAdmin()
+      allow read: if saOrOwner()
         || (loggedUidIs(resUid()));
       allow create: if applicationCreateOk('jyotishId');
       allow delete: if false;
-      allow update: if isSuperAdmin();
+      allow update: if saOrOwner();
     }
 
     function isConsultationParty() {

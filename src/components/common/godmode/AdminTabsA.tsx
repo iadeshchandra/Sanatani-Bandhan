@@ -18,10 +18,27 @@ export const UsersTab: React.FC = () => {
   const [user, setUser] = useState<UserRecord | null>(null);
   const [loading, setLoading] = useState(false);
   const [backendDown, setBackendDown] = useState(false);
+  // F2: browse list — the desk was search-only, so the platform's users
+  // were invisible until you already knew an email. First 50, loaded on
+  // mount; tapping a row opens the same detail card as a search hit.
+  const [browse, setBrowse] = useState<UserRecord[]>([]);
+  const [browseLoading, setBrowseLoading] = useState(true);
+  const [browseDown, setBrowseDown] = useState(false);
   const [confirm, setConfirm] = useState<'suspend' | 'unsuspend' | null>(null);
   const [reason, setReason] = useState('');
   const [reasonError, setReasonError] = useState<string | null>(null);
   const [working, setWorking] = useState(false);
+
+  const loadBrowse = useCallback(async () => {
+    setBrowseLoading(true);
+    setBrowseDown(false);
+    const r = await adminApi.listUsers(50);
+    setBrowseLoading(false);
+    if (r.backendDown) { setBrowseDown(true); return; }
+    if (r.ok && r.data?.users) setBrowse(r.data.users);
+  }, []);
+
+  React.useEffect(() => { loadBrowse(); }, [loadBrowse]);
 
   const search = useCallback(async () => {
     if (!email.trim()) return;
@@ -53,6 +70,7 @@ export const UsersTab: React.FC = () => {
     if (r.ok) {
       showToast(confirm === 'suspend' ? 'Account paused. The user is signed out immediately.' : 'Account restored.', 'success');
       setUser({ ...user, disabled: confirm === 'suspend' });
+      setBrowse((prev) => prev.map((u) => (u.uid === user.uid ? { ...u, disabled: confirm === 'suspend' } : u)));
       setConfirm(null);
       setReason('');
       setReasonError(null);
@@ -86,6 +104,38 @@ export const UsersTab: React.FC = () => {
       </div>
 
       {backendDown && <BackendDownBanner onRetry={search} />}
+
+      {/* F2 browse list: first 50 users, tap to manage. Search above
+          remains the way to find anyone beyond the first 50. */}
+      <div className="space-y-2">
+        <p className="text-xs text-slate-500">
+          {browseLoading
+            ? 'Loading users…'
+            : browseDown
+              ? 'User list unavailable right now — search by email still works when the connection returns.'
+              : `${browse.length} user${browse.length === 1 ? '' : 's'} (first 50, by name) — tap one to manage, or search by email above.`}
+        </p>
+        {browse.map((u) => (
+          <button
+            key={u.uid}
+            type="button"
+            onClick={() => { setUser(u); setBackendDown(false); }}
+            className={`w-full text-left rounded-xl border p-3.5 flex items-center gap-3 min-h-[44px] transition-colors ${
+              user?.uid === u.uid
+                ? 'bg-saffron-500/10 border-saffron-500/40'
+                : 'bg-slate-950/70 border-slate-800 hover:bg-slate-800/60'
+            }`}
+          >
+            <span className="flex-1 min-w-0">
+              <span className="block font-bold text-slate-200 text-sm truncate">{u.displayName || 'No name'}</span>
+              <span className="block text-[11px] text-slate-500 font-mono truncate">{u.email || u.uid}</span>
+            </span>
+            <span className={`px-2 py-0.5 rounded-full text-[11px] font-bold shrink-0 ${u.disabled ? 'bg-red-500/20 text-red-300' : 'bg-emerald-500/20 text-emerald-300'}`}>
+              {u.disabled ? 'SUSPENDED' : 'ACTIVE'}
+            </span>
+          </button>
+        ))}
+      </div>
 
       {user && (
         <div className="rounded-2xl bg-slate-950/70 border border-slate-800 p-5">

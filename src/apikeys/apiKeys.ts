@@ -10,7 +10,7 @@
  *    in the device's network tab. ONLY client-safe keys (browser-restricted
  *    Google Maps keys, YouTube Data API keys) may ever be published here.
  *  - Server-only keys (payment secrets, private tokens) live in
- *    `platformConfig/apiKeys/{keyId}` (owner-only) and are NEVER readable
+ *    `platformConfig/apiKeys/entries/{keyId}` (owner-only) and are NEVER readable
  *    from a client. This module cannot see them by design.
  *  - Never log a key value. The masked display lives in the admin UI.
  */

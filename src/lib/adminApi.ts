@@ -24,6 +24,14 @@ export { withFallback, type ApiResult } from './apiFallback';
 export const BACKEND_URL =
   (import.meta as any).env?.VITE_BACKEND_URL || 'http://localhost:5000';
 
+/**
+ * F2: true only when a backend URL was actually configured in the build
+ * environment. When false, BACKEND_URL is the localhost fallback string —
+ * surfaces (System desk) must say "not configured", never print the
+ * fallback as if it were real configuration.
+ */
+export const BACKEND_URL_CONFIGURED = Boolean((import.meta as any).env?.VITE_BACKEND_URL);
+
 export const BACKEND_DEPLOYED_HINT =
   'Backend not deployed. Run: firebase deploy --only functions — then set VITE_BACKEND_URL to the deployed URL.';
 
@@ -200,6 +208,11 @@ export const adminApi = {
     withFallback(
       () => get<{ success: boolean; user: UserRecord }>(`/api/admin/users/lookup?email=${encodeURIComponent(email)}`),
       () => firestoreAdmin.lookupUser(email)
+    ),
+  listUsers: (limitN = 50) =>
+    withFallback(
+      () => get<{ success: boolean; users: UserRecord[] }>(`/api/admin/users?limit=${limitN}`),
+      () => firestoreAdmin.listUsers(limitN)
     ),
   disableUser: (uid: string, reason?: string) =>
     withFallback(() => post(`/api/admin/users/${uid}/disable`), () => firestoreAdmin.suspendUser(uid, reason || 'Suspended by platform owner.')),
