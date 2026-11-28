@@ -63,6 +63,41 @@ export interface ReleaseEntry {
 
 export const RELEASES: readonly ReleaseEntry[] = [
   {
+    version: 'v2026.11.28-baee61a',
+    date: '2026-11-28',
+    sections: {
+      new: [
+        { text: {
+          en: 'Trustees can now preview the console exactly as an Accountant, Priest, Sevadar or Devotee sees it — from the governance desk’s new Preview doors. A banner stays on screen the whole time, and nothing can be changed while previewing.',
+          hi: 'ट्रस्टी अब कंसोल को ठीक वैसे ही देख सकते हैं जैसे एक Accountant, Priest, Sevadar या Devotee देखता है — गवर्नेंस डेस्क के नए Preview द्वारों से। पूरे समय स्क्रीन पर एक बैनर रहता है, और पूर्वावलोकन के दौरान कुछ भी बदला नहीं जा सकता।',
+          bn: 'ট্রাস্টিরা এখন কনসোলটি ঠিক সেভাবেই দেখতে পারেন, যেভাবে একজন Accountant, Priest, Sevadar বা Devotee দেখেন — গভর্ন্যান্স ডেস্কের নতুন Preview দরজা থেকে। পুরো সময় স্ক্রিনে একটি ব্যানার থাকে, আর প্রিভিউ চলাকালে কিছুই বদলানো যায় না।',
+        } },
+        { text: {
+          en: 'A devotee opening their organisation’s dashboard now gets a member view — their own giving, bookings and membership — while the organisation’s treasury stays with its trustees and team, where it belongs.',
+          hi: 'अपने संगठन का डैशबोर्ड खोलने वाले भक्त को अब सदस्य दृश्य मिलता है — उनका अपना दान, बुकिंग व सदस्यता — जबकि संगठन का कोषागार उसके ट्रस्टियों व दल के पास रहता है, जहाँ उसे होना चाहिए।',
+          bn: 'নিজের সংগঠনের ড্যাশবোর্ড খুললে একজন ভক্ত এখন সদস্য দৃশ্য পান — তাঁর নিজের দান, বুকিং ও সদস্যতা — আর সংগঠনের কোষাগার থাকে তার ট্রাস্টি ও দলের কাছে, যেখানে থাকার কথা।',
+        } },
+      ],
+      fixed: [
+        { text: {
+          en: 'The demo now greets you truthfully: entering works every time, the Exit demo button truly exits, and your demo identity keeps one steady ID on your device instead of a new one on each visit.',
+          hi: 'डेमो अब आपको सच के साथ स्वागत करता है: हर बार प्रवेश होता है, Exit demo बटन सचमुच बाहर ले जाता है, और आपकी डेमो पहचान हर यात्रा पर नई बनने के बजाय आपके डिवाइस पर एक स्थिर ID रखती है।',
+          bn: 'ডেমো এখন আপনাকে সত্য দিয়ে স্বাগত জানায়: প্রতিবার প্রবেশ হয়, Exit demo বোতাম সত্যিই বের করে দেয়, আর আপনার ডেমো পরিচয় প্রতিবার নতুন না হয়ে আপনার ডিভাইসে একটি স্থির ID ধরে রাখে।',
+        } },
+        { text: {
+          en: 'A staff-permission message that printed a placeholder instead of the organisation’s name now names your organisation properly, and the two demo funds that began below zero now begin honestly in balance.',
+          hi: 'एक स्टाफ़-अनुमति संदेश जो संगठन के नाम की जगह एक प्लेसहोल्डर छापता था, अब आपके संगठन का नाम सही ढंग से बताता है, और जो दो डेमो फंड शून्य से नीचे शुरू होते थे, वे अब ईमानदारी से संतुलन में शुरू होते हैं।',
+          bn: 'একটি স্টাফ-অনুমতির বার্তা যা সংগঠনের নামের বদলে একটি প্লেসহোল্ডার ছাপত, তা এখন আপনার সংগঠনের নাম ঠিকভাবে বলে, আর যে দুটি ডেমো তহবিল শূন্যের নিচে শুরু হতো, সেগুলো এখন সততার সঙ্গে ভারসাম্যে শুরু হয়।',
+        } },
+        { text: {
+          en: 'Every corner of the app now shows the same real version, the Suchana bell and the Suchana stream count from the same list, and the language confirmation speaks the language you just chose.',
+          hi: 'ऐप का हर कोना अब एक ही असली संस्करण दिखाता है, सूचना घंटी व सूचना धारा एक ही सूची से गिनती करती हैं, और भाषा की पुष्टि उसी भाषा में होती है जो आपने अभी चुनी।',
+          bn: 'অ্যাপের প্রতিটি কোণ এখন একই আসল সংস্করণ দেখায়, সূচনা ঘণ্টা ও সূচনা ধারা একই তালিকা থেকে গোনে, আর ভাষার নিশ্চিতকরণ সেই ভাষাতেই হয় যেটি আপনি এইমাত্র বেছেছেন।',
+        } },
+      ],
+    },
+  },
+  {
     version: 'v2026.11.28-38ce987',
     date: '2026-11-28',
     sections: {
