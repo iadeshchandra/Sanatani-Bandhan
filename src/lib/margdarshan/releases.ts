@@ -63,6 +63,19 @@ export interface ReleaseEntry {
 
 export const RELEASES: readonly ReleaseEntry[] = [
   {
+    version: 'v2026.11.28-5eb555e',
+    date: '2026-11-28',
+    sections: {
+      fixed: [
+        { text: {
+          en: 'Behind the scenes, the owner’s console now keeps its promises: the API Keys desk can save the service keys the app runs on — the YouTube connection for live darshan among them — and the Professionals desk accepts the owner’s decisions. A security-rules repair that was approved earlier is now truly in place.',
+          hi: 'पर्दे के पीछे, मालिक का कंसोल अब अपने वादे निभाता है: API Keys डेस्क उन सेवा-कुंजियों को सहेज सकता है जिन पर ऐप चलता है — लाइव दर्शन के लिए YouTube कनेक्शन उनमें से एक है — और Professionals डेस्क मालिक के निर्णय स्वीकार करता है। पहले स्वीकृत सुरक्षा-नियम सुधार अब सचमुच लागू है।',
+          bn: 'পর্দার আড়ালে, মালিকের কনসোল এখন তার প্রতিশ্রুতি রাখে: API Keys ডেস্ক সেই পরিষেবা-চাবিগুলি সংরক্ষণ করতে পারে যেগুলির ওপর অ্যাপ চলে — লাইভ দর্শনের জন্য YouTube সংযোগ তার মধ্যে একটি — আর Professionals ডেস্ক মালিকের সিদ্ধান্ত গ্রহণ করে। আগে অনুমোদিত নিরাপত্তা-নিয়মের মেরামত এখন সত্যিই কার্যকর।',
+        } },
+      ],
+    },
+  },
+  {
     version: 'v2026.11.28-baee61a',
     date: '2026-11-28',
     sections: {
