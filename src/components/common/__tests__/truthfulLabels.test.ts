@@ -69,6 +69,12 @@ describe('D-14 — the footer brands the product, not a phantom tier', () => {
   it('Footer.tsx carries no "Enterprise" and shows Sanatani Bandhan + version', () => {
     const footer = read('src/components/common/Footer.tsx');
     expect(footer).not.toContain('Enterprise');
-    expect(footer).toContain('Sanatani Bandhan v3.2.0');
+    // F3 (Test #3 finding #32): the version is no longer a hard-coded
+    // string ("v3.2.0" never existed) — the footer must render the
+    // single build stamp from lib/appVersion, like version.json and
+    // the Profile screen.
+    expect(footer).toContain('Sanatani Bandhan {APP_VERSION}');
+    expect(footer).toContain("from '../../lib/appVersion'");
+    expect(footer).not.toContain('v3.2.0');
   });
 });

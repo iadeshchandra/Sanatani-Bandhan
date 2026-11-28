@@ -13,7 +13,8 @@ import { NotificationBell } from '../../notifications/NotificationBell';
 import { Button } from '../common/ui/Button';
 import { Tabs } from '../common/ui/Tabs';
 import { NotificationCenterUI } from '../../notifications/NotificationCenterUI';
-import { useNotificationCenter, actionUnreadCount } from '../../notifications/index';
+import { actionUnreadCount } from '../../notifications/index';
+import { useLiveNotifications } from '../../notifications/useLiveNotifications';
 import PersonalSadhanaDesk from '../domain5/PersonalSadhanaDesk';
 import SanataniVivahDesk from '../domain4/SanataniVivahDesk';
 import { PurohitMarketDesk } from '../domain3/PurohitMarketDesk';
@@ -51,15 +52,25 @@ export default function MemberAppShell() {
   const { safeTranslate, t } = useLanguage();
   const { showToast } = useToast();
   // Unified notification center — live on notifications/{uid}/items.
+  // F3 (Test #3 finding #20): this shell used to read the stream
+  // through useNotificationCenter — a SECOND reader of the same
+  // collection, with no read window — while the solo shell
+  // (NotificationContext) and the org shell both read through
+  // useLiveNotifications (newest 80, duplicate-collapsed, counts
+  // derived from the displayed list). Two readers, two truths: this
+  // bell hand-counted an unread total the other shells' streams did
+  // not show. All three shells now derive badge and list from the ONE
+  // live reader, so badge == list everywhere by construction.
   const {
     items: centerItems,
-    criticalUnread: centerCritical,
+    unreadCount: centerUnread,
+    criticalCount: centerCriticalCount,
     markRead: centerMarkRead,
     markGroupRead: centerMarkGroupRead,
     markAllRead: centerMarkAllRead,
     clearRead: centerClearRead,
     acknowledge: centerAcknowledge,
-  } = useNotificationCenter(firebaseUser?.uid ?? null);
+  } = useLiveNotifications();
   const [activeTab, setActiveTab] = useState<'HOME' | 'SADHANA' | 'PUROHIT' | 'PORTAL' | 'YATRA_NET' | 'VIVAH' | 'PROFILE'>('HOME');
   const [showNotifications, setShowNotifications] = useState(false);
   // TWO-MODE M1: the Grow sheet is shared by the header ModeSwitch
@@ -87,10 +98,22 @@ export default function MemberAppShell() {
   // spellings; the verdicts agree for every staff edge).
   const handleSwitchToOrganisation = () => {
     if (!canOpenConsole) {
-      // TWO-MODE M1: no enrolment is an invitation, not an error —
-      // the old bare "Access Restricted" toast is retired; the Grow
-      // sheet (the JoinUpgrade doors) is the honest next step.
-      setGrowOpen(true);
+      // F3 (Test #3 finding #7): these two doors are labelled
+      // "Institution ERP" / "Return to Institution ERP" — a staff door.
+      // For a member with no staff role in this org they opened the
+      // Grow sheet (the sales/onboarding invitation), which answers a
+      // question the user never asked. A devotee now gets the honest
+      // staff-only explanation — the same words the portal's console
+      // lock sheet uses (orgLock* copy) — and no sheet at all. The
+      // ModeSwitch's own Grow invitation (a different control, whose
+      // no-access state IS the invitation by the M1 design) is
+      // untouched, and the GrowSheet stays mounted for it.
+      const orgName = activeWorkspace?.name || 'your organisation';
+      showToast(
+        t('surfaces.devoteePortal.orgLockStaffNote').replaceAll('{org}', orgName),
+        'info',
+        t('surfaces.devoteePortal.orgLockSheetTitle').replaceAll('{org}', orgName)
+      );
       return;
     }
     if (activeWorkspace?.id?.startsWith('DEMO_')) {
@@ -356,8 +379,8 @@ export default function MemberAppShell() {
               {/* Suchana — live notification bell + center */}
               <div className="relative">
                 <NotificationBell
-                  unreadCount={centerItems.filter((i) => !i.read).length}
-                  criticalCount={centerCritical.length}
+                  unreadCount={centerUnread}
+                  criticalCount={centerCriticalCount}
                   actionCount={actionUnreadCount(centerItems)}
                   onClick={() => setShowNotifications(true)}
                   className="text-temple-600 hover:bg-temple-50 border border-temple-200"
@@ -367,7 +390,7 @@ export default function MemberAppShell() {
                     items={centerItems}
                     onClose={() => setShowNotifications(false)}
                     onMarkRead={(id) => void centerMarkRead(id)}
-                    onMarkGroupRead={(group) => void centerMarkGroupRead(group.items.map((i) => i.id))}
+                    onMarkGroupRead={(group) => void centerMarkGroupRead(group)}
                     onMarkAllRead={() => void centerMarkAllRead()}
                     onClearRead={() => void centerClearRead()}
                     onAcknowledge={(id) => void centerAcknowledge(id)}

@@ -21,6 +21,7 @@
  */
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { appLocale } from '../../../lib/format';
+import { APP_VERSION } from '../../../lib/appVersion';
 import { AlarmClock, ChevronRight, KeyRound, LogOut, Receipt, Search, LifeBuoy } from 'lucide-react';
 import { AppLogo } from '../AppLogo';
 import type { PlatformRole } from '../../../lib/platformAdminRoles';
@@ -148,8 +149,10 @@ export const ConsoleHeader: React.FC<ConsoleHeaderProps> = ({
       {/* ------------------------------------------------ brand row */}
       <div className="px-4 sm:px-6 py-3 flex items-center gap-x-3 gap-y-2 flex-wrap">
         <AppLogo size="md" showText textVariant="light" subtitle="GodMode · Sovereign Console" />
+        {/* F3 (Test #3 finding #32): was the hard-coded "v3.0" — now
+            the one build stamp (lib/appVersion), as everywhere else. */}
         <GmBadge tone="saffron" mono>
-          v3.0
+          {APP_VERSION}
         </GmBadge>
 
         <div className="ml-auto flex items-center gap-2 shrink-0">

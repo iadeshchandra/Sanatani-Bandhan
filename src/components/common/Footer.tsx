@@ -1,5 +1,6 @@
 import React from 'react';
 import { useAuthWorkspace } from '../../context/AuthWorkspaceContext';
+import { APP_VERSION } from '../../lib/appVersion';
 
 interface FooterProps {
   onOpenTelemetry?: () => void;
@@ -24,7 +25,11 @@ export const Footer: React.FC<FooterProps> = ({ onOpenTelemetry }) => {
               GA4 Telemetry Inspector
             </button>
           )}
-          <p>Sanatani Bandhan v3.2.0</p>
+          {/* F3 (Test #3 finding #32): the footer used to hard-code
+              a version string that never matched any real build. It
+              now reads the one build stamp (lib/appVersion, the same
+              source version.json and the Profile screen use). */}
+          <p>Sanatani Bandhan {APP_VERSION}</p>
         </div>
       </div>
     </footer>

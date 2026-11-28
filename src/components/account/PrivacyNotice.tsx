@@ -72,20 +72,30 @@ export const PrivacyNoticeGate: React.FC = () => {
   const [turn, setTurn] = useState<string | null>(null);
   const [seenAtOpen, setSeenAtOpen] = useState(0);
 
+  // F3 (Test #3 finding #19): the seen-stamp is keyed to the Firebase
+  // uid — but demo sessions run on ANONYMOUS users, and signing out
+  // destroys the anonymous session, so the next demo entry arrives
+  // with a NEW uid whose stamp is unseen: the gate fired again
+  // mid-testing after the visitor had already accepted. Anonymous
+  // sessions share one device-level stamp instead (the notice is the
+  // same for every demo visitor on this device); real accounts keep
+  // their per-uid stamp.
+  const privacyUid = user?.isAnonymous ? 'anon-device' : user?.uid;
+
   // UIUX Batch 4 (D-16): first-run dialogs never stack. The gate holds
   // a turn in the shared first-run queue (privacy first) and renders
   // only on its turn; every close path releases the turn so the next
   // waiting surface (language welcome, guided tour) can appear.
   useEffect(() => {
-    if (!user?.uid) return;
-    if (privacyPromptDue(user.uid)) {
-      setSeenAtOpen(privacySeenVersion(user.uid));
+    if (!privacyUid) return;
+    if (privacyPromptDue(privacyUid)) {
+      setSeenAtOpen(privacySeenVersion(privacyUid));
       setOpen(true);
       setTurn(requestFirstRunDialog('privacy-notice', FIRST_RUN_PRIORITY.privacy));
     } else {
       setOpen(false);
     }
-  }, [user?.uid]);
+  }, [privacyUid]);
 
   useEffect(() => {
     if (!open) return;
@@ -113,7 +123,7 @@ export const PrivacyNoticeGate: React.FC = () => {
   };
 
   const acknowledge = () => {
-    markPrivacySeen(user.uid);
+    if (privacyUid) markPrivacySeen(privacyUid);
     close();
   };
 

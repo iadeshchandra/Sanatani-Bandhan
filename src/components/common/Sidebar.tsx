@@ -78,6 +78,7 @@ import { PLAN_PRICING } from '../../config/planPricing';
 import { OfflineSyncManager } from '../../services/OfflineSyncManager';
 import { getPinnedDesks, togglePinnedDesk, getRecentDesks, recordDeskVisit } from './ui/deskHistory';
 import { doorById, doorsForVisibleDesks, doorMatchesSearch, type DeskDoor } from '../../lib/deskDoors';
+import { APP_VERSION } from '../../lib/appVersion';
 import { openDeskPanel } from '../../lib/deskPanel';
 import { UpsellModal } from './UpsellModal';
 import { openPlanUpgrade } from '../../billing/PlanUpgradeFlow';
@@ -565,6 +566,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
     });
   }, [searchTerm, selectedDomainFilter, activeWorkspace, effectiveRole, checkPermission]);
 
+  // F3 (Test #3 finding #26): the drawer's "N of 73 Desks Shown" hid
+  // ONE desk with no name and no reason — the Federation & Multi-Branch
+  // HQ desk, filtered out above (step 0) whenever the workspace has
+  // fewer than 2 branches. The header count now carries the reason
+  // whenever that rule is the one keeping a catalog desk out of view.
+  const federationHiddenByBranchRule =
+    MODULE_CATALOG.some((m) => m.id === 'federation') &&
+    (activeWorkspace?.branches?.length || 0) < 2;
+
   // C-6: plan-tier locks. Locked modules STAY visible (upgrade affordance)
   // instead of being hidden — the lock badge + upsell is the conversion path.
   // Demo workspaces are never plan-locked (demo quota governs instead).
@@ -698,6 +708,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
                       count as the console's size. */}
                   {filteredModules.length} of {MODULE_CATALOG.length} Desks Shown
                 </span>
+                {federationHiddenByBranchRule && (
+                  <span className="text-[9px] text-temple-500 font-medium block leading-snug">
+                    Federation desk joins when you have 2+ branches
+                  </span>
+                )}
               </div>
             )}
           </div>
@@ -794,15 +809,20 @@ export const Sidebar: React.FC<SidebarProps> = ({
               )}
             </div>
 
-            {/* Quick Domain Filter Chips */}
-            <div className="flex items-center gap-1 overflow-x-auto no-scrollbar pt-1 pb-0.5">
+            {/* Quick Domain Filter Chips — F3 (finding #26): the
+                strip now follows the F1/F2 strip law (sb-strip:
+                no visible scrollbar, first item never flush-clipped,
+                last item carries end air) and pill labels never wrap
+                (whitespace-nowrap), so nothing truncates mid-word at
+                phone widths. */}
+            <div className="flex items-center gap-1 overflow-x-auto no-scrollbar sb-strip pt-1 pb-0.5">
               {domainFilterPills.map((pill, idx) => {
                 const isSelected = selectedDomainFilter === pill.domain;
                 return (
                   <button
                     key={pill.label}
                     onClick={() => setSelectedDomainFilter(pill.domain)}
-                    className={`min-h-[44px] inline-flex items-center justify-center px-2.5 py-1 rounded-lg text-[10px] font-bold tracking-wide shrink-0 transition-all cursor-pointer ${
+                    className={`min-h-[44px] inline-flex items-center justify-center px-2.5 py-1 rounded-lg text-[10px] font-bold tracking-wide shrink-0 whitespace-nowrap transition-all cursor-pointer ${
                       isSelected
                         ? 'bg-saffron-500 text-temple-950 font-black shadow-xs'
                         : 'bg-temple-800 text-temple-400 hover:bg-temple-700 hover:text-temple-200'
@@ -994,7 +1014,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <div className="p-2.5 bg-temple-900/90 rounded-xl border border-temple-800 shadow-inner">
 
               <p className="text-[10px] uppercase font-bold text-saffron-500 tracking-wider mb-0.5">
-                Vedic Workspace v2.4
+                {/* F3 (Test #3 finding #32): was the hard-coded
+                    "Vedic Workspace v2.4" — now the one build stamp
+                    (lib/appVersion), as everywhere else. */}
+                Vedic Workspace {APP_VERSION}
               </p>
               <p className="text-[11px] font-serif text-temple-400 italic truncate">
                 "Dharmo Rakshati Rakshitah"

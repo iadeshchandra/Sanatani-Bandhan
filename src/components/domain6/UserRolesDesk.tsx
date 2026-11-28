@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import {
   Shield,
@@ -11,9 +11,27 @@ import {
   X,
   AlertCircle,
   Plus,
+  Eye,
+  LogOut,
 } from 'lucide-react';
 import { ROLE_PERMISSIONS, Role, Permission } from '../../security/rbac';
 import { useToast } from '../../context/ToastContext';
+import { useAuthWorkspace } from '../../context/AuthWorkspaceContext';
+import {
+  getRolePreview,
+  subscribeRolePreview,
+  startRolePreview,
+  exitRolePreview,
+  type RolePreviewState,
+} from '../../lib/rolePreview';
+
+/** The roles a Trustee/owner can preview this console as (F3). */
+const PREVIEW_ROLES: Array<{ role: string; blurb: string }> = [
+  { role: 'Accountant', blurb: 'Treasury & audit desks' },
+  { role: 'Priest', blurb: 'Rituals & devotee desks' },
+  { role: 'Sevadar', blurb: 'Ground seva & registration' },
+  { role: 'Devotee', blurb: 'The member view — no staff desks, no treasury' },
+];
 
 interface StaffMember {
   id: string;
@@ -69,10 +87,36 @@ const INITIAL_STAFF: StaffMember[] = [
 
 export const UserRolesDesk: React.FC = () => {
   const { showToast } = useToast();
+  const { activeWorkspace } = useAuthWorkspace();
   const [staffList, setStaffList] = useState<StaffMember[]>(INITIAL_STAFF);
   const [selectedStaff, setSelectedStaff] = useState<StaffMember | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editedRole, setEditedRole] = useState<Role>('Sevadar');
+
+  // F3 — REAL ROLE PREVIEW (Test #3 RBAC coverage gap): starting a
+  // preview publishes the chosen role through the shell's normal
+  // per-org override (lib/rolePreview + OrgSpaceShell), so the whole
+  // console re-renders under the SAME RBAC resolution a real member
+  // of that role passes through. The desk then navigates to the
+  // Command Center so the preview opens on the role's own home.
+  const orgId = activeWorkspace?.id || '';
+  const [previewState, setPreviewState] = useState<RolePreviewState | null>(() =>
+    getRolePreview()
+  );
+  useEffect(() => subscribeRolePreview(setPreviewState), []);
+  const previewHere =
+    previewState && previewState.orgId === orgId ? previewState : null;
+  const startPreview = (role: string) => {
+    if (!orgId) return;
+    startRolePreview(orgId, role);
+    try {
+      window.dispatchEvent(
+        new CustomEvent('sanatani:navigate', { detail: { module: 'dashboard' } })
+      );
+    } catch {
+      /* non-DOM environment — the preview still starts */
+    }
+  };
 
   const handleOpenEdit = (staff: StaffMember) => {
     setSelectedStaff(staff);
@@ -116,6 +160,66 @@ export const UserRolesDesk: React.FC = () => {
             <Users className="w-4 h-4 text-slate-500" />
             <span>{staffList.length} Sample Staff (Preview)</span>
           </div>
+        </div>
+      </div>
+
+      {/* 1b. REAL ROLE PREVIEW — F3 (Test #3 RBAC coverage gap).
+          Until now the only way to "see" another role was the sample
+          matrix below: Accountant / Priest / Sevadar views could not
+          be exercised at all. These doors start a true preview: the
+          shell publishes the role through the same per-org override a
+          real membership uses, so desk visibility and action gating
+          are the app's own RBAC — no mock, no fake data (the console
+          shows this org's real records, read-only). A persistent
+          banner names the preview, the shell blocks every change,
+          and Exit preview restores the Trustee's own view. */}
+      <div className="bg-white rounded-2xl border border-indigo-200 p-4 sm:p-6 shadow-xs">
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="min-w-0">
+            <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider flex items-center gap-2">
+              <Eye className="w-4 h-4 text-indigo-600" />
+              See this console as a role does
+            </h3>
+            <p className="text-xs text-slate-500 mt-1 max-w-2xl leading-relaxed">
+              Pick a role and the whole console re-renders exactly as that role sees it —
+              the same desk visibility and action gates a real member gets, driven by the
+              app's own security model. A banner stays on screen, nothing can be changed
+              while you look, and exiting restores your own view. Nobody's real access changes.
+            </p>
+          </div>
+          {previewHere && (
+            <span className="px-3 py-1.5 rounded-full bg-amber-100 text-amber-900 text-xs font-extrabold border border-amber-300 flex items-center gap-1.5">
+              <Eye className="w-3.5 h-3.5" />
+              Previewing as {previewHere.role}
+            </span>
+          )}
+        </div>
+        <div className="flex flex-wrap gap-2 mt-4">
+          {PREVIEW_ROLES.map(({ role, blurb }) => (
+            <button
+              key={role}
+              type="button"
+              onClick={() => startPreview(role)}
+              disabled={!orgId || previewHere?.role === role}
+              className="inline-flex flex-col items-start gap-0.5 px-4 py-2.5 min-h-[44px] rounded-xl bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white text-left transition-colors cursor-pointer"
+            >
+              <span className="text-xs font-extrabold flex items-center gap-1.5">
+                <Eye className="w-3.5 h-3.5" />
+                Preview as {role}
+              </span>
+              <span className="text-[10px] font-medium text-indigo-200">{blurb}</span>
+            </button>
+          ))}
+          {previewHere && (
+            <button
+              type="button"
+              onClick={() => exitRolePreview()}
+              className="inline-flex items-center gap-1.5 px-4 py-2.5 min-h-[44px] rounded-xl bg-white border border-slate-300 hover:bg-slate-50 text-slate-700 text-xs font-extrabold transition-colors cursor-pointer"
+            >
+              <LogOut className="w-3.5 h-3.5" />
+              Exit preview
+            </button>
+          )}
         </div>
       </div>
 

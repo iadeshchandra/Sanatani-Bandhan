@@ -535,7 +535,12 @@ const WIRED: Array<[string, string]> = [
   ["components/public/DemoBanner.tsx", "surfaces.demo.demoSandboxStatus"],
   ["components/public/DemoBanner.tsx", "surfaces.demo.exitDemo"],
   ["components/public/DemoBanner.tsx", "surfaces.demo.exitTheDemoSandboxAndReturn"],
-  ["components/public/DemoBanner.tsx", "surfaces.demo.exitTheDemoSandboxYouWill"],
+  // F3 (Test #3 finding #8): the pair for
+  // "surfaces.demo.exitTheDemoSandboxYouWill" is removed — that key
+  // was the Exit button's window.confirm() prompt, and the confirm
+  // gate itself was removed (native confirms are suppressed in
+  // embedded browsers, which is what made Exit dead). The dictionary
+  // leaf remains; nothing calls it now.
   ["components/public/DemoBanner.tsx", "surfaces.demo.exploringDemo"],
   ["components/public/DemoBanner.tsx", "surfaces.demo.joinFree"],
   ["components/public/DemoBanner.tsx", "surfaces.demo.resetTheDemoWorkspaceYourCreated"],

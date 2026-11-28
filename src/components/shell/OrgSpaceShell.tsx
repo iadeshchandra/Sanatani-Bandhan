@@ -7,8 +7,15 @@ import { provisionalSoloProfile } from '../../solo/soloSession';
 import { NotificationBell } from '../../notifications/NotificationBell';
 import { ASSISTANT_OPEN_EVENT } from '../../ai/components/AskButton';
 import { NotificationCenterUI } from '../../notifications/NotificationCenterUI';
+import { Eye, LogOut } from 'lucide-react';
 import { PracticeBanner } from '../org/PracticeBanner';
 import { AssistedBanner } from '../org/AssistedBanner';
+import {
+  getRolePreview,
+  subscribeRolePreview,
+  exitRolePreview,
+  type RolePreviewState,
+} from '../../lib/rolePreview';
 import { PrivacyNoticeGate } from '../account/PrivacyNotice';
 import { useLiveNotifications } from '../../notifications/useLiveNotifications';
 import {
@@ -164,6 +171,53 @@ export const OrgSpaceShell: React.FC<{ children: React.ReactNode }> = ({ childre
     return (normalizeMembershipRole(currentRole as string) || 'Devotee') as string;
   }, [membership, currentRole, activeWorkspace?.createdBy]);
 
+  // F3 — ROLE PREVIEW (Test #3 RBAC coverage gap): a Trustee/owner can
+  // preview this console as another role (started from UserRolesDesk;
+  // state in lib/rolePreview). The preview is honoured ONLY for the
+  // org it was started in — switching orgs exits it — and while it is
+  // active the shell publishes the PREVIEW role through the same
+  // override channel below, so every RBAC consumer (checkPermission,
+  // Sidebar desk visibility, the AppContent scope/devotee gates,
+  // RoleHomeSwitch) resolves it exactly as a real member's role.
+  const [previewState, setPreviewState] = useState<RolePreviewState | null>(() =>
+    getRolePreview(),
+  );
+  useEffect(() => subscribeRolePreview(setPreviewState), []);
+  const activePreview =
+    previewState && previewState.orgId === orgId ? previewState : null;
+  useEffect(() => {
+    if (previewState && previewState.orgId !== orgId) exitRolePreview();
+  }, [previewState, orgId]);
+  // PreviewFrame's recipe, shell-wide: while previewing, clicks inside
+  // the desk area are captured and stopped (navigation chrome — the
+  // Sidebar <aside>, <nav> and <header> elements — stays live so the
+  // previewer can walk the desks the role can see; scrolling and
+  // reading are never touched). The banner's live line explains a
+  // stopped tap, exactly as the devotee PreviewFrame does.
+  const [previewBlockHint, setPreviewBlockHint] = useState(false);
+  const previewHintTimer = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+  const flashPreviewBlockHint = React.useCallback(() => {
+    setPreviewBlockHint(true);
+    if (previewHintTimer.current) clearTimeout(previewHintTimer.current);
+    previewHintTimer.current = setTimeout(() => setPreviewBlockHint(false), 2600);
+  }, []);
+  const blockPreviewAction = React.useCallback(
+    (e: React.SyntheticEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      flashPreviewBlockHint();
+    },
+    [flashPreviewBlockHint],
+  );
+  const blockPreviewClick = React.useCallback(
+    (e: React.SyntheticEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (target?.closest?.('aside, nav, header')) return;
+      blockPreviewAction(e);
+    },
+    [blockPreviewAction],
+  );
+
   // Publish the per-org role into the auth context so every RBAC check
   // (checkPermission, Sidebar nav filter, AppContent devotee guard)
   // evaluates THIS org's role. Cleared when the org session ends.
@@ -171,13 +225,20 @@ export const OrgSpaceShell: React.FC<{ children: React.ReactNode }> = ({ childre
   // the effective (expiry-aware) role, so an expired grant stops
   // unlocking role-gated desks the moment it lapses; unscoped edges
   // publish exactly as before.
+  // F3: while a role preview is active for this org, the PREVIEW role
+  // is published instead of the member's own — one publisher, one
+  // channel, no parallel RBAC.
   useEffect(() => {
+    if (activePreview) {
+      setOrgRoleOverride(activePreview.role);
+      return;
+    }
     const publish =
       membership && (membership.deskScope != null || membership.roleExpiresAt != null)
         ? displayRole
         : membership?.role || null;
     setOrgRoleOverride(publish);
-  }, [orgId, membership, displayRole, setOrgRoleOverride]);
+  }, [orgId, membership, displayRole, setOrgRoleOverride, activePreview]);
   useEffect(() => {
     return () => setOrgRoleOverride(null);
   }, [setOrgRoleOverride]);
@@ -459,10 +520,76 @@ export const OrgSpaceShell: React.FC<{ children: React.ReactNode }> = ({ childre
           an assisted session can never be forgotten mid-session. */}
       <PracticeBanner />
       <AssistedBanner />
+
+      {/* F3 — ROLE PREVIEW banner: persistent while a preview runs
+          (the PreviewFrame recipe — uniquely coloured, in the user's
+          language, with an in-bar Exit). It renders even when the
+          devotee-preview chrome rule above hides the org header, so
+          Exit is always one tap away. */}
+      {activePreview && (
+        <div
+          className="shrink-0 bg-amber-400 text-stone-950 border-b-2 border-amber-600 px-4 py-2.5 z-30"
+          role="status"
+        >
+          <div className="max-w-5xl mx-auto flex items-center gap-3">
+            <span
+              className="flex items-center justify-center w-10 h-10 rounded-full bg-stone-950 text-amber-400 shrink-0"
+              aria-hidden
+            >
+              <Eye className="w-5 h-5" />
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-black leading-tight">
+                <T
+                  en={`Previewing as ${activePreview.role}`}
+                  bn={`${activePreview.role} হিসেবে প্রিভিউ দেখছেন`}
+                  hi={`${activePreview.role} के रूप में पूर्वावलोकन`}
+                />
+              </p>
+              <p className="text-xs font-semibold text-stone-800 leading-snug" aria-live="polite">
+                {previewBlockHint ? (
+                  <T
+                    en="Preview only — taps are paused here, so nothing can change."
+                    bn="শুধু দেখার জন্য — এখানে ট্যাপ বন্ধ, তাই কিছুই বদলাবে না।"
+                    hi="केवल देखने के लिए — यहाँ टैप रुके हैं, इसलिए कुछ नहीं बदलेगा।"
+                  />
+                ) : (
+                  <T
+                    en={`You are seeing ${orgName} exactly as a ${activePreview.role} does. Nothing here can be changed.`}
+                    bn={`আপনি ${orgName} ঠিক সেভাবেই দেখছেন, যেভাবে একজন ${activePreview.role} দেখেন। এখানে কিছুই বদলানো যাবে না।`}
+                    hi={`आप ${orgName} को ठीक वैसे ही देख रहे हैं जैसे एक ${activePreview.role} देखता है। यहाँ कुछ नहीं बदला जा सकता।`}
+                  />
+                )}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => exitRolePreview()}
+              className="shrink-0 inline-flex items-center gap-2 min-h-[48px] px-4 rounded-xl bg-cta hover:bg-cta-hover text-white text-sm font-extrabold transition-colors cursor-pointer"
+            >
+              <LogOut className="w-4 h-4" aria-hidden />
+              <T en="Exit preview" bn="প্রিভিউ থেকে বেরোন" hi="पूर्वावलोकन से निकलें" />
+            </button>
+          </div>
+        </div>
+      )}
       <PrivacyNoticeGate />
 
-      {/* The existing org content (AppContent) — desk navigation untouched */}
-      <div className="flex-1 min-h-0">{children}</div>
+      {/* The existing org content (AppContent) — desk navigation untouched.
+          F3: while a role preview is active, this wrapper carries the
+          shell-level write block (capture-phase; see blockPreviewClick). */}
+      <div
+        className="flex-1 min-h-0"
+        {...(activePreview
+          ? {
+              onClickCapture: blockPreviewClick,
+              onChangeCapture: blockPreviewAction,
+              onSubmitCapture: blockPreviewAction,
+            }
+          : {})}
+      >
+        {children}
+      </div>
     </div>
   );
 };

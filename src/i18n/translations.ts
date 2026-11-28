@@ -327,6 +327,34 @@ export function getDict(code: string): TranslationSchema {
   return dictCache[normalized] || enDict;
 }
 
+/**
+ * Translate a dot-delimited key in a SPECIFIC language, synchronously.
+ * The fallback chain mirrors LanguageContext's t() (that language →
+ * en → the key itself). Exists for messages that must speak the
+ * language being switched TO: a language picker's confirmation toast
+ * is composed in the click handler, where t() still resolves against
+ * the language being switched AWAY from (F3, Test #3 finding #18 —
+ * switching back to English confirmed in Hindi). Callers pair this
+ * with loadLanguageDict(code) so a not-yet-loaded dictionary is
+ * fetched before the message is composed.
+ */
+export function translateIn(code: string, key: string): string {
+  if (!key) return '';
+  const segments = key.split('.');
+  const resolveKey = (dict: TranslationSchema): string | undefined => {
+    let current: any = dict;
+    for (const segment of segments) {
+      if (current && typeof current === 'object' && segment in current) {
+        current = current[segment];
+      } else {
+        return undefined;
+      }
+    }
+    return typeof current === 'string' ? current : undefined;
+  };
+  return resolveKey(getDict(code)) ?? resolveKey(getDict('en')) ?? key;
+}
+
 /** Is this a language code we ship a dictionary for? */
 export function isSupportedLanguage(code: string): boolean {
   return SUPPORTED_LANGUAGE_CODES.includes((code || '').toLowerCase());

@@ -138,7 +138,15 @@ export const OrgsTab: React.FC = () => {
   };
 
   return (
-    <div className="max-w-5xl mx-auto px-4 py-5 space-y-5">
+    // F3 (Test #3 finding #21): the tab's own bottom padding (was
+    // py-5) stacked ON TOP of the shell's systemic FAB safe-zone
+    // clearance (body.sb-has-sos, index.css), so the list ended in
+    // content + padding + clearance. The tab now ends at its content
+    // (pt-5 kept, pb-0) and the standard clearance alone follows —
+    // the clearance itself is F1's calibrated safe zone (the last
+    // card must scroll clear of both FABs and the fixed tab bar) and
+    // is not trimmed.
+    <div className="max-w-5xl mx-auto px-4 pt-5 pb-0 space-y-5">
       <div>
         <h1 className="text-xl font-black text-stone-900">
           🏛️ <T en="My Organisations" bn="আমার সংগঠনসমূহ" hi="मेरे संगठन" />

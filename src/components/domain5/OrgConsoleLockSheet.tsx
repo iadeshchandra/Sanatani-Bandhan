@@ -48,10 +48,10 @@ export const OrgConsoleLockSheet: React.FC<OrgConsoleLockSheetProps> = ({
 
   return createPortal(
     <div
-      className="fixed inset-0 z-[210]"
+      className="fixed inset-0 z-[10010]"
       role="dialog"
       aria-modal="true"
-      aria-label={t('surfaces.devoteePortal.orgLockSheetTitle').replace('{org}', org)}
+      aria-label={t('surfaces.devoteePortal.orgLockSheetTitle').replaceAll('{org}', org)}
     >
       <div className="absolute inset-0 bg-black/60" onClick={onClose} aria-hidden />
       <div className="absolute inset-x-0 bottom-0 sm:mx-auto sm:max-w-lg max-h-[88dvh] overflow-y-auto bg-white rounded-t-3xl shadow-2xl border-t border-brass-200 text-temple-900">
@@ -63,7 +63,7 @@ export const OrgConsoleLockSheet: React.FC<OrgConsoleLockSheetProps> = ({
             </span>
             <div className="min-w-0 flex-1">
               <h2 className="text-[17px] font-black text-temple-950 leading-snug">
-                {t('surfaces.devoteePortal.orgLockSheetTitle').replace('{org}', org)}
+                {t('surfaces.devoteePortal.orgLockSheetTitle').replaceAll('{org}', org)}
               </h2>
               <p className="text-[12px] text-temple-600">
                 {t('surfaces.devoteePortal.orgLockSheetSub')}
@@ -82,7 +82,7 @@ export const OrgConsoleLockSheet: React.FC<OrgConsoleLockSheetProps> = ({
 
         <div className="px-5 py-4 space-y-4">
           <p className="text-[13px] leading-relaxed text-temple-700">
-            {t('surfaces.devoteePortal.orgLockWhy').replace('{org}', org)}
+            {t('surfaces.devoteePortal.orgLockWhy').replaceAll('{org}', org)}
           </p>
 
           <div className="space-y-2">
@@ -122,7 +122,11 @@ export const OrgConsoleLockSheet: React.FC<OrgConsoleLockSheetProps> = ({
           <div className="flex items-start gap-2.5 rounded-2xl bg-temple-50 border border-temple-200 px-4 py-3">
             <ShieldCheck className="w-5 h-5 text-emerald-700 shrink-0 mt-0.5" aria-hidden />
             <p className="text-[12px] leading-relaxed text-temple-600">
-              {t('surfaces.devoteePortal.orgLockStaffNote').replace('{org}', org)}
+              {/* F3 (Test #3 finding #25): every {org} in this sheet's
+                  copy is interpolated with replaceAll — the staff note
+                  names the org TWICE, and a single .replace() left the
+                  second one as a literal "{org}" on screen. */}
+              {t('surfaces.devoteePortal.orgLockStaffNote').replaceAll('{org}', org)}
             </p>
           </div>
         </div>

@@ -18,7 +18,7 @@ import { DEMO_ROLE_FOR_VIEW } from '../lib/demoSession';
  */
 export const useDemoStarter = () => {
   const navigate = useNavigate();
-  const { addWorkspace, switchWorkspace, loginAsRole, isAuthenticated, exitDemo } = useAuthWorkspace();
+  const { addWorkspace, switchWorkspace, loginAsRole, isAuthenticated, firebaseUser, exitDemo } = useAuthWorkspace();
   const { seedDemoData } = useData();
   const { showToast } = useToast();
 
@@ -28,7 +28,21 @@ export const useDemoStarter = () => {
       // signed-in user somehow triggers a demo start (stale landing tab,
       // deep link), clear any existing demo state first and refuse to
       // enter demo mode — they should use the real org flow.
-      if (isAuthenticated) {
+      //
+      // F3 (Test #3 finding #6): the refusal used to read the bare
+      // isAuthenticated flag — but a demo session itself IS
+      // "authenticated" (loginAsRole signs in anonymously), so a visitor
+      // already exploring one demo who tapped a demo door again was told
+      // "Demo unavailable — You are signed in…" while the app carried on
+      // around them: the message lied about the session AND about what
+      // happened. The refusal is honest only for a REAL (non-anonymous)
+      // account. An anonymous session is a demo session: exit the old
+      // sandbox cleanly first, then enter the new one — the closures
+      // below still see the OLD demo workspace id this tick, so
+      // switchWorkspace's demo quarantine and loginAsRole's demo guard
+      // both pass exactly as they do on a first entry.
+      const isAnonymousSession = !!firebaseUser?.isAnonymous;
+      if (isAuthenticated && !isAnonymousSession) {
         exitDemo();
         showToast(
           'You are signed in — the demo is for exploring before you join. Use "Organisation view" for your real spaces.',
@@ -37,6 +51,9 @@ export const useDemoStarter = () => {
         );
         navigate('/app/orgs');
         return;
+      }
+      if (isAnonymousSession) {
+        exitDemo();
       }
       const demoId = `DEMO_${type.toUpperCase()}_${Date.now()}`;
       const demoWorkspace: WorkspaceConfig = {
@@ -84,6 +101,6 @@ export const useDemoStarter = () => {
       // '/app' matches no explicit route → MainAppView → AppContent (app shell).
       navigate('/app');
     },
-    [navigate, addWorkspace, switchWorkspace, loginAsRole, seedDemoData, showToast, isAuthenticated, exitDemo]
+    [navigate, addWorkspace, switchWorkspace, loginAsRole, seedDemoData, showToast, isAuthenticated, firebaseUser, exitDemo]
   );
 };

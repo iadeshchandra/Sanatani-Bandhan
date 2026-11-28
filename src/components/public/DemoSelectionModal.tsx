@@ -45,7 +45,7 @@ export const DemoSelectionModal: React.FC<DemoSelectionModalProps> = ({ isOpen, 
   if (!isOpen) return null;
 
   return createPortal(
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-[10010] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
       <div className="bg-white w-full max-w-2xl rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
         <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50">
           <div>
@@ -147,7 +147,16 @@ export const DemoSelectionModal: React.FC<DemoSelectionModalProps> = ({ isOpen, 
           </div>
         </div>
 
-        <div className="p-6 border-t border-slate-100 bg-white flex justify-end">
+        <div className="p-6 border-t border-slate-100 bg-white flex items-center justify-end gap-3">
+          {/* F3 (Test #3 finding #13): the Enter button used to sit
+              disabled with no word about what was missing. Until an
+              organisation type is chosen, the footer says so — in the
+              picker's own safeTranslate pattern. */}
+          {!selected && (
+            <p className="text-xs text-slate-500 font-medium mr-auto" role="status">
+              {safeTranslate('demo_pick_type_hint', 'Choose an organisation type above to enter', 'প্রবেশ করতে উপরে একটি সংগঠনের ধরন বেছে নিন', 'प्रवेश करने के लिए ऊपर संगठन का प्रकार चुनें')}
+            </p>
+          )}
           <button
             disabled={!selected}
             onClick={() => selected && onSelect(selected, view)}

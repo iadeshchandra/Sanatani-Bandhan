@@ -72,16 +72,19 @@ export const DemoBanner: React.FC<DemoBannerProps> = ({ onRegister }) => {
   };
 
   const handleExitDemo = () => {
-    if (
-      window.confirm(
-        t('surfaces.demo.exitTheDemoSandboxYouWill')
-      )
-    ) {
-      exitDemo();
-      // Navigate to the main app — the workspace change triggers onboarding
-      // if the user has no real workspace yet.
-      window.location.href = '/app';
-    }
+    // F3 (Test #3 finding #8): this Exit was dead in the test browser —
+    // it gated the real exit on window.confirm(), and native confirm
+    // dialogs are suppressed in embedded/in-app browsers, so the click
+    // silently did nothing and the user was trapped in the sandbox
+    // (the exact failure P0-2 below exists to prevent). Exit is a
+    // deliberate, clearly-labelled tap and leaving a demo is freely
+    // reversible (re-enter any time; the sandbox auto-deletes in 24h),
+    // so the click now takes the real exit path directly — the same
+    // exitDemo() + '/app' path App.tsx's register flow uses.
+    exitDemo();
+    // Navigate to the main app — the workspace change triggers onboarding
+    // if the user has no real workspace yet.
+    window.location.href = '/app';
   };
 
   return (

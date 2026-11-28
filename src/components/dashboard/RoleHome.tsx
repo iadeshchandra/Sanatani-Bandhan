@@ -1764,6 +1764,48 @@ export const DefaultHome: React.FC<{
 );
 
 /* ------------------------------------------------------------------ */
+/* DevoteeHome — the devotee-context org dashboard (F3, Test #3       */
+/* findings #22/#24; OWNER DECISION 2026-11-28: "Devotee sees only a  */
+/* limited view, not the full treasury"). A devotee-context session   */
+/* never sees Net Treasury or any org money total here — only their    */
+/* own relationship with the org (their portal: giving, bookings,      */
+/* membership, events). Trustee/staff homes are unchanged.             */
+/* ------------------------------------------------------------------ */
+
+export const DevoteeHome: React.FC<{ onNavigate: (id: string) => void }> = ({ onNavigate }) => {
+  const { safeTranslate } = useLanguage();
+  const { activeWorkspace } = useAuthWorkspace();
+  const orgName = activeWorkspace?.name || 'this organisation';
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <section className="lg:col-span-2 flex flex-col gap-6">
+        <div className="bg-white rounded-xl p-5 border border-temple-200 shadow-sm">
+          <h3 className="font-bold text-sm text-temple-900">
+            {safeTranslate('devotee_home_title', 'Your member view', 'আপনার সদস্য দৃশ্য', 'आपका सदस्य दृश्य')}
+          </h3>
+          <p className="text-xs text-temple-600 leading-relaxed mt-1.5">
+            {safeTranslate(
+              'devotee_home_body',
+              `You are a member of ${orgName}. Your own giving, bookings, passes and membership live in your personal portal. The organisation's treasury and staff desks are cared for by its trustees and team — they are not part of the member view.`,
+              `আপনি ${orgName}-এর একজন সদস্য। আপনার নিজের দান, বুকিং, পাস ও সদস্যতা আপনার ব্যক্তিগত পোর্টালে থাকে। সংগঠনের কোষাগার ও কর্মীদের ডেস্ক এর ট্রাস্টি ও দল দেখাশোনা করেন — সেগুলো সদস্য দৃশ্যের অংশ নয়।`,
+              `आप ${orgName} के सदस्य हैं। आपका अपना दान, बुकिंग, पास व सदस्यता आपके व्यक्तिगत पोर्टल में है। संगठन का कोषागार व स्टाफ़ डेस्क इसके ट्रस्टी व दल संभालते हैं — वे सदस्य दृश्य का हिस्सा नहीं हैं।`
+            )}
+          </p>
+          <button
+            type="button"
+            onClick={() => onNavigate('devotee-portal')}
+            className="mt-3 inline-flex items-center gap-1.5 px-4 py-2 min-h-[44px] rounded-xl bg-cta hover:bg-cta-hover text-white text-xs font-bold transition-colors cursor-pointer"
+          >
+            {safeTranslate('devotee_home_open_portal', 'Open my personal portal', 'আমার ব্যক্তিগত পোর্টাল খুলুন', 'मेरा व्यक्तिगत पोर्टल खोलें')}
+          </button>
+        </div>
+        <DiscoverGrid onNavigate={onNavigate} />
+      </section>
+    </div>
+  );
+};
+
+/* ------------------------------------------------------------------ */
 /* RoleHomeSwitch — picks the work surface; sacred header stays above. */
 /* ------------------------------------------------------------------ */
 
@@ -1772,8 +1814,20 @@ export const RoleHomeSwitch: React.FC<{
   onOpenQuickPay: () => void;
   onOpenMySpace?: () => void;
 }> = ({ onNavigate, onOpenQuickPay, onOpenMySpace }) => {
-  const { currentRole } = useAuthWorkspace();
-  const role = normalizeRole(currentRole);
+  // F3 (#22/#24): the switch used to read currentRole — the GLOBAL
+  // role — while the AppContent guard and every checkPermission gate
+  // inside these homes read effectiveRole, the PER-ORG role. Two
+  // sources meant the home a session landed on could disagree with
+  // the gates inside it ("figures differ by session/role without
+  // explanation"). The switch now reads the same effectiveRole as
+  // everything else, and a Devotee effective role gets the limited
+  // member home above — so no path (deep link, role preview, a
+  // resolution race) can put org money totals in front of a
+  // devotee-context session. AppContent's portal-forcing guard for
+  // resolved Devotees is unchanged and still fires first in the
+  // normal flow.
+  const { effectiveRole } = useAuthWorkspace();
+  const role = normalizeRole(effectiveRole);
 
   switch (role) {
     case 'Priest':
@@ -1785,8 +1839,9 @@ export const RoleHomeSwitch: React.FC<{
       return <TrusteeHome onNavigate={onNavigate} onOpenQuickPay={onOpenQuickPay} />;
     case 'Sevadar':
       return <SevadarHome onNavigate={onNavigate} />;
+    case 'Devotee':
+      return <DevoteeHome onNavigate={onNavigate} />;
     default:
-      // Devotee never reaches the dashboard (portal-forced in AppContent);
       // CSO and any future role fall back to the full dashboard.
       return <DefaultHome onNavigate={onNavigate} onOpenQuickPay={onOpenQuickPay} onOpenMySpace={onOpenMySpace} />;
   }

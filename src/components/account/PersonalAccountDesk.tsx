@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { useAuthWorkspace } from '../../context/AuthWorkspaceContext';
 import { useLanguage } from '../../context/LanguageContext';
+import { loadLanguageDict, translateIn } from '../../i18n/translations';
 import { useToast } from '../../context/ToastContext';
 import { useWorkspaceTaxonomy } from '../../hooks/useWorkspaceTaxonomy';
 import { useData } from "../../context/DataContext";
@@ -1090,7 +1091,19 @@ export const PersonalAccountDesk: React.FC<{
                         key={l.code}
                         onClick={() => {
                           setLanguage(l.code as any);
-                          showToast(t('surfaces.personalAccount.toastLanguageSet').replace('{label}', l.name), 'success');
+                          // F3 (Test #3 finding #18): the confirmation
+                          // must speak the language just chosen — t()
+                          // in this closure still resolves in the OLD
+                          // language. Compose it from the new
+                          // language's own dictionary once it has loaded.
+                          void loadLanguageDict(l.code)
+                            .catch(() => undefined)
+                            .then(() => {
+                              showToast(
+                                translateIn(l.code, 'surfaces.personalAccount.toastLanguageSet').replace('{label}', l.name),
+                                'success'
+                              );
+                            });
                         }}
                         className={`p-3 rounded-xl text-xs font-bold border text-center transition-all ${
                           language === l.code

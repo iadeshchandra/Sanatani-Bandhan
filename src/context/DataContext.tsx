@@ -2640,6 +2640,15 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     // amount, type, category, description, method, handledBy, daysAgo
     type TxRow = [number, string, string, string, string, string, number];
+    // F3 (Test #3 finding #23): restricted-fund law for the seed — a
+    // restricted fund (TreasuryLedgerDesk's keyword funds: Annadanam,
+    // Nirman, Gau Seva, Pooja & Utsav) must never START negative. The
+    // Mandir seed spent ₹2,500 on Flowers (Pooja & Utsav) with no
+    // pooja/utsav income at all, and the Goshala seed's fodder +
+    // veterinary spend (₹25,000) outran its Gau Seva income (₹20,100).
+    // Each profile now carries the matching income row its own story
+    // implies (pooja offerings; the gau-seva patron circle), leaving
+    // every restricted fund positive from day one.
     const TX_BY_PROFILE: Record<SeedProfile, TxRow[]> = {
       mandir: [
         [11000, 'Income', 'Hundi', 'Morning hundi collection', 'UPI', 'Demo Admin', 1],
@@ -2648,6 +2657,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         [2500, 'Expense', 'Flowers', 'Daily flower decoration', 'Cash', 'Demo Admin', 5],
         [21000, 'Income', 'Hundi', 'Evening hundi collection', 'Cash', 'Demo Admin', 7],
         [8000, 'Expense', 'Prasadam', 'Prasadam ingredients (weekly)', 'Cash', 'Demo Admin', 8],
+        [5100, 'Income', 'Pooja', 'Pooja & utsav offerings — Kartik month', 'Cash', 'Demo Admin', 9],
         [2100, 'Income', 'Goshala', 'Gau-seva donation — Divya Reddy', 'UPI', 'Demo Admin', 10],
         [51000, 'Income', 'Hundi', 'Festival day hundi collection', 'UPI', 'Demo Admin', 12],
         [15000, 'Expense', 'Maintenance', 'Sanctum electrical repair', 'UPI', 'Demo Admin', 14],
@@ -2667,6 +2677,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         [2800, 'Expense', 'Shed upkeep', 'Goshala shed repairs', 'Cash', 'Demo Admin', 13],
         [5100, 'Income', 'Milk & Products', 'Panchagavya product sales', 'UPI', 'Demo Admin', 16],
         [9100, 'Expense', 'Fodder', 'Concentrate feed stock', 'UPI', 'Demo Admin', 19],
+        [11000, 'Income', 'Gau Seva', 'Gau-seva patron circle — monthly', 'UPI', 'Demo Admin', 21],
         [11000, 'Income', 'Donation', 'Corpus donation — anonymous', 'UPI', 'Demo Admin', 24],
         [1200, 'Expense', 'Utilities', 'Water & electricity', 'Cash', 'Demo Admin', 27],
       ],

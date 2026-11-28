@@ -1,5 +1,5 @@
 import { doc, getDoc, getDocs, limit, query, collection, setDoc, serverTimestamp, where } from 'firebase/firestore';
-import { db } from '../firebase';
+import { auth, db } from '../firebase';
 import { generateSanataniId, SanataniProfile } from './types';
 
 /* soloSession — standalone (hook-free) Sanatani profile get-or-mint.
@@ -53,6 +53,48 @@ function writeCachedProfile(uid: string, profile: SanataniProfile): void {
   } catch {
     /* storage unavailable — non-fatal */
   }
+}
+
+/* ------------------------------------------------------------------ */
+/* F3 (Test #3 finding #14): the device demo identity.                 */
+/* ------------------------------------------------------------------ */
+/* Demo sessions run on ANONYMOUS Firebase users, and signing out     */
+/* destroys the anonymous session — the next demo entry mints a NEW   */
+/* anonymous uid, so the uid-keyed cache and Firestore doc above both */
+/* miss and the visitor's demo pass showed a brand-new SAN ID on      */
+/* every sign-out/in (SAN-VW4B8X → SAN-VWSVYW → SAN-E763KN in one     */
+/* test sitting). A demo identity is a SAMPLE by definition, so it    */
+/* lives on the device only: one localStorage-backed demo profile,    */
+/* minted once per device and reused across every demo session. It is */
+/* NEVER written to Firestore — the real registry stays clean, and    */
+/* anonymous writes there are rules-denied anyway.                    */
+const DEMO_PROFILE_KEY = 'sb_demo_sanatani_profile';
+
+function readDemoProfile(): SanataniProfile | null {
+  try {
+    const raw = localStorage.getItem(DEMO_PROFILE_KEY);
+    if (!raw) return null;
+    const p = JSON.parse(raw) as SanataniProfile;
+    if (typeof p?.id === 'string' && p.id.startsWith('SAN-')) return p;
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+function writeDemoProfile(profile: SanataniProfile): void {
+  try {
+    localStorage.setItem(DEMO_PROFILE_KEY, JSON.stringify(profile));
+  } catch {
+    /* storage unavailable — the demo ID may churn; never fatal */
+  }
+}
+
+/** True when the live Firebase session is an anonymous (demo) one
+ *  AND it is the session this uid belongs to. */
+function isAnonymousSessionFor(uid: string): boolean {
+  const current = auth.currentUser;
+  return !!current && current.isAnonymous && current.uid === uid;
 }
 
 export async function fetchSanataniProfile(uid: string): Promise<SanataniProfile | null> {
@@ -118,7 +160,16 @@ export function isProvisionalProfile(
  */
 export function getCachedSanataniProfile(uid: string): SanataniProfile | null {
   if (!uid || uid === 'anon') return null;
-  return readCachedProfile(uid);
+  const cached = readCachedProfile(uid);
+  if (cached) return cached;
+  // F3 (#14): an anonymous (demo) session's uid changes every
+  // sign-in, so its uid-keyed cache always misses — fall back to the
+  // device demo profile so the shell hydrates the SAME demo identity.
+  if (isAnonymousSessionFor(uid)) {
+    const demo = readDemoProfile();
+    if (demo) return { ...demo, uid };
+  }
+  return null;
 }
 
 /**
@@ -138,6 +189,43 @@ export async function mintOrFetchSanataniProfile(
   // Anonymous sessions never get a real SAN ID.
   if (!uid || uid === 'anon') {
     return provisionalSoloProfile();
+  }
+
+  // F3 (#14): a live ANONYMOUS Firebase session (the demo) gets the
+  // device demo profile instead — get-or-mint once per device, kept
+  // in localStorage only, never written to Firestore. The returned
+  // copy is re-keyed to THIS session's uid; the stored profile (and
+  // its SAN ID) is the device's one demo identity across sessions.
+  if (isAnonymousSessionFor(uid)) {
+    const existingDemo = readDemoProfile();
+    if (existingDemo) {
+      // Mirror the main path's name backfill, device-locally.
+      const trimmedFallback = (fallbackName || '').trim();
+      if (trimmedFallback && !existingDemo.displayName?.trim()) {
+        const updated = { ...existingDemo, displayName: trimmedFallback, updatedAt: Date.now() };
+        writeDemoProfile(updated);
+        return { ...updated, uid };
+      }
+      return { ...existingDemo, uid };
+    }
+    const mintedDemo: SanataniProfile = {
+      id: generateSanataniId(),
+      uid,
+      displayName: fallbackName,
+      email: email || undefined,
+      phone: details.phone || undefined,
+      city: details.city || undefined,
+      gotra: details.gotra || undefined,
+      languages: details.languages || [],
+      homeRegion: details.homeRegion || undefined,
+      verificationTier: 'REGISTERED',
+      roles: {},
+      synced: false,
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    };
+    writeDemoProfile(mintedDemo);
+    return mintedDemo;
   }
 
   // Concurrency guard: share in-flight mint.

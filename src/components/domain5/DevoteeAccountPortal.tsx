@@ -31,6 +31,7 @@ import { shapeFootprint, mappableRows, type FootprintRow } from '../../lib/yatra
 import { friendlyError } from '../../lib/friendlyError';
 import { useOrgConsoleAccess } from '../../lib/orgConsoleAccess';
 import { displaySanataniId } from '../../lib/passId';
+import { loadLanguageDict, translateIn } from '../../i18n/translations';
 import { provisionalSoloProfile } from '../../solo/soloSession';
 import { OrgConsoleLockSheet } from './OrgConsoleLockSheet';
 import { 
@@ -152,7 +153,14 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
       gotra: activeWorkspace?.gotra || '',
       pravara: '',
       nakshatra: '',
-      kuladevata: activeWorkspace?.kuladevata || '',
+      // F3 (Test #3 finding #16): a DEMO workspace's kuladevata field
+      // carries the placeholder 'Demo' — a mode label, not a deity.
+      // Inheriting it made the member's pass read Kuladevata "Demo".
+      // A demo visitor's own kuladevata is simply not given, so it
+      // stays blank (and the pass hides blank fields — below).
+      kuladevata: activeWorkspace?.id?.startsWith('DEMO_')
+        ? ''
+        : activeWorkspace?.kuladevata || '',
       address: activeWorkspace?.address || '',
       bloodGroup: undefined,
       emergencyContact: '',
@@ -727,9 +735,11 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
                 <h1 className="text-base sm:text-lg font-black tracking-tight text-temple-950 leading-none">
                   {profileData.spiritualName || profileData.fullName}
                 </h1>
-                <span className="hidden sm:inline-flex px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase bg-amber-100 text-amber-800 border border-brass-200">
-                  {profileData.gotra} Gotra
-                </span>
+                {profileData.gotra && (
+                  <span className="hidden sm:inline-flex px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase bg-amber-100 text-amber-800 border border-brass-200">
+                    {profileData.gotra} Gotra
+                  </span>
+                )}
               </div>
               <p className="text-xs text-amber-700 font-medium flex items-center gap-1.5 mt-0.5">
                 <span>{activeWorkspace?.name || 'Sanatani Bandhan'}</span>
@@ -940,26 +950,40 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
                       </div>
                     </div>
 
-                    {/* Metadata Grid */}
+                    {/* Metadata Grid — F3 (Test #3 finding #16): a
+                        field the member has not given is HIDDEN, never
+                        rendered blank (the demo pass showed empty
+                        Gotra / Blood Group / Emergency Phone cells),
+                        and Kuladevata no longer falls back to an
+                        invented deity ('Sri Shiva') presented as the
+                        member's own. */}
                     <div className="grid grid-cols-2 gap-2.5 pt-2 text-xs">
-                      <div className="paper-inset p-2.5 rounded-xl border paper-line">
-                        <span className="text-[10px] uppercase font-bold rp-eyebrow block">{t('surfaces.devoteePortal.gotraLineage')}</span>
-                        <span className="font-extrabold rp-ink">{profileData.gotra} Gotra</span>
-                      </div>
-                      <div className="paper-inset p-2.5 rounded-xl border paper-line">
-                        <span className="text-[10px] uppercase font-bold rp-eyebrow block">{t('org.people.devoteeGrid.bloodGroup2')}</span>
-                        <span className="font-extrabold rp-alert">{profileData.bloodGroup}</span>
-                      </div>
-                      <div className="paper-inset p-2.5 rounded-xl border paper-line">
-                        <span className="text-[10px] uppercase font-bold rp-eyebrow block">{t('org.people.devoteeGrid.emergencyPhone')}</span>
-                        <a href={`tel:${profileData.emergencyPhone}`} className="font-mono font-bold rp-amount hover:underline">
-                          {profileData.emergencyPhone}
-                        </a>
-                      </div>
-                      <div className="paper-inset p-2.5 rounded-xl border paper-line">
-                        <span className="text-[10px] uppercase font-bold rp-eyebrow block">Kuladevata</span>
-                        <span className="font-bold rp-ink truncate block">{profileData.kuladevata || 'Sri Shiva'}</span>
-                      </div>
+                      {profileData.gotra && (
+                        <div className="paper-inset p-2.5 rounded-xl border paper-line">
+                          <span className="text-[10px] uppercase font-bold rp-eyebrow block">{t('surfaces.devoteePortal.gotraLineage')}</span>
+                          <span className="font-extrabold rp-ink">{profileData.gotra} Gotra</span>
+                        </div>
+                      )}
+                      {profileData.bloodGroup && (
+                        <div className="paper-inset p-2.5 rounded-xl border paper-line">
+                          <span className="text-[10px] uppercase font-bold rp-eyebrow block">{t('org.people.devoteeGrid.bloodGroup2')}</span>
+                          <span className="font-extrabold rp-alert">{profileData.bloodGroup}</span>
+                        </div>
+                      )}
+                      {profileData.emergencyPhone && (
+                        <div className="paper-inset p-2.5 rounded-xl border paper-line">
+                          <span className="text-[10px] uppercase font-bold rp-eyebrow block">{t('org.people.devoteeGrid.emergencyPhone')}</span>
+                          <a href={`tel:${profileData.emergencyPhone}`} className="font-mono font-bold rp-amount hover:underline">
+                            {profileData.emergencyPhone}
+                          </a>
+                        </div>
+                      )}
+                      {profileData.kuladevata && (
+                        <div className="paper-inset p-2.5 rounded-xl border paper-line">
+                          <span className="text-[10px] uppercase font-bold rp-eyebrow block">Kuladevata</span>
+                          <span className="font-bold rp-ink truncate block">{profileData.kuladevata}</span>
+                        </div>
+                      )}
                     </div>
                   </div>
 
@@ -1059,9 +1083,11 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
                       <AlertCircle className="w-4 h-4 text-red-600" />
                       <span>{t('surfaces.devoteePortal.emergencySafetyRecord')}</span>
                     </h4>
-                    <span className="px-2 py-0.5 rounded bg-red-100 text-red-700 font-mono font-bold text-[10px]">
-                      {profileData.bloodGroup}
-                    </span>
+                    {profileData.bloodGroup && (
+                      <span className="px-2 py-0.5 rounded bg-red-100 text-red-700 font-mono font-bold text-[10px]">
+                        {profileData.bloodGroup}
+                      </span>
+                    )}
                   </div>
 
                   <p className="text-xs text-red-700">
@@ -2137,7 +2163,22 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
             </div>
 
             <div className="p-3 bg-red-50 rounded-xl border border-red-200 text-[11px] text-red-800">
-              <strong>{t('surfaces.devoteePortal.telemetryIncluded')}{' '}</strong>Name ({profileData.fullName}), Blood Group ({profileData.bloodGroup}), Emergency Phone ({profileData.emergencyPhone}), and your location at this moment.
+              {/* F3 (Test #3 finding #17): fields the member has not
+                  given are left out of the telemetry list — never
+                  rendered as empty parentheses ("Blood Group ()") —
+                  and a gentle line points to Profile for adding them. */}
+              <strong>{t('surfaces.devoteePortal.telemetryIncluded')}{' '}</strong>
+              {[
+                `Name (${profileData.fullName})`,
+                ...(profileData.bloodGroup ? [`Blood Group (${profileData.bloodGroup})`] : []),
+                ...(profileData.emergencyPhone ? [`Emergency Phone (${profileData.emergencyPhone})`] : []),
+                'your location at this moment',
+              ].join(', ')}.
+              {(!profileData.bloodGroup || !profileData.emergencyPhone) && (
+                <span className="block mt-1">
+                  Add your blood group and emergency phone in Profile so responders have them when it matters.
+                </span>
+              )}
             </div>
 
             <div className="flex items-center gap-3 pt-2">
@@ -2200,7 +2241,20 @@ export const DevoteeAccountPortal: React.FC<DevoteeAccountPortalProps> = ({
                       type="button"
                       onClick={() => {
                         setLanguage(lang.code as any);
-                        showToast(t('surfaces.devoteePortal.toastLanguageSet').replace('{label}', lang.label), 'info');
+                        // F3 (Test #3 finding #18): the confirmation
+                        // must speak the language just chosen — t() in
+                        // this closure still resolves in the OLD
+                        // language (switching back to English used to
+                        // confirm in Hindi). Compose it from the new
+                        // language's own dictionary once it has loaded.
+                        void loadLanguageDict(lang.code)
+                          .catch(() => undefined)
+                          .then(() => {
+                            showToast(
+                              translateIn(lang.code, 'surfaces.devoteePortal.toastLanguageSet').replace('{label}', lang.label),
+                              'info'
+                            );
+                          });
                       }}
                       className={`p-2 rounded-xl border text-center font-bold transition-all cursor-pointer ${
                         language === lang.code
