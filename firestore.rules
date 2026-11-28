@@ -1,4 +1,5 @@
 // Sanatani Bandhan — Hardened Firestore Security Rules. DENY-BY-DEFAULT.
+// Redeploy touch 2026-11-28: rules content is the F2-approved file; the F2 rules deploy never reached production (live ruleset stayed the 2026-11-27 pre-F2 set) and the pipeline skip-if-unchanged logic stranded it. This comment forces the rules step to publish the current file.
 // Source-dieted 2026-11-24 (comments stripped to fit the 262,144-byte source cap;
 // token stream verified identical — behaviour unchanged). Full commented source in git history.
 rules_version = '2';
