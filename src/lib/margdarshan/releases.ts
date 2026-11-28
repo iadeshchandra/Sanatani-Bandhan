@@ -63,6 +63,41 @@ export interface ReleaseEntry {
 
 export const RELEASES: readonly ReleaseEntry[] = [
   {
+    version: 'v2026.11.28-38ce987',
+    date: '2026-11-28',
+    sections: {
+      new: [
+        { text: {
+          en: 'The Users desk in the platform console can now browse people: the first fifty accounts appear as a list, and tapping one opens its management card — no need to know an email address first.',
+          hi: 'प्लेटफ़ॉर्म कंसोल का Users डेस्क अब लोगों को ब्राउज़ कर सकता है: पहले पचास खाते सूची के रूप में दिखते हैं, और किसी पर टैप करने से उसका प्रबंधन कार्ड खुलता है — पहले ईमेल पता जानना ज़रूरी नहीं।',
+          bn: 'প্ল্যাটফর্ম কনসোলের Users ডেস্ক এখন মানুষ ব্রাউজ করতে পারে: প্রথম পঞ্চাশটি অ্যাকাউন্ট তালিকা হিসেবে দেখায়, আর একটিতে ট্যাপ করলেই তার ব্যবস্থাপনা কার্ড খোলে — আগে ইমেল ঠিকানা জানা জরুরি নয়।',
+        } },
+        { text: {
+          en: 'Every sign-in to the platform console is now written into the Audit Log, so the owner’s own visits leave an honest trail from today onward.',
+          hi: 'प्लेटफ़ॉर्म कंसोल में हर साइन-इन अब Audit Log में लिखा जाता है, ताकि आज से मालिक की अपनी यात्राओं का ईमानदार रिकॉर्ड रहे।',
+          bn: 'প্ল্যাটফর্ম কনসোলে প্রতিটি সাইন-ইন এখন Audit Log-এ লেখা হয়, যাতে আজ থেকে মালিকের নিজের প্রবেশের সৎ রেকর্ড থাকে।',
+        } },
+      ],
+      fixed: [
+        { text: {
+          en: 'The platform console now tells the truth: the Workspaces desk lists every workspace (it showed none), the API Keys desk opens for the owner, and the Professionals desk no longer refuses the owner with a permission message.',
+          hi: 'प्लेटफ़ॉर्म कंसोल अब सच बताता है: Workspaces डेस्क हर workspace दिखाता है (पहले एक भी नहीं दिखता था), API Keys डेस्क मालिक के लिए खुलता है, और Professionals डेस्क अब मालिक को अनुमति-संदेश दिखाकर नहीं रोकता।',
+          bn: 'প্ল্যাটফর্ম কনসোল এখন সত্য বলে: Workspaces ডেস্ক সব workspace দেখায় (আগে একটিও দেখাত না), API Keys ডেস্ক মালিকের জন্য খোলে, আর Professionals ডেস্ক এখন অনুমতির বার্তা দেখিয়ে মালিককে আটকায় না।',
+        } },
+        { text: {
+          en: 'The System desk no longer shows a make-believe server address — it honestly says no separate server is configured — and the Translations desk now labels the bundled starter translations as starters instead of verified.',
+          hi: 'System डेस्क अब कोई काल्पनिक सर्वर पता नहीं दिखाता — वह ईमानदारी से बताता है कि कोई अलग सर्वर कॉन्फ़िगर नहीं है, और Translations डेस्क अब साथ आए प्रारंभिक अनुवादों को सत्यापित कहने के बजाय प्रारंभिक ही कहता है।',
+          bn: 'System ডেস্ক এখন আর কাল্পনিক সার্ভার ঠিকানা দেখায় না — সৎভাবে বলে কোনো আলাদা সার্ভার কনফিগার করা নেই, আর Translations ডেস্ক এখন সঙ্গে-আসা প্রাথমিক অনুবাদগুলোকে যাচাইকৃত না বলে প্রাথমিকই বলে।',
+        } },
+        { text: {
+          en: 'The platform console now fits phone screens: its desk menu scrolls instead of cutting off names, and the floating SOS and Ask buttons no longer cover the console’s own controls.',
+          hi: 'प्लेटफ़ॉर्म कंसोल अब फ़ोन स्क्रीन पर ठीक बैठता है: उसका डेस्क मेनू नाम काटने के बजाय स्क्रॉल होता है, और तैरते SOS व Ask बटन अब कंसोल के अपने नियंत्रणों को नहीं ढकते।',
+          bn: 'প্ল্যাটফর্ম কনসোল এখন ফোনের স্ক্রিনে ঠিকমতো বসে: এর ডেস্ক মেনু নাম কেটে না দিয়ে স্ক্রল হয়, আর ভাসমান SOS ও Ask বোতাম এখন কনসোলের নিজের নিয়ন্ত্রণ ঢাকে না।',
+        } },
+      ],
+    },
+  },
+  {
     version: 'v2026.11.27-fc5e43f',
     date: '2026-11-27',
     sections: {
